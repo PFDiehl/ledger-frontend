@@ -13,7 +13,7 @@ export default function TopBar({ onLogout, onAI }) {
     <header className="topbar">
       <div style={{ display:'flex', alignItems:'center', gap:10 }}>
         <div className="app-logo" style={{ fontSize:16, fontWeight:600, letterSpacing:'-.03em', color:'var(--brand-logo)' }}>
-          Mountain Top Mountain Top Ledger
+          Mountain Top Ledger
         </div>
         {org && (
           <div className="org-pill">
@@ -121,5 +121,6 @@ export default function TopBar({ onLogout, onAI }) {
     </header>
   );
 }
+
 
 
