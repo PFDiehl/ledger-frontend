@@ -31,7 +31,7 @@ export default function AuthPage({ onSuccess }) {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-logo">Ledger</div>
+        <div className="auth-logo">Mountain Top Ledger</div><div class="auth-tagline">Small business accounting, simplified</div>
         <div className="auth-title">{mode === 'login' ? 'Sign in to your account' : 'Create your account'}</div>
 
         {error && <div className="auth-error">{error}</div>}
@@ -73,3 +73,4 @@ export default function AuthPage({ onSuccess }) {
     </div>
   );
 }
+
