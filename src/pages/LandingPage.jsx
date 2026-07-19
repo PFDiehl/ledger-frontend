@@ -48,7 +48,7 @@ export default function LandingPage({ onGetStarted }) {
             {icon:'📱',title:'Mobile App',desc:'Full accounting power in your pocket. Available on iPhone.'},
             {icon:'☁️',title:'Cloud Sync',desc:'Your data is always safe and accessible from any device, anywhere.'},
           ].map(f => (
-            <div key={f.title} style={{backgroundColor:'rgba(255,209,102,0.05)',border:'1px solid rgba(255,209,102,0.15)',borderRadius:16,padding:28}}>
+            <div key={f.title} onClick={onGetStarted} style={{backgroundColor:'rgba(255,209,102,0.05)',border:'1px solid rgba(255,209,102,0.15)',borderRadius:16,padding:28,cursor:'pointer',transition:'border-color 0.2s'}} onMouseEnter={e=>e.currentTarget.style.borderColor='rgba(255,209,102,0.5)'} onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(255,209,102,0.15)'}>
               <div style={{fontSize:32,marginBottom:12}}>{f.icon}</div>
               <h3 style={{fontSize:18,color:'#ffd166',marginBottom:8,fontWeight:700,fontFamily:'sans-serif'}}>{f.title}</h3>
               <p style={{fontSize:14,color:'#7a9a7a',lineHeight:1.6,fontFamily:'sans-serif',margin:0}}>{f.desc}</p>
