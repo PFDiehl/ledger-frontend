@@ -30,6 +30,7 @@ import AnomalyDetectionPage      from './pages/AnomalyDetectionPage';
 import CashFlowForecastPage      from './pages/CashFlowForecastPage';
 import SettingsPage              from './pages/SettingsPage';
 import AIInsightsPanel           from './components/ai/AIInsightsPanel';
+import LandingPage from './pages/LandingPage';
 import './styles.css';
 
 const isPortal = window.location.pathname.startsWith('/portal/');
@@ -39,11 +40,13 @@ export default function App() {
   const [activeNav, setActiveNav]  = useState('dashboard');
   const [view, setView]            = useState({ type:'list' });
   const [onboarded, setOnboarded]  = useState(() => !!localStorage.getItem('onboarded'));
+  const [showLanding, setShowLanding] = useState(true);
   const [showAI, setShowAI]        = useState(false);
 
   if (isPortal) return <CustomerPortalPage token={window.location.pathname.replace('/portal/','')} />;
   if (loading)  return <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color:'var(--color-text-secondary)' }}>Loading…</div>;
-  if (!user)    return <AuthPage onSuccess={() => {}} />;
+  if (!user && showLanding) return <LandingPage onGetStarted={()=>setShowLanding(false)} />;
+  if (!user) return <AuthPage onSuccess={() => {}} />;
   if (!onboarded) return <OnboardingPage onComplete={() => { localStorage.setItem('onboarded','1'); setOnboarded(true); }} />;
 
   const nav = id => { setActiveNav(id); setView({ type:'list' }); };
@@ -91,3 +94,6 @@ export default function App() {
     </div>
   );
 }
+
+
+
