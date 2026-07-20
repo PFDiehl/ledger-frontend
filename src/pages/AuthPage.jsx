@@ -29,7 +29,7 @@ export default function AuthPage({ onSuccess }) {
   }
 
   return (
-    <div className="auth-page"><div style={{textAlign:'center',padding:'12px',marginBottom:'8px'}}><a href="/" style={{color:'#2D4A35',fontSize:'18px',fontWeight:'600',textDecoration:'none',fontFamily:'sans-serif'}}>< Back to home</a></div>
+    <div className="auth-page"><div style={{textAlign:'center',padding:'12px',marginBottom:'8px'}}><a href="/" style={{color:'#2D4A35',fontSize:'18px',fontWeight:'600',textDecoration:'none',fontFamily:'sans-serif'}}>home</a></div>
       <div className="auth-card">
         <div className="auth-logo">Mountain Top Ledger</div><div class="auth-tagline">Small business accounting, simplified</div>
         <div className="auth-title">{mode === 'login' ? 'Sign in to your account' : 'Create your account'}</div>
