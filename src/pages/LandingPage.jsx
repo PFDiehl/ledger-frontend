@@ -26,7 +26,7 @@ export default function LandingPage({ onGetStarted }) {
           </svg>
         </div>
         <h1 style={{fontSize:56,fontWeight:700,color:'#ffd166',marginBottom:8,lineHeight:1.1}}>Mountain Top Ledger</h1>
-        <p style={{fontSize:16,color:'#f5a623',letterSpacing:4,marginBottom:32,fontFamily:'sans-serif'}}>ACCOUNTING, SIMPLIFIED</p>
+        <p style={{fontSize:16,color:'#f5a623',letterSpacing:4,marginBottom:32,fontFamily:'sans-serif'}}>BUILT FOR WHERE YOU ARE GOING</p>
         <p style={{fontSize:20,color:'#a8d4a8',maxWidth:600,margin:'0 auto 48px',lineHeight:1.7,fontFamily:'sans-serif'}}>
           Small business accounting that works as hard as you do. Track invoices, expenses, and bills — all in one place.
         </p>
@@ -74,3 +74,4 @@ export default function LandingPage({ onGetStarted }) {
     </div>
   );
 }
+
