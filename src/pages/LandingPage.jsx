@@ -28,7 +28,7 @@ export default function LandingPage({ onGetStarted }) {
         <h1 style={{fontSize:56,fontWeight:700,color:'#ffd166',marginBottom:8,lineHeight:1.1}}>Mountain Top Ledger</h1>
         <p style={{fontSize:16,color:'#f5a623',letterSpacing:4,marginBottom:32,fontFamily:'sans-serif'}}>BUILT FOR WHERE YOU ARE GOING</p>
         <p style={{fontSize:20,color:'#a8d4a8',maxWidth:600,margin:'0 auto 48px',lineHeight:1.7,fontFamily:'sans-serif'}}>
-          Small business accounting that works as hard as you do. Track invoices, expenses, and bills — all in one place.
+          Every great business starts somewhere. Mountain Top Ledger is business accounting built to take you from your first invoice to your biggest milestone, and every step in between. Start your free trial with just the essentials, then add payroll, advanced reports, and enterprise tools only when your business is ready. You always pay for what you need and nothing more.
         </p>
         <button onClick={onGetStarted} style={{backgroundColor:'#ffd166',color:'#0d2010',padding:'16px 48px',borderRadius:12,fontSize:18,fontWeight:700,cursor:'pointer',border:'none',fontFamily:'sans-serif',letterSpacing:1}}>
           Get Started Free
