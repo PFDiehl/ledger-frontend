@@ -60,7 +60,7 @@ export default function LandingPage({ onGetStarted }) {
       {/* CTA */}
       <div style={{textAlign:'center',padding:'80px 48px',background:'linear-gradient(180deg,#080f28 0%,#0a2010 50%,#071408 100%)'}}>
         <h2 style={{fontSize:36,color:'#ffd166',marginBottom:16,fontWeight:700}}>Ready to take your books to the top?</h2>
-        <p style={{fontSize:18,color:'#a8d4a8',marginBottom:40,fontFamily:'sans-serif'}}>Join small businesses already using Mountain Top Ledger</p>
+        <p style={{fontSize:18,color:'#a8d4a8',marginBottom:40,fontFamily:'sans-serif'}}>Start your journey with Mountain Top Ledger today</p>
         <button onClick={onGetStarted} style={{backgroundColor:'#ffd166',color:'#0d2010',padding:'16px 48px',borderRadius:12,fontSize:18,fontWeight:700,cursor:'pointer',border:'none',fontFamily:'sans-serif',letterSpacing:1}}>
           Create Free Account
         </button>
@@ -74,5 +74,7 @@ export default function LandingPage({ onGetStarted }) {
     </div>
   );
 }
+
+
 
 
