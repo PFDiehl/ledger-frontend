@@ -31,9 +31,11 @@ import CashFlowForecastPage      from './pages/CashFlowForecastPage';
 import SettingsPage              from './pages/SettingsPage';
 import AIInsightsPanel           from './components/ai/AIInsightsPanel';
 import LandingPage from './pages/LandingPage';
+import PrivacyPage from './pages/PrivacyPage';
 import './styles.css';
 
 const isPortal = window.location.pathname.startsWith('/portal/');
+const isPrivacy = window.location.pathname === '/privacy';
 
 export default function App() {
   const { user, org, loading, logout } = useAuth();
@@ -43,6 +45,7 @@ export default function App() {
   const [showLanding, setShowLanding] = useState(true);
   const [showAI, setShowAI]        = useState(false);
 
+  if (isPrivacy) return <PrivacyPage />;
   if (isPortal) return <CustomerPortalPage token={window.location.pathname.replace('/portal/','')} />;
   if (loading)  return <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color:'var(--color-text-secondary)' }}>Loading…</div>;
   if (!user && showLanding) return <LandingPage onGetStarted={()=>setShowLanding(false)} />;
@@ -94,6 +97,9 @@ export default function App() {
     </div>
   );
 }
+
+
+
 
 
 
