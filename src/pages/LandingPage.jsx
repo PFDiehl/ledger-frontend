@@ -68,13 +68,7 @@ export default function LandingPage({ onGetStarted }) {
 
       {/* Footer */}
       <div style={{textAlign:'center',padding:'24px 48px',backgroundColor:'#030805',borderTop:'1px solid rgba(255,209,102,0.1)'}}>
-        <p style={{fontSize:13,color:'#2a5a2a',fontFamily:'sans-serif',margin:0,letterSpacing:1}}>© 2026 Mountain Top Ledger · mountaintopledger.com</p>
-      </div>
-
-    </div>
-  );
-}
-
+        <p style={{fontSize:13,color:'#2a5a2a',fontFamily:'sans-serif',margin:0,letterSpacing:1}}>© 2026 Mountain Top Ledger · mountaintopledger.com · <a href="/privacy" style={{color:'#5a8a5a',textDecoration:'none'}}>Privacy Policy</a></p>
 
 
 
