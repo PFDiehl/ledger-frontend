@@ -3,7 +3,7 @@ import { useAuth } from '../lib/AuthContext';
 
 export default function AuthPage({ onSuccess }) {
   const { login, register } = useAuth();
-  const [mode,   setMode]   = useState('login'); // 'login' | 'register'
+  const [mode,   setMode]   = useState('login'); // 'login' | 'register'const [showPw, setShowPw] = useState(false);
   const [form,   setForm]   = useState({ email: '', password: '', fullName: '', orgName: '' });
   const [error,  setError]  = useState('');
   const [loading,setLoading]= useState(false);
@@ -55,7 +55,12 @@ export default function AuthPage({ onSuccess }) {
           </div>
           <div className="form-field">
             <label>Password</label>
-            <input type="password" value={form.password} onChange={e => setField('password', e.target.value)} placeholder="••••••••" required minLength={8} />
+            <input type="password" value={form.password} onChange={e => setField('password', e.target.value)} placeholder="••••••••" required minLength={8} /><div style={{position:'relative'}}>
+  <input type={showPw ? 'text' : 'password'} value={form.password} onChange={e => setField('password', e.target.value)} placeholder="••••••••" required minLength={8} style={{width:'100%',paddingRight:'60px'}} />
+  <button type="button" onClick={()=>setShowPw(p=>!p)} style={{position:'absolute',right:'8px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#7A9A7A',fontSize:'13px'}}>
+    {showPw ? 'Hide' : 'Show'}
+  </button>
+</div>
           </div>
           <button type="submit" className="btn-primary auth-submit" disabled={loading}>
             {loading ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
