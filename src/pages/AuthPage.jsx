@@ -3,10 +3,11 @@ import { useAuth } from '../lib/AuthContext';
 
 export default function AuthPage({ onSuccess }) {
   const { login, register } = useAuth();
-  const [mode,   setMode]   = useState('login'); // 'login' | 'register'const [showPw, setShowPw] = useState(false);
-  const [form,   setForm]   = useState({ email: '', password: '', fullName: '', orgName: '' });
-  const [error,  setError]  = useState('');
-  const [loading,setLoading]= useState(false);
+  const [mode, setMode] = useState('login');
+  const [showPw, setShowPw] = useState(false);
+  const [form, setForm] = useState({ email: '', password: '', fullName: '', orgName: '' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   function setField(k, v) { setForm(f => ({ ...f, [k]: v })); setError(''); }
 
@@ -29,13 +30,15 @@ export default function AuthPage({ onSuccess }) {
   }
 
   return (
-    <div className="auth-page"><div style={{textAlign:'center',padding:'12px',marginBottom:'8px'}}><a href="/" style={{color:'#2D4A35',fontSize:'18px',fontWeight:'600',textDecoration:'none',fontFamily:'sans-serif'}}>home</a></div>
+    <div className="auth-page">
+      <div style={{textAlign:'center',padding:'12px',marginBottom:'8px'}}>
+        <a href="/" style={{color:'#2D4A35',fontSize:'18px',fontWeight:'600',textDecoration:'none',fontFamily:'sans-serif'}}>Home</a>
+      </div>
       <div className="auth-card">
-        <div className="auth-logo">Mountain Top Ledger</div><div class="auth-tagline">Built for where you are going</div>
+        <div className="auth-logo">Mountain Top Ledger</div>
+        <div className="auth-tagline">Built for where you are going</div>
         <div className="auth-title">{mode === 'login' ? 'Sign in to your account' : 'Create your account'}</div>
-
         {error && <div className="auth-error">{error}</div>}
-
         <form onSubmit={handleSubmit} className="auth-form">
           {mode === 'register' && (
             <>
@@ -55,35 +58,24 @@ export default function AuthPage({ onSuccess }) {
           </div>
           <div className="form-field">
             <label>Password</label>
-            <input type="password" value={form.password} onChange={e => setField('password', e.target.value)} placeholder="••••••••" required minLength={8} /><div style={{position:'relative'}}>
-  <input type={showPw ? 'text' : 'password'} value={form.password} onChange={e => setField('password', e.target.value)} placeholder="••••••••" required minLength={8} style={{width:'100%',paddingRight:'60px'}} />
-  <button type="button" onClick={()=>setShowPw(p=>!p)} style={{position:'absolute',right:'8px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#7A9A7A',fontSize:'13px'}}>
-    {showPw ? 'Hide' : 'Show'}
-  </button>
-</div>
+            <div style={{position:'relative'}}>
+              <input type={showPw ? 'text' : 'password'} value={form.password} onChange={e => setField('password', e.target.value)} placeholder="••••••••" required minLength={8} style={{width:'100%',paddingRight:'60px',boxSizing:'border-box'}} />
+              <button type="button" onClick={()=>setShowPw(p=>!p)} style={{position:'absolute',right:'8px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#7A9A7A',fontSize:'13px'}}>
+                {showPw ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
           <button type="submit" className="btn-primary auth-submit" disabled={loading}>
             {loading ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
           </button>
         </form>
-
         <div className="auth-switch">
-          {mode === 'login' ? (
-            <>Don't have an account? <button onClick={() => setMode('register')}>Sign up</button></>
-          ) : (
-            <>Already have an account? <button onClick={() => setMode('login')}>Sign in</button></>
-          )}
+          {mode === 'login'
+            ? <><span>Don't have an account? </span><button onClick={() => setMode('register')}>Sign up</button></>
+            : <><span>Already have an account? </span><button onClick={() => setMode('login')}>Sign in</button></>
+          }
         </div>
       </div>
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
