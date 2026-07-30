@@ -1,30 +1,29 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/AuthContext';
-import { useApi } from '../hooks/useApi';
+
+const API = 'https://ledger-accounting-production.up.railway.app/api';
 
 const REPORTS = ['P&L', 'Income', 'Expenses', 'Bills'];
-const PERIODS = ['This month', 'Last month', 'This quarter', 'This year', 'All time'];
 
 export default function ReportsPage() {
   const { org, token } = useAuth();
-  const api = useApi();
   const [report, setReport] = useState('P&L');
-  const [period, setPeriod] = useState('All time');
   const [invoices, setInvoices] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!org) return;
+    if (!org || !token) return;
     async function load() {
       setLoading(true);
       try {
-        const [inv, exp, bil] = await Promise.all([
-          api.get(`/orgs/${org.id}/invoices`),
-          api.get(`/orgs/${org.id}/expenses`),
-          api.get(`/orgs/${org.id}/bills`),
+        const [invRes, expRes, bilRes] = await Promise.all([
+          fetch(`${API}/orgs/${org.id}/invoices`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API}/orgs/${org.id}/expenses`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API}/orgs/${org.id}/bills`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
+        const [inv, exp, bil] = await Promise.all([invRes.json(), expRes.json(), bilRes.json()]);
         setInvoices(inv.data || []);
         setExpenses(exp.data || []);
         setBills(bil.data || []);
@@ -32,7 +31,7 @@ export default function ReportsPage() {
       setLoading(false);
     }
     load();
-  }, [org]);
+  }, [org, token]);
 
   function fmt(n) { return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }); }
 
@@ -53,18 +52,15 @@ export default function ReportsPage() {
   return (
     <div className="page">
       <div className="page-header"><h1 className="page-title">Reports</h1></div>
-
       <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
         {REPORTS.map(r => (
           <button key={r} onClick={()=>setReport(r)} style={{padding:'7px 16px',borderRadius:20,border:'1px solid',borderColor:report===r?'#2D4A35':'#D4DDCC',background:report===r?'#2D4A35':'#fff',color:report===r?'#A8D4A8':'#7A9A7A',fontSize:13,fontWeight:report===r?500:400,cursor:'pointer'}}>{r}</button>
         ))}
       </div>
-
       {loading ? (
         <div style={{textAlign:'center',padding:'40px',color:'#7A9A7A'}}>Loading...</div>
       ) : (
         <div style={{display:'grid',gap:16}}>
-
           {report === 'P&L' && (
             <div className="card" style={{padding:24}}>
               <h2 style={{fontSize:16,fontWeight:600,marginBottom:20,color:'#2D4A35'}}>Profit & Loss Summary</h2>
@@ -87,7 +83,6 @@ export default function ReportsPage() {
               </div>
             </div>
           )}
-
           {report === 'Income' && (
             <div className="card" style={{padding:24}}>
               <h2 style={{fontSize:16,fontWeight:600,marginBottom:20,color:'#2D4A35'}}>Income Details</h2>
@@ -108,7 +103,6 @@ export default function ReportsPage() {
                   <div style={{fontSize:11,color:'#7A9A7A',marginTop:4}}>{invoices.filter(i=>i.status!=='paid').length} invoices</div>
                 </div>
               </div>
-              <h3 style={{fontSize:13,fontWeight:600,color:'#7A9A7A',marginBottom:12,textTransform:'uppercase'}}>Invoice List</h3>
               {invoices.map(inv => (
                 <div key={inv.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #f0f0f0'}}>
                   <div>
@@ -123,7 +117,6 @@ export default function ReportsPage() {
               ))}
             </div>
           )}
-
           {report === 'Expenses' && (
             <div className="card" style={{padding:24}}>
               <h2 style={{fontSize:16,fontWeight:600,marginBottom:20,color:'#2D4A35'}}>Expense Details</h2>
@@ -136,14 +129,13 @@ export default function ReportsPage() {
                 <div key={exp.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #f0f0f0'}}>
                   <div>
                     <div style={{fontSize:14,fontWeight:500}}>{exp.vendor}</div>
-                    <div style={{fontSize:12,color:'#7A9A7A'}}>{exp.category} {exp.description ? '· '+exp.description : ''}</div>
+                    <div style={{fontSize:12,color:'#7A9A7A'}}>{exp.category}{exp.description ? ' · '+exp.description : ''}</div>
                   </div>
                   <div style={{fontSize:14,fontWeight:600,color:'#c0392b'}}>{fmt(exp.amount)}</div>
                 </div>
               ))}
             </div>
           )}
-
           {report === 'Bills' && (
             <div className="card" style={{padding:24}}>
               <h2 style={{fontSize:16,fontWeight:600,marginBottom:20,color:'#2D4A35'}}>Bills Details</h2>
@@ -163,7 +155,6 @@ export default function ReportsPage() {
               ))}
             </div>
           )}
-
         </div>
       )}
     </div>
