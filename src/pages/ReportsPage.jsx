@@ -1,12 +1,12 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/AuthContext';
-
-const API = 'https://ledger-accounting-production.up.railway.app/api';
+import { api } from '../lib/api';
 
 const REPORTS = ['P&L', 'Income', 'Expenses', 'Bills'];
 
 export default function ReportsPage() {
-  const { org, token } = useAuth();
+  const { org } = useAuth();
   const [report, setReport] = useState('P&L');
   const [invoices, setInvoices] = useState([]);
   const [expenses, setExpenses] = useState([]);
@@ -14,24 +14,23 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!org || !token) return;
+    if (!org) return;
     async function load() {
       setLoading(true);
       try {
-        const [invRes, expRes, bilRes] = await Promise.all([
-          fetch(`${API}/orgs/${org.id}/invoices`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API}/orgs/${org.id}/expenses`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API}/orgs/${org.id}/bills`, { headers: { Authorization: `Bearer ${token}` } }),
+        const [inv, exp, bil] = await Promise.all([
+          api.get(`/orgs/${org.id}/invoices`),
+          api.get(`/orgs/${org.id}/expenses`),
+          api.get(`/orgs/${org.id}/bills`),
         ]);
-        const [inv, exp, bil] = await Promise.all([invRes.json(), expRes.json(), bilRes.json()]);
-        setInvoices(inv.data || []);
-        setExpenses(exp.data || []);
-        setBills(bil.data || []);
-      } catch(e) {}
+        setInvoices(inv.data?.data || inv.data || []);
+        setExpenses(exp.data?.data || exp.data || []);
+        setBills(bil.data?.data || bil.data || []);
+      } catch(e) { console.error(e); }
       setLoading(false);
     }
     load();
-  }, [org, token]);
+  }, [org]);
 
   function fmt(n) { return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }); }
 
