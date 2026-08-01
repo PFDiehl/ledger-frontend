@@ -56,6 +56,15 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
   }
 
   function downloadPDF() {
+    import('../lib/generateInvoicePdf').then(({ generateInvoicePdf }) => {
+      generateInvoicePdf(invoice);
+    });
+  }
+  function previewPDF() {
+    import('../lib/generateInvoicePdf').then(({ generateInvoicePdf }) => {
+      generateInvoicePdf(invoice);
+    });
+  }
     if (!org || !invoice.id) return;
     window.open(
       `${import.meta.env.VITE_API_URL}/orgs/${org.id}/invoices/${invoice.id}/pdf?download=1`,
