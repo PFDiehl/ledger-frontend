@@ -71,6 +71,18 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
       '_blank'
     );
   }
+  function previewPDF() {
+    if (!org || !invoice.id) return;
+    window.open(
+      `${import.meta.env.VITE_API_URL}/orgs/${org.id}/invoices/${invoice.id}/pdf`,
+      '_blank'
+    );
+  }
+    window.open(
+      `${import.meta.env.VITE_API_URL}/orgs/${org.id}/invoices/${invoice.id}/pdf?download=1`,
+      '_blank'
+    );
+  }
 
   function previewPDF() {
     if (!org || !invoice.id) return;
