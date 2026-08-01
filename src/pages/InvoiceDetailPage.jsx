@@ -9,21 +9,21 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
   const { org }   = useAuth();
   const [sending, setSending]   = useState(false);
   const [reminder, setReminder] = useState(false);
-  const [msg, setMsg]           = useState(null); // { type: 'success'|'error', text }
+  const [msg, setMsg]           = useState(null);
 
   if (!invoice) return null;
 
-  // Normalise field names between mock and live data
   const id       = invoice.invoiceNumber ?? invoice.id;
   const client   = invoice.contact?.name ?? invoice.client;
   const email    = invoice.contact?.email ?? invoice.email;
   const issued   = invoice.issueDate   ?? invoice.issued;
   const due      = invoice.dueDate     ?? invoice.due;
-  const subtotal = Number(invoice.subtotal ?? invoice.items?.reduce((s, i) => s + i.amount, 0) ?? 0);
+  const subtotal = Number(invoice.subtotal ?? 0);
   const tax      = Number(invoice.taxAmount ?? 0);
+  const shipping = Number(invoice.shipping ?? 0);
+  const discount = Number(invoice.discount ?? 0);
   const total    = Number(invoice.total ?? subtotal + tax);
-  const items    = invoice.lineItems ?? invoice.items ?? [];
-
+  const lines    = invoice.lines ?? invoice.lineItems ?? invoice.items ?? [];
   const canSend   = invoice.status === 'draft';
   const canRemind = ['sent','partial','overdue'].includes(invoice.status);
   const canPay    = ['sent','partial','overdue'].includes(invoice.status);
@@ -35,7 +35,7 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
       await fetch(`${import.meta.env.VITE_API_URL}/orgs/${org.id}/invoices/${invoice.id}/send`, {
         method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` },
       });
-      setMsg({ type: 'success', text: `Invoice sent to ${email} — a PDF is on its way.` });
+      setMsg({ type: 'success', text: `Invoice sent to ${email}` });
       onRefresh?.();
     } catch (e) {
       setMsg({ type: 'error', text: 'Could not send invoice. Try again.' });
@@ -60,36 +60,11 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
       generateInvoicePdf(invoice);
     });
   }
+
   function previewPDF() {
     import('../lib/generateInvoicePdf').then(({ generateInvoicePdf }) => {
       generateInvoicePdf(invoice);
     });
-  }
-    if (!org || !invoice.id) return;
-    window.open(
-      `${import.meta.env.VITE_API_URL}/orgs/${org.id}/invoices/${invoice.id}/pdf?download=1`,
-      '_blank'
-    );
-  }
-  function previewPDF() {
-    if (!org || !invoice.id) return;
-    window.open(
-      `${import.meta.env.VITE_API_URL}/orgs/${org.id}/invoices/${invoice.id}/pdf`,
-      '_blank'
-    );
-  }
-    window.open(
-      `${import.meta.env.VITE_API_URL}/orgs/${org.id}/invoices/${invoice.id}/pdf?download=1`,
-      '_blank'
-    );
-  }
-
-  function previewPDF() {
-    if (!org || !invoice.id) return;
-    window.open(
-      `${import.meta.env.VITE_API_URL}/orgs/${org.id}/invoices/${invoice.id}/pdf`,
-      '_blank'
-    );
   }
 
   return (
@@ -104,13 +79,13 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
           {canSend && (
             <button className="btn-secondary" onClick={handleSend} disabled={sending}>
               {sending ? <Spinner size={14} /> : <i className="ti ti-send" />}
-              {sending ? ' Sending…' : ' Send invoice'}
+              {sending ? ' Sending...' : ' Send invoice'}
             </button>
           )}
           {canRemind && (
             <button className="btn-secondary" onClick={handleReminder} disabled={reminder}>
               {reminder ? <Spinner size={14} /> : <i className="ti ti-bell" />}
-              {reminder ? ' Sending…' : ' Send reminder'}
+              {reminder ? ' Sending...' : ' Send reminder'}
             </button>
           )}
           {canPay && (
@@ -122,83 +97,98 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
           <button className="btn-secondary" onClick={downloadPDF}>
             <i className="ti ti-download" /> Download PDF
           </button>
-          {invoice.id && (
-            <button className="btn-secondary" onClick={previewPDF}>
-              <i className="ti ti-eye" /> Preview
-            </button>
-          )}
+          <button className="btn-secondary" onClick={previewPDF}>
+            <i className="ti ti-eye" /> Preview
+          </button>
         </div>
       </div>
 
       {msg && (
-        <div style={{
-          background: msg.type === 'success' ? '#E1F5EE' : '#FCEBEB',
-          color:      msg.type === 'success' ? '#0F6E56' : '#A32D2D',
-          borderRadius: 8, padding: '10px 16px', fontSize: 13, marginBottom: 16,
-          display: 'flex', alignItems: 'center', gap: 8,
-        }}>
-          <i className={`ti ti-${msg.type === 'success' ? 'check' : 'alert-circle'}`} />
+        <div style={{ padding:'12px 16px', borderRadius:8, marginBottom:16,
+          background: msg.type==='success' ? '#EBF2E8' : '#FDE8E8',
+          color: msg.type==='success' ? '#2D4A35' : '#c0392b', fontSize:14 }}>
           {msg.text}
         </div>
       )}
 
-      <div className="invoice-doc">
-        <div className="invoice-parties">
-          <div className="invoice-from">
-            <div className="party-label">From</div>
-            <div className="party-name">Acme Co.</div>
-            <div className="party-detail">123 Business Ave, Charlotte, NC 28201</div>
-            <div className="party-detail">billing@acmeco.com</div>
-          </div>
-          <div className="invoice-to">
-            <div className="party-label">Bill to</div>
-            <div className="party-name">{client}</div>
-            <div className="party-detail">{email}</div>
-          </div>
-          <div className="invoice-meta">
-            <div className="meta-row"><span className="meta-label">Invoice #</span><span className="meta-val">{id}</span></div>
-            <div className="meta-row"><span className="meta-label">Issued</span><span className="meta-val">{issued}</span></div>
-            <div className="meta-row">
-              <span className="meta-label">Due</span>
-              <span className={`meta-val ${invoice.status === 'overdue' ? 'text-danger' : ''}`}>{due}</span>
-            </div>
-          </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+        <div className="card" style={{ padding:20 }}>
+          <div style={{ fontSize:11, color:'#7A9A7A', marginBottom:4 }}>CLIENT</div>
+          <div style={{ fontSize:16, fontWeight:600 }}>{client || 'N/A'}</div>
+          {email && <div style={{ fontSize:13, color:'#7A9A7A', marginTop:4 }}>{email}</div>}
+          {invoice.poNumber && <div style={{ fontSize:13, color:'#7A9A7A', marginTop:4 }}>PO: {invoice.poNumber}</div>}
         </div>
+        <div className="card" style={{ padding:20 }}>
+          <div style={{ fontSize:11, color:'#7A9A7A', marginBottom:4 }}>DATES</div>
+          <div style={{ fontSize:13, marginBottom:4 }}>Issued: {issued ? new Date(issued).toLocaleDateString() : '-'}</div>
+          <div style={{ fontSize:13 }}>Due: {due ? new Date(due).toLocaleDateString() : '-'}</div>
+        </div>
+      </div>
 
-        <table className="line-items-table">
-          <thead>
-            <tr>
-              <th>Description</th>
-              <th className="right">Qty</th>
-              <th className="right">Rate</th>
-              <th className="right">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, i) => (
-              <tr key={i}>
-                <td>{item.description}</td>
-                <td className="right">{item.qty ?? item.quantity ?? 1}</td>
-                <td className="right">{fmt(Number(item.rate ?? item.unitPrice ?? 0))}</td>
-                <td className="right">{fmt(Number(item.amount))}</td>
+      <div className="card" style={{ padding:20, marginBottom:16 }}>
+        <div style={{ fontSize:11, color:'#7A9A7A', marginBottom:12 }}>LINE ITEMS</div>
+        {lines.length > 0 ? (
+          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
+            <thead>
+              <tr style={{ borderBottom:'1px solid #D4DDCC' }}>
+                <th style={{ padding:'8px 0', textAlign:'left', fontWeight:500, color:'#7A9A7A' }}>Description</th>
+                <th style={{ padding:'8px 0', textAlign:'center', fontWeight:500, color:'#7A9A7A' }}>Qty</th>
+                <th style={{ padding:'8px 0', textAlign:'right', fontWeight:500, color:'#7A9A7A' }}>Rate</th>
+                <th style={{ padding:'8px 0', textAlign:'right', fontWeight:500, color:'#7A9A7A' }}>Amount</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className="invoice-totals">
-          <div className="totals-row"><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
-          <div className="totals-row"><span>Tax</span><span>{fmt(tax)}</span></div>
-          <div className="totals-row total-due"><span>Total due</span><span>{fmt(total)}</span></div>
-        </div>
-
-        {invoice.notes && (
-          <div className="invoice-notes">
-            <div className="notes-label">Notes</div>
-            <div className="notes-text">{invoice.notes}</div>
-          </div>
+            </thead>
+            <tbody>
+              {lines.map((line, i) => (
+                <tr key={i} style={{ borderBottom:'0.5px solid #EBF2E8' }}>
+                  <td style={{ padding:'10px 0' }}>{line.description}</td>
+                  <td style={{ padding:'10px 0', textAlign:'center' }}>{Number(line.quantity)}</td>
+                  <td style={{ padding:'10px 0', textAlign:'right' }}>{fmt(line.unitPrice)}</td>
+                  <td style={{ padding:'10px 0', textAlign:'right', fontWeight:500 }}>{fmt(line.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p style={{ color:'#7A9A7A', fontSize:13 }}>No line items</p>
         )}
       </div>
+
+      <div className="card" style={{ padding:20, marginBottom:16 }}>
+        <div style={{ fontSize:11, color:'#7A9A7A', marginBottom:12 }}>SUMMARY</div>
+        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
+          <span style={{ color:'#7A9A7A', fontSize:14 }}>Subtotal</span>
+          <span style={{ fontSize:14 }}>{fmt(subtotal)}</span>
+        </div>
+        {tax > 0 && (
+          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
+            <span style={{ color:'#7A9A7A', fontSize:14 }}>Tax ({invoice.taxRate}%)</span>
+            <span style={{ fontSize:14 }}>{fmt(tax)}</span>
+          </div>
+        )}
+        {shipping > 0 && (
+          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
+            <span style={{ color:'#7A9A7A', fontSize:14 }}>Shipping</span>
+            <span style={{ fontSize:14 }}>{fmt(shipping)}</span>
+          </div>
+        )}
+        {discount > 0 && (
+          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
+            <span style={{ color:'#7A9A7A', fontSize:14 }}>Discount</span>
+            <span style={{ fontSize:14, color:'#c0392b' }}>-{fmt(discount)}</span>
+          </div>
+        )}
+        <div style={{ display:'flex', justifyContent:'space-between', paddingTop:12, borderTop:'2px solid #2D4A35' }}>
+          <span style={{ fontSize:16, fontWeight:700 }}>Total</span>
+          <span style={{ fontSize:16, fontWeight:700, color:'#2D4A35' }}>{fmt(total)}</span>
+        </div>
+      </div>
+
+      {invoice.notes && (
+        <div className="card" style={{ padding:20 }}>
+          <div style={{ fontSize:11, color:'#7A9A7A', marginBottom:8 }}>NOTES</div>
+          <p style={{ fontSize:14, color:'#555', margin:0 }}>{invoice.notes}</p>
+        </div>
+      )}
     </div>
   );
 }
