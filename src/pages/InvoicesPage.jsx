@@ -54,7 +54,7 @@ export default function InvoicesPage() {
             </tr></thead>
             <tbody>
               {invoices.map(inv => (
-                <tr key={inv.id} style={{borderBottom:'0.5px solid #EBF2E8'}}>
+                <tr key={inv.id} style={{borderBottom:'0.5px solid #EBF2E8',cursor:'pointer'}} onClick={()=>onView?.(inv)}>
                   <td style={{padding:'12px 16px',fontFamily:'monospace',color:'#7A9A7A'}}>{inv.invoiceNumber}</td>
                   <td style={{padding:'12px 16px',fontWeight:500}}>{inv.contact?.name||'-'}</td>
                   <td style={{padding:'12px 16px',textAlign:'right',fontWeight:500}}>{fmt(inv.total)}</td>
@@ -92,3 +92,4 @@ export default function InvoicesPage() {
     </div>
   );
 }
+
