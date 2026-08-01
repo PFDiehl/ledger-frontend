@@ -1,242 +1,284 @@
 import { useState } from 'react';
-import { clients } from '../lib/invoiceData';
+import { useAuth } from '../lib/AuthContext';
 import { fmt } from '../lib/utils';
 
-const today      = new Date().toISOString().slice(0, 10);
+const API = 'https://ledger-accounting-production.up.railway.app/api';
+const today = new Date().toISOString().slice(0, 10);
 const thirtyDays = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
-
-const emptyItem = () => ({ description: '', qty: 1, rate: '', amount: 0 });
-
-const emptyInvoice = {
-  client: '', email: '', issued: today, due: thirtyDays,
-  items: [emptyItem()], notes: '',
-};
+const emptyLine = () => ({ description: '', qty: '1', rate: '', amount: 0 });
 
 export default function InvoiceFormPage({ invoice, onBack, onSave }) {
+  const { org } = useAuth();
   const isEdit = Boolean(invoice);
-  const [form, setForm] = useState(invoice ? { ...invoice, items: invoice.items.map(i => ({ ...i })) } : emptyInvoice);
+  const [form, setForm] = useState({
+    clientName: invoice?.contact?.name || '',
+    clientEmail: invoice?.contact?.email || '',
+    poNumber: invoice?.poNumber || '',
+    notes: invoice?.notes || '',
+    issued: invoice?.issueDate ? invoice.issueDate.slice(0,10) : today,
+    due: invoice?.dueDate ? invoice.dueDate.slice(0,10) : thirtyDays,
+    taxRate: invoice?.taxRate || '',
+    shipping: invoice?.shipping || '',
+    discount: invoice?.discount || '',
+  });
+  const [lines, setLines] = useState(
+    invoice?.lines?.length
+      ? invoice.lines.map(l => ({ description: l.description, qty: String(l.quantity), rate: String(l.unitPrice), amount: Number(l.amount) }))
+      : [emptyLine()]
+  );
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  function setField(key, value) {
-    setForm(f => ({ ...f, [key]: value }));
-    setErrors(e => ({ ...e, [key]: undefined }));
+  function setField(k, v) { setForm(f => ({...f, [k]: v})); }
+  function addLine() { setLines(l => [...l, emptyLine()]); }
+  function removeLine(i) { setLines(l => l.filter((_, idx) => idx !== i)); }
+  function updateLine(i, key, value) {
+    setLines(l => l.map((line, idx) => {
+      if (idx !== i) return line;
+      const updated = {...line, [key]: value};
+      const qty = parseFloat(key === 'qty' ? value : line.qty) || 0;
+      const rate = parseFloat(key === 'rate' ? value : line.rate) || 0;
+      updated.amount = Math.round(qty * rate * 100) / 100;
+      return updated;
+    }));
   }
 
-  function setItem(idx, key, value) {
-    setForm(f => {
-      const items = f.items.map((item, i) => {
-        if (i !== idx) return item;
-        const updated = { ...item, [key]: value };
-        if (key === 'qty' || key === 'rate') {
-          const qty  = parseFloat(key === 'qty'  ? value : item.qty)  || 0;
-          const rate = parseFloat(key === 'rate' ? value : item.rate) || 0;
-          updated.amount = Math.round(qty * rate * 100) / 100;
-        }
-        return updated;
-      });
-      return { ...f, items };
-    });
-  }
-
-  function addItem() {
-    setForm(f => ({ ...f, items: [...f.items, emptyItem()] }));
-  }
-
-  function removeItem(idx) {
-    setForm(f => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
-  }
-
-  function selectClient(name) {
-    const client = clients.find(c => c.name === name);
-    setForm(f => ({ ...f, client: name, email: client?.email ?? f.email }));
-  }
-
-  const subtotal = form.items.reduce((s, i) => s + (i.amount || 0), 0);
+  const subtotal = lines.reduce((s, l) => s + (l.amount || 0), 0);
+  const taxAmount = subtotal * (parseFloat(form.taxRate || 0) / 100);
+  const total = subtotal + taxAmount + parseFloat(form.shipping || 0) - parseFloat(form.discount || 0);
 
   function validate() {
     const e = {};
-    if (!form.client) e.client = 'Client is required';
-    if (!form.issued) e.issued = 'Issue date is required';
-    if (!form.due)    e.due    = 'Due date is required';
-    if (form.items.some(i => !i.description)) e.items = 'All line items need a description';
+    if (!form.clientName) e.clientName = 'Client name is required';
+    if (lines.some(l => !l.description)) e.lines = 'All line items need a description';
+    if (lines.some(l => !l.rate)) e.lines = 'All line items need a rate';
     setErrors(e);
     return Object.keys(e).length === 0;
   }
 
-  function handleSave(status) {
+  async function handleSave(sendNow = false) {
     if (!validate()) return;
-    onSave?.({ ...form, status: status ?? (isEdit ? form.status : 'draft') });
+    if (!org) return alert('No organization found');
+    setLoading(true);
+    try {
+      const payload = {
+        clientName: form.clientName,
+        clientEmail: form.clientEmail,
+        poNumber: form.poNumber,
+        notes: form.notes,
+        dueDate: form.due,
+        taxRate: form.taxRate,
+        shipping: form.shipping,
+        discount: form.discount,
+        lines: lines.map(l => ({ description: l.description, quantity: l.qty, unitPrice: l.rate }))
+      };
+      const method = isEdit ? 'PATCH' : 'POST';
+      const url = isEdit
+        ? `${API}/orgs/${org.id}/invoices/${invoice.id}`
+        : `${API}/orgs/${org.id}/invoices`;
+      const r = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken') ?? ''}` },
+        body: JSON.stringify(payload)
+      });
+      const j = await r.json();
+      if (j.success) {
+        if (sendNow && j.data?.id) {
+          await fetch(`${API}/orgs/${org.id}/invoices/${j.data.id}/send`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken') ?? ''}` }
+          });
+        }
+        onSave?.();
+      } else {
+        alert('Error: ' + (j.message || 'Failed to save'));
+      }
+    } catch(e) { alert('Error: Cannot connect to server'); }
+    finally { setLoading(false); }
   }
 
   return (
     <div className="page invoice-form-page">
       <div className="page-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button className="back-btn" onClick={onBack} aria-label="Back">
-            <i className="ti ti-arrow-left" />
-          </button>
-          <h1 className="page-title">{isEdit ? `Edit ${form.id ?? 'invoice'}` : 'New invoice'}</h1>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <button className="back-btn" onClick={onBack} aria-label="Back"><i className="ti ti-arrow-left" /></button>
+          <h1 className="page-title">{isEdit ? 'Edit Invoice' : 'New Invoice'}</h1>
         </div>
         <div className="page-actions">
-          <button className="btn-secondary" onClick={() => handleSave('draft')}>Save draft</button>
-          <button className="btn-primary"   onClick={() => handleSave('sent')}>
-            <i className="ti ti-send" aria-hidden="true" /> Save &amp; send
+          <button className="btn-secondary" onClick={()=>handleSave(false)} disabled={loading}>
+            {loading ? 'Saving...' : 'Save draft'}
+          </button>
+          <button className="btn-primary" onClick={()=>handleSave(true)} disabled={loading}>
+            <i className="ti ti-send" /> {loading ? 'Saving...' : 'Save & send'}
           </button>
         </div>
       </div>
 
-      <div className="form-layout">
-        {/* Left: form */}
-        <div className="form-main">
+      <div style={{display:'grid',gridTemplateColumns:'1fr 320px',gap:20}}>
+        <div>
 
           {/* Client */}
-          <div className="form-section">
-            <div className="form-section-title">Client</div>
-            <div className="form-row two-col">
-              <div className="form-field">
-                <label>Client name</label>
-                <input
-                  list="client-list"
-                  value={form.client}
-                  onChange={e => selectClient(e.target.value)}
-                  placeholder="Select or type a client"
-                  className={errors.client ? 'input-error' : ''}
-                />
-                <datalist id="client-list">
-                  {clients.map(c => <option key={c.id} value={c.name} />)}
-                </datalist>
-                {errors.client && <div className="field-error">{errors.client}</div>}
+          <div className="card" style={{padding:24,marginBottom:16}}>
+            <h3 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'#2D4A35'}}>Client</h3>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+              <div>
+                <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Client Name *</label>
+                <input value={form.clientName} onChange={e=>setField('clientName',e.target.value)}
+                  placeholder="Acme Corp" style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
+                {errors.clientName && <span style={{color:'#c0392b',fontSize:12}}>{errors.clientName}</span>}
               </div>
-              <div className="form-field">
-                <label>Email</label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={e => setField('email', e.target.value)}
-                  placeholder="billing@client.com"
-                />
+              <div>
+                <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Client Email</label>
+                <input value={form.clientEmail} onChange={e=>setField('clientEmail',e.target.value)}
+                  placeholder="billing@client.com" type="email" style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
               </div>
+            </div>
+            <div style={{marginTop:12}}>
+              <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>PO / Work Order Number (Optional)</label>
+              <input value={form.poNumber} onChange={e=>setField('poNumber',e.target.value)}
+                placeholder="PO-12345" style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
             </div>
           </div>
 
           {/* Dates */}
-          <div className="form-section">
-            <div className="form-section-title">Dates</div>
-            <div className="form-row two-col">
-              <div className="form-field">
-                <label>Issue date</label>
-                <input
-                  type="date"
-                  value={form.issued}
-                  onChange={e => setField('issued', e.target.value)}
-                  className={errors.issued ? 'input-error' : ''}
-                />
-                {errors.issued && <div className="field-error">{errors.issued}</div>}
+          <div className="card" style={{padding:24,marginBottom:16}}>
+            <h3 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'#2D4A35'}}>Dates</h3>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+              <div>
+                <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Issue Date</label>
+                <input type="date" value={form.issued} onChange={e=>setField('issued',e.target.value)}
+                  style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
               </div>
-              <div className="form-field">
-                <label>Due date</label>
-                <input
-                  type="date"
-                  value={form.due}
-                  onChange={e => setField('due', e.target.value)}
-                  className={errors.due ? 'input-error' : ''}
-                />
-                {errors.due && <div className="field-error">{errors.due}</div>}
+              <div>
+                <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Due Date</label>
+                <input type="date" value={form.due} onChange={e=>setField('due',e.target.value)}
+                  style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
               </div>
             </div>
           </div>
 
-          {/* Line items */}
-          <div className="form-section">
-            <div className="form-section-title">Line items</div>
-            {errors.items && <div className="field-error" style={{ marginBottom: 8 }}>{errors.items}</div>}
-
-            <table className="line-items-form-table">
+          {/* Line Items */}
+          <div className="card" style={{padding:24,marginBottom:16}}>
+            <h3 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'#2D4A35'}}>Line Items</h3>
+            {errors.lines && <div style={{color:'#c0392b',fontSize:12,marginBottom:8}}>{errors.lines}</div>}
+            <table style={{width:'100%',borderCollapse:'collapse',marginBottom:12}}>
               <thead>
-                <tr>
-                  <th>Description</th>
-                  <th className="right narrow">Qty</th>
-                  <th className="right narrow">Rate</th>
-                  <th className="right narrow">Amount</th>
-                  <th className="narrow"></th>
+                <tr style={{borderBottom:'1px solid #D4DDCC'}}>
+                  <th style={{padding:'8px 0',textAlign:'left',fontSize:11,color:'#7A9A7A',fontWeight:500}}>DESCRIPTION</th>
+                  <th style={{padding:'8px 8px',textAlign:'center',fontSize:11,color:'#7A9A7A',fontWeight:500,width:60}}>QTY</th>
+                  <th style={{padding:'8px 8px',textAlign:'right',fontSize:11,color:'#7A9A7A',fontWeight:500,width:100}}>RATE ($)</th>
+                  <th style={{padding:'8px 8px',textAlign:'right',fontSize:11,color:'#7A9A7A',fontWeight:500,width:100}}>AMOUNT</th>
+                  <th style={{width:30}}></th>
                 </tr>
               </thead>
               <tbody>
-                {form.items.map((item, idx) => (
-                  <tr key={idx}>
-                    <td>
-                      <input
-                        value={item.description}
-                        onChange={e => setItem(idx, 'description', e.target.value)}
-                        placeholder="Item description"
-                        className="inline-input"
-                      />
+                {lines.map((line, i) => (
+                  <tr key={i} style={{borderBottom:'0.5px solid #EBF2E8'}}>
+                    <td style={{padding:'8px 0'}}>
+                      <input value={line.description} onChange={e=>updateLine(i,'description',e.target.value)}
+                        placeholder="Item description" style={{width:'100%',padding:'8px',borderRadius:6,border:'1px solid #D4DDCC',fontSize:13}} />
                     </td>
-                    <td>
-                      <input
-                        type="number" min="1" step="1"
-                        value={item.qty}
-                        onChange={e => setItem(idx, 'qty', e.target.value)}
-                        className="inline-input right narrow-input"
-                      />
+                    <td style={{padding:'8px'}}>
+                      <input value={line.qty} onChange={e=>updateLine(i,'qty',e.target.value)}
+                        type="number" min="0" style={{width:'100%',padding:'8px',borderRadius:6,border:'1px solid #D4DDCC',fontSize:13,textAlign:'center'}} />
                     </td>
-                    <td>
-                      <input
-                        type="number" min="0" step="0.01"
-                        value={item.rate}
-                        onChange={e => setItem(idx, 'rate', e.target.value)}
-                        placeholder="0.00"
-                        className="inline-input right narrow-input"
-                      />
+                    <td style={{padding:'8px'}}>
+                      <input value={line.rate} onChange={e=>updateLine(i,'rate',e.target.value)}
+                        type="number" min="0" step="0.01" placeholder="0.00" style={{width:'100%',padding:'8px',borderRadius:6,border:'1px solid #D4DDCC',fontSize:13,textAlign:'right'}} />
                     </td>
-                    <td className="right amount-col">{fmt(item.amount)}</td>
-                    <td>
-                      {form.items.length > 1 && (
-                        <button className="remove-item-btn" onClick={() => removeItem(idx)} aria-label="Remove line item">
-                          <i className="ti ti-x" />
-                        </button>
+                    <td style={{padding:'8px',textAlign:'right',fontWeight:500,fontSize:13}}>
+                      {fmt(line.amount)}
+                    </td>
+                    <td style={{padding:'8px'}}>
+                      {lines.length > 1 && (
+                        <button onClick={()=>removeLine(i)} style={{background:'none',border:'none',cursor:'pointer',color:'#c0392b',fontSize:16}}>×</button>
                       )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-
-            <button className="add-item-btn" onClick={addItem}>
-              <i className="ti ti-plus" aria-hidden="true" /> Add line item
+            <button onClick={addLine} style={{background:'none',border:'1px dashed #D4DDCC',borderRadius:8,padding:'8px 16px',cursor:'pointer',color:'#2D4A35',fontSize:13,width:'100%'}}>
+              + Add line item
             </button>
           </div>
 
-          {/* Notes */}
-          <div className="form-section">
-            <div className="form-section-title">Notes</div>
-            <div className="form-field">
-              <textarea
-                value={form.notes}
-                onChange={e => setField('notes', e.target.value)}
-                placeholder="Payment terms, thank-you message, or any additional notes…"
-                rows={3}
-              />
+          {/* Additional charges */}
+          <div className="card" style={{padding:24,marginBottom:16}}>
+            <h3 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'#2D4A35'}}>Additional Charges</h3>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+              <div>
+                <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Tax Rate (%)</label>
+                <input value={form.taxRate} onChange={e=>setField('taxRate',e.target.value)}
+                  type="number" min="0" placeholder="0" style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
+              </div>
+              <div>
+                <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Shipping ($)</label>
+                <input value={form.shipping} onChange={e=>setField('shipping',e.target.value)}
+                  type="number" min="0" placeholder="0.00" style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
+              </div>
+              <div>
+                <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Discount ($)</label>
+                <input value={form.discount} onChange={e=>setField('discount',e.target.value)}
+                  type="number" min="0" placeholder="0.00" style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Right: preview totals */}
-        <div className="form-sidebar">
-          <div className="totals-preview card">
-            <div className="card-title" style={{ marginBottom: 14 }}>Summary</div>
-            <div className="totals-row"><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
-            <div className="totals-row"><span>Tax (0%)</span><span>{fmt(0)}</span></div>
-            <div className="totals-row total-due"><span>Total</span><span>{fmt(subtotal)}</span></div>
+          {/* Notes */}
+          <div className="card" style={{padding:24,marginBottom:16}}>
+            <h3 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'#2D4A35'}}>Notes</h3>
+            <textarea value={form.notes} onChange={e=>setField('notes',e.target.value)}
+              placeholder="Payment terms, thank-you message, or additional notes..."
+              rows={4} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box',resize:'vertical'}} />
           </div>
 
-          <div className="form-help card" style={{ marginTop: 12 }}>
-            <div className="card-title" style={{ marginBottom: 8 }}>Tips</div>
-            <ul className="help-list">
-              <li>Save as draft to finish later.</li>
-              <li>"Save &amp; send" emails the invoice immediately.</li>
-              <li>You can add tax rates in Settings.</li>
-            </ul>
+        </div>
+
+        {/* Summary sidebar */}
+        <div>
+          <div className="card" style={{padding:24,position:'sticky',top:20}}>
+            <h3 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'#2D4A35'}}>Summary</h3>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
+              <span style={{color:'#7A9A7A',fontSize:14}}>Subtotal</span>
+              <span style={{fontSize:14}}>{fmt(subtotal)}</span>
+            </div>
+            {parseFloat(form.taxRate||0) > 0 && (
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
+                <span style={{color:'#7A9A7A',fontSize:14}}>Tax ({form.taxRate}%)</span>
+                <span style={{fontSize:14}}>{fmt(taxAmount)}</span>
+              </div>
+            )}
+            {parseFloat(form.shipping||0) > 0 && (
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
+                <span style={{color:'#7A9A7A',fontSize:14}}>Shipping</span>
+                <span style={{fontSize:14}}>{fmt(parseFloat(form.shipping))}</span>
+              </div>
+            )}
+            {parseFloat(form.discount||0) > 0 && (
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
+                <span style={{color:'#7A9A7A',fontSize:14}}>Discount</span>
+                <span style={{fontSize:14,color:'#c0392b'}}>-{fmt(parseFloat(form.discount))}</span>
+              </div>
+            )}
+            <div style={{display:'flex',justifyContent:'space-between',paddingTop:12,borderTop:'2px solid #2D4A35',marginTop:8}}>
+              <span style={{fontSize:16,fontWeight:700}}>Total</span>
+              <span style={{fontSize:16,fontWeight:700,color:'#2D4A35'}}>{fmt(total)}</span>
+            </div>
+            <div style={{marginTop:20}}>
+              <button onClick={()=>handleSave(false)} disabled={loading}
+                style={{width:'100%',padding:'10px',borderRadius:8,border:'1px solid #D4DDCC',background:'#fff',cursor:'pointer',fontSize:14,marginBottom:8}}>
+                {loading ? 'Saving...' : 'Save draft'}
+              </button>
+              <button onClick={()=>handleSave(true)} disabled={loading}
+                style={{width:'100%',padding:'10px',borderRadius:8,border:'none',background:'#2D4A35',color:'#A8D4A8',cursor:'pointer',fontSize:14,fontWeight:600}}>
+                <i className="ti ti-send" /> {loading ? 'Saving...' : 'Save & send'}
+              </button>
+            </div>
+            <div style={{marginTop:12,fontSize:12,color:'#7A9A7A'}}>
+              <p style={{margin:'4px 0'}}>• Save as draft to finish later</p>
+              <p style={{margin:'4px 0'}}>• "Save & send" emails the invoice immediately</p>
+            </div>
           </div>
         </div>
       </div>
