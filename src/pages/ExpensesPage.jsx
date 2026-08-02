@@ -13,6 +13,7 @@ export default function ExpensesPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ vendor:'', category:'Other', amount:'', description:'' });
   const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState(null);
   const { orgId, token } = getAuth();
 
   useEffect(() => {
@@ -32,6 +33,15 @@ export default function ExpensesPage() {
     } catch(e) { alert('Error saving expense'); } finally { setLoading(false); }
   }
 
+  async function deleteExpense(id) {
+    if (!window.confirm('Delete this expense?')) return;
+    try {
+      const r = await fetch(API+'/orgs/'+orgId+'/expenses/'+id, { method:'DELETE', headers:{ Authorization:'Bearer '+token } });
+      const j = await r.json();
+      if (j.success) { setExpenses(prev => prev.filter(e => e.id !== id)); setSelected(null); }
+      else alert(j.message);
+    } catch(e) { alert('Error deleting expense'); }
+  }
   function fmt(n) { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n); }
 
   return (
@@ -59,7 +69,7 @@ export default function ExpensesPage() {
             </tr></thead>
             <tbody>
               {expenses.map(e => (
-                <tr key={e.id} style={{borderBottom:'0.5px solid #EBF2E8'}}>
+                <tr key={e.id} style={{borderBottom:'0.5px solid #EBF2E8',cursor:'pointer'}} onClick={()=>setSelected(e)} onMouseEnter={ev=>ev.currentTarget.style.background='#f8fbf8'} onMouseLeave={ev=>ev.currentTarget.style.background='transparent'}>
                   <td style={{padding:'12px 16px',fontWeight:500}}>{e.vendor}</td>
                   <td style={{padding:'12px 16px',color:'#7A9A7A'}}>{e.category}</td>
                   <td style={{padding:'12px 16px',color:'#7A9A7A'}}>{e.description}</td>
@@ -91,6 +101,24 @@ export default function ExpensesPage() {
           </div>
         </div>
       )}
-    </div>
+    {selected && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'#fff',borderRadius:14,padding:28,width:440,maxWidth:'90vw'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+              <h2 style={{fontSize:18,fontWeight:600}}>{selected.vendor}</h2>
+              <button onClick={()=>setSelected(null)} style={{background:'none',border:'none',fontSize:22,cursor:'pointer'}}>×</button>
+            </div>
+            <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Category: </span><span style={{fontSize:13}}>{selected.category}</span></div>
+            <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Amount: </span><span style={{fontSize:16,fontWeight:700,color:'#2D4A35'}}>{fmt(selected.amount)}</span></div>
+            {selected.description && <div style={{marginBottom:20}}><span style={{color:'#7A9A7A',fontSize:13}}>Description: </span><span style={{fontSize:13}}>{selected.description}</span></div>}
+            <div style={{display:'flex',gap:10,marginTop:20}}>
+              <button onClick={()=>deleteExpense(selected.id)} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #c0392b',background:'#fff',color:'#c0392b',cursor:'pointer',fontSize:14,fontWeight:600}}>Delete</button>
+              <button onClick={()=>setSelected(null)} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #D4DDCC',background:'#fff',cursor:'pointer',fontSize:14}}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}</div>
   );
 }
+
+
