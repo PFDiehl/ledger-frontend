@@ -55,10 +55,14 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
     } finally { setReminder(false); }
   }
 
-  async function handleDelete() {
-    import('../lib/generateInvoicePdf').then(({ generateInvoicePdf }) => {
-      generateInvoicePdf(invoice);
-    });
+ async function handleDelete() {
+    if (!window.confirm('Delete this invoice?')) return;
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL}/orgs/${org.id}/invoices/${invoice.id}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` },
+      });
+      onBack?.();
+    } catch(e) { alert('Error deleting invoice'); }
   }
 
   function previewPDF() {
