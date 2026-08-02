@@ -1,32 +1,29 @@
 import { useState } from 'react';
 import StatusBadge from '../components/ui/StatusBadge';
-import { Spinner }  from '../components/ui/LoadingSpinner';
-import { useAuth }  from '../lib/AuthContext';
-import { orgApi }   from '../lib/api';
-import { fmt }      from '../lib/utils';
+import { Spinner } from '../components/ui/LoadingSpinner';
+import { useAuth } from '../lib/AuthContext';
+import { fmt } from '../lib/utils';
 
 export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }) {
-  const { org }   = useAuth();
-  const [sending, setSending]   = useState(false);
-  const [reminder, setReminder] = useState(false);
-  const [msg, setMsg]           = useState(null);
+  const { org } = useAuth();
+  const [sending, setSending] = useState(false);
+  const [msg, setMsg] = useState(null);
 
   if (!invoice) return null;
 
   const id       = invoice.invoiceNumber ?? invoice.id;
   const client   = invoice.contact?.name ?? invoice.client;
   const email    = invoice.contact?.email ?? invoice.email;
-  const issued   = invoice.issueDate   ?? invoice.issued;
-  const due      = invoice.dueDate     ?? invoice.due;
+  const issued   = invoice.issueDate ?? invoice.issued;
+  const due      = invoice.dueDate ?? invoice.due;
   const subtotal = Number(invoice.subtotal ?? 0);
   const tax      = Number(invoice.taxAmount ?? 0);
   const shipping = Number(invoice.shipping ?? 0);
   const discount = Number(invoice.discount ?? 0);
   const total    = Number(invoice.total ?? subtotal + tax);
   const lines    = invoice.lines ?? invoice.lineItems ?? invoice.items ?? [];
-  const canSend = ['draft','sent','partial'].includes(invoice.status);
-  const canRemind = ['sent','partial','overdue'].includes(invoice.status);
-  const canPay    = ['sent','partial','overdue'].includes(invoice.status);
+  const canSend  = ['draft','sent','partial'].includes(invoice.status);
+  const canPay   = ['sent','partial','overdue'].includes(invoice.status);
 
   async function handleSend() {
     if (!org) return;
@@ -37,26 +34,13 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
       });
       setMsg({ type: 'success', text: `Invoice sent to ${email}` });
       onRefresh?.();
-    } catch (e) {
-      setMsg({ type: 'error', text: 'Could not send invoice. Try again.' });
+    } catch(e) {
+      setMsg({ type: 'error', text: 'Could not send invoice.' });
     } finally { setSending(false); }
   }
 
-  async function handleReminder() {
-    if (!org) return;
-    setReminder(true); setMsg(null);
-    try {
-      await fetch(`${import.meta.env.VITE_API_URL}/orgs/${org.id}/invoices/${invoice.id}/send-reminder`, {
-        method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` },
-      });
-      setMsg({ type: 'success', text: 'Reminder sent.' });
-    } catch (e) {
-      setMsg({ type: 'error', text: 'Could not send reminder.' });
-    } finally { setReminder(false); }
-  }
-
- async function handleDelete() {
-    if (!window.confirm('Delete this invoice?')) return;
+  async function handleDelete() {
+    if (!window.confirm('Delete this invoice? This cannot be undone.')) return;
     try {
       await fetch(`${import.meta.env.VITE_API_URL}/orgs/${org.id}/invoices/${invoice.id}`, {
         method: 'DELETE', headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` },
@@ -65,7 +49,19 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
     } catch(e) { alert('Error deleting invoice'); }
   }
 
-  function previewPDF() {
+  async function handleMarkPaid() {
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL}/orgs/${org.id}/invoices/${invoice.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` },
+        body: JSON.stringify({ status: 'paid' })
+      });
+      onRefresh?.();
+      onBack?.();
+    } catch(e) { alert('Error updating invoice'); }
+  }
+
+  function downloadPDF() {
     import('../lib/generateInvoicePdf').then(({ generateInvoicePdf }) => {
       generateInvoicePdf(invoice);
     });
@@ -86,36 +82,29 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
               {sending ? ' Sending...' : ' Send invoice'}
             </button>
           )}
-          {canRemind && (
-            <button className="btn-secondary" onClick={handleReminder} disabled={reminder}>
-              {reminder ? <Spinner size={14} /> : <i className="ti ti-bell" />}
-              {reminder ? ' Sending...' : ' Send reminder'}
-            </button>
-          )}
           {canPay && (
-            <button className="btn-secondary success-btn"><i className="ti ti-check" /> Mark as paid</button>
+            <button className="btn-secondary" onClick={handleMarkPaid}>
+              <i className="ti ti-check" /> Mark as paid
+            </button>
           )}
           <button className="btn-secondary" onClick={() => onEdit?.(invoice)}>
             <i className="ti ti-edit" /> Edit
-          </button><button className="btn-secondary" style={{color:'#c0392b',borderColor:'#c0392b'}} onClick={handleDelete}>
+          </button>
+          <button className="btn-secondary" onClick={downloadPDF}>
+            <i className="ti ti-download" /> Download PDF
+          </button>
+          <button className="btn-secondary" onClick={handleDelete} style={{ color:'#c0392b', borderColor:'#c0392b' }}>
             <i className="ti ti-trash" /> Delete
-          </button>
-          <button className="btn-secondary" onClick={downloadPDF}>
-            <i className="ti ti-download" /> Download PDF
-          </button>
-          <button className="btn-secondary" onClick={downloadPDF}>
-            <i className="ti ti-download" /> Download PDF
-          </button>
-          <button className="btn-secondary" onClick={previewPDF}>
-            <i className="ti ti-eye" /> Preview
           </button>
         </div>
       </div>
 
       {msg && (
-        <div style={{ padding:'12px 16px', borderRadius:8, marginBottom:16,
-          background: msg.type==='success' ? '#EBF2E8' : '#FDE8E8',
-          color: msg.type==='success' ? '#2D4A35' : '#c0392b', fontSize:14 }}>
+        <div style={{
+          padding: '12px 16px', borderRadius: 8, marginBottom: 16,
+          background: msg.type === 'success' ? '#EBF2E8' : '#FDE8E8',
+          color: msg.type === 'success' ? '#2D4A35' : '#c0392b', fontSize: 14
+        }}>
           {msg.text}
         </div>
       )}
@@ -141,18 +130,18 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
             <thead>
               <tr style={{ borderBottom:'1px solid #D4DDCC' }}>
                 <th style={{ padding:'8px 0', textAlign:'left', fontWeight:500, color:'#7A9A7A' }}>Description</th>
-                <th style={{ padding:'8px 0', textAlign:'center', fontWeight:500, color:'#7A9A7A' }}>Qty</th>
-                <th style={{ padding:'8px 0', textAlign:'right', fontWeight:500, color:'#7A9A7A' }}>Rate</th>
-                <th style={{ padding:'8px 0', textAlign:'right', fontWeight:500, color:'#7A9A7A' }}>Amount</th>
+                <th style={{ padding:'8px 8px', textAlign:'center', fontWeight:500, color:'#7A9A7A', width:60 }}>Qty</th>
+                <th style={{ padding:'8px 8px', textAlign:'right', fontWeight:500, color:'#7A9A7A', width:100 }}>Rate</th>
+                <th style={{ padding:'8px 8px', textAlign:'right', fontWeight:500, color:'#7A9A7A', width:100 }}>Amount</th>
               </tr>
             </thead>
             <tbody>
               {lines.map((line, i) => (
                 <tr key={i} style={{ borderBottom:'0.5px solid #EBF2E8' }}>
                   <td style={{ padding:'10px 0' }}>{line.description}</td>
-                  <td style={{ padding:'10px 0', textAlign:'center' }}>{Number(line.quantity)}</td>
-                  <td style={{ padding:'10px 0', textAlign:'right' }}>{fmt(line.unitPrice)}</td>
-                  <td style={{ padding:'10px 0', textAlign:'right', fontWeight:500 }}>{fmt(line.amount)}</td>
+                  <td style={{ padding:'10px 8px', textAlign:'center' }}>{Number(line.quantity)}</td>
+                  <td style={{ padding:'10px 8px', textAlign:'right' }}>{fmt(line.unitPrice)}</td>
+                  <td style={{ padding:'10px 8px', textAlign:'right', fontWeight:500 }}>{fmt(line.amount)}</td>
                 </tr>
               ))}
             </tbody>
