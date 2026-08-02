@@ -12,65 +12,102 @@ const TABS = [
   { id:'integrations', icon:'plug',        label:'Integrations'  },
 ];
 
-function CompanySettings() {
-  const toast = useToast();
-  const [form, setForm] = useState({ name:'Acme Co.', email:'billing@acmeco.com', phone:'', taxId:'', currency:'USD', fiscalYearEnd:'12', defaultPaymentTerms:'30', invoicePrefix:'INV-', invoiceNotes:'Thank you for your business!' });
-  const F = ({ label, children }) => (
+function FieldRow({ label, children }) {
+  return (
     <div className="form-field" style={{ marginBottom:14 }}>
       <label style={{ fontSize:12, fontWeight:500, color:'var(--color-text-secondary)', display:'block', marginBottom:5 }}>{label}</label>
       {children}
     </div>
   );
+}
+
+function CompanySettings() {
+  const toast = useToast();
+  const { org } = useAuth();
+  const API = 'https://ledger-accounting-production.up.railway.app/api';
+  const [form, setForm] = useState({ name:'', email:'', phone:'', taxId:'', address:'', city:'', state:'', zip:'', country:'', website:'', currency:'USD', paymentTerms:'30', invoicePrefix:'INV-', invoiceNotes:'' });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!org) return;
+    fetch(`${API}/orgs/${org.id}/settings`, { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` } })
+      .then(r => r.json())
+      .then(j => { if (j.success && j.data) setForm(f => ({ ...f, ...j.data })); })
+      .catch(() => {});
+  }, [org?.id]);
+
+  async function save() {
+    setLoading(true);
+    try {
+      const r = await fetch(`${API}/orgs/${org.id}/settings`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` },
+        body: JSON.stringify(form)
+      });
+      const j = await r.json();
+      if (j.success) toast.success('Company settings saved!');
+      else toast.error(j.message || 'Failed to save');
+    } catch(e) { toast.error('Cannot connect'); }
+    finally { setLoading(false); }
+  }
+
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
       <div>
         <div style={{ fontSize:13, fontWeight:500, marginBottom:14 }}>Business details</div>
         <div className="form-row two-col">
-          <F label="Business name"><input value={form.name} onChange={e => setForm(f=>({...f,name:e.target.value}))} /></F>
-          <F label="Business email"><input type="email" value={form.email} onChange={e => setForm(f=>({...f,email:e.target.value}))} /></F>
+          <FieldRow label="Business name"><input value={form.name||''} onChange={e => setForm(f=>({...f,name:e.target.value}))} /></FieldRow>
+          <FieldRow label="Business email"><input type="email" value={form.email||''} onChange={e => setForm(f=>({...f,email:e.target.value}))} /></FieldRow>
         </div>
         <div className="form-row two-col">
-          <F label="Phone"><input value={form.phone} onChange={e => setForm(f=>({...f,phone:e.target.value}))} placeholder="(555) 000-0000" /></F>
-          <F label="Tax ID / EIN"><input value={form.taxId} onChange={e => setForm(f=>({...f,taxId:e.target.value}))} placeholder="12-3456789" /></F>
+          <FieldRow label="Phone"><input value={form.phone||''} onChange={e => setForm(f=>({...f,phone:e.target.value}))} placeholder="(555) 000-0000" /></FieldRow>
+          <FieldRow label="Tax ID / EIN"><input value={form.taxId||''} onChange={e => setForm(f=>({...f,taxId:e.target.value}))} placeholder="12-3456789" /></FieldRow>
+        </div>
+        <FieldRow label="Website"><input value={form.website||''} onChange={e => setForm(f=>({...f,website:e.target.value}))} placeholder="https://yourcompany.com" /></FieldRow>
+      </div>
+      <div style={{ borderTop:'0.5px solid var(--color-border-tertiary)', paddingTop:20 }}>
+        <div style={{ fontSize:13, fontWeight:500, marginBottom:14 }}>Business address</div>
+        <FieldRow label="Street address"><input value={form.address||''} onChange={e => setForm(f=>({...f,address:e.target.value}))} placeholder="123 Main St" /></FieldRow>
+        <div className="form-row two-col">
+          <FieldRow label="City"><input value={form.city||''} onChange={e => setForm(f=>({...f,city:e.target.value}))} placeholder="Tampa" /></FieldRow>
+          <FieldRow label="State"><input value={form.state||''} onChange={e => setForm(f=>({...f,state:e.target.value}))} placeholder="FL" /></FieldRow>
+        </div>
+        <div className="form-row two-col">
+          <FieldRow label="ZIP"><input value={form.zip||''} onChange={e => setForm(f=>({...f,zip:e.target.value}))} placeholder="33601" /></FieldRow>
+          <FieldRow label="Country"><input value={form.country||''} onChange={e => setForm(f=>({...f,country:e.target.value}))} placeholder="United States" /></FieldRow>
         </div>
       </div>
       <div style={{ borderTop:'0.5px solid var(--color-border-tertiary)', paddingTop:20 }}>
         <div style={{ fontSize:13, fontWeight:500, marginBottom:14 }}>Invoice defaults</div>
         <div className="form-row two-col">
-          <F label="Invoice prefix"><input value={form.invoicePrefix} onChange={e => setForm(f=>({...f,invoicePrefix:e.target.value}))} style={{ maxWidth:120 }} /></F>
-          <F label="Payment terms">
-            <select value={form.defaultPaymentTerms} onChange={e => setForm(f=>({...f,defaultPaymentTerms:e.target.value}))}>
+          <FieldRow label="Invoice prefix"><input value={form.invoicePrefix||''} onChange={e => setForm(f=>({...f,invoicePrefix:e.target.value}))} style={{ maxWidth:120 }} /></FieldRow>
+          <FieldRow label="Payment terms">
+            <select value={form.paymentTerms||'30'} onChange={e => setForm(f=>({...f,paymentTerms:e.target.value}))}>
               {[['0','Due on receipt'],['7','Net 7'],['15','Net 15'],['30','Net 30'],['60','Net 60']].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
             </select>
-          </F>
+          </FieldRow>
         </div>
-        <F label="Default invoice notes">
-          <textarea value={form.invoiceNotes} onChange={e => setForm(f=>({...f,invoiceNotes:e.target.value}))} rows={2} style={{ resize:'vertical', fontSize:13 }} />
-        </F>
+        <FieldRow label="Default invoice notes">
+          <textarea value={form.invoiceNotes||''} onChange={e => setForm(f=>({...f,invoiceNotes:e.target.value}))} rows={2} style={{ resize:'vertical', fontSize:13 }} />
+        </FieldRow>
       </div>
       <div style={{ borderTop:'0.5px solid var(--color-border-tertiary)', paddingTop:20 }}>
         <div style={{ fontSize:13, fontWeight:500, marginBottom:14 }}>Regional</div>
-        <div className="form-row two-col">
-          <F label="Base currency">
-            <select value={form.currency} onChange={e => setForm(f=>({...f,currency:e.target.value}))}>
-              {['USD','EUR','GBP','CAD','AUD','JPY'].map(c => <option key={c}>{c}</option>)}
-            </select>
-          </F>
-          <F label="Fiscal year end">
-            <select value={form.fiscalYearEnd} onChange={e => setForm(f=>({...f,fiscalYearEnd:e.target.value}))}>
-              {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m,i) => <option key={i+1} value={String(i+1)}>{m}</option>)}
-            </select>
-          </F>
-        </div>
+        <FieldRow label="Base currency">
+          <select value={form.currency||'USD'} onChange={e => setForm(f=>({...f,currency:e.target.value}))}>
+            {['USD','EUR','GBP','CAD','AUD','JPY'].map(c => <option key={c}>{c}</option>)}
+          </select>
+        </FieldRow>
       </div>
       <div>
-        <button className="btn-primary" onClick={() => toast.success('Company settings saved')} style={{ marginRight:8 }}>Save changes</button>
+        <button className="btn-primary" onClick={save} disabled={loading} style={{ marginRight:8 }}>
+          {loading ? 'Saving...' : 'Save changes'}
+        </button>
         <button className="btn-secondary">Discard</button>
       </div>
     </div>
   );
 }
-
 function TeamSettings() {
   const toast = useToast();
   const members = [
@@ -171,3 +208,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+
