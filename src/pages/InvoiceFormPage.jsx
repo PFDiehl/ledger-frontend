@@ -43,7 +43,7 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
     }));
   }
 
-  const subtotal = lines.reduce((s, l) => s + (l.amount || 0), 0);
+  const subtotal = lines.reduce((s, l) => s + (Math.round((Number(l.qty||0) * Number(l.rate||0)) * 100) / 100), 0);
   const taxAmount = subtotal * (parseFloat(form.taxRate || 0) / 100);
   const total = subtotal + taxAmount + parseFloat(form.shipping || 0) - parseFloat(form.discount || 0);
 
@@ -285,3 +285,4 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
     </div>
   );
 }
+

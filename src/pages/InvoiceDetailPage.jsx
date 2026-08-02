@@ -24,7 +24,7 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
   const discount = Number(invoice.discount ?? 0);
   const total    = Number(invoice.total ?? subtotal + tax);
   const lines    = invoice.lines ?? invoice.lineItems ?? invoice.items ?? [];
-  const canSend   = invoice.status === 'draft';
+  const canSend = ['draft','sent','partial'].includes(invoice.status);
   const canRemind = ['sent','partial','overdue'].includes(invoice.status);
   const canPay    = ['sent','partial','overdue'].includes(invoice.status);
 
