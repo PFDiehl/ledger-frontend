@@ -30,50 +30,156 @@ export default function AuthPage({ onSuccess }) {
   }
 
   return (
-    <div className="auth-page">
-      <div style={{textAlign:'center',padding:'12px',marginBottom:'8px'}}>
-        <a href="/" style={{color:'#2D4A35',fontSize:'18px',fontWeight:'600',textDecoration:'none',fontFamily:'sans-serif'}}>Home</a>
-      </div>
-      <div className="auth-card">
-        <div className="auth-logo">Mountain Top Ledger</div>
-        <div className="auth-tagline">Built for where you are going</div>
-        <div className="auth-title">{mode === 'login' ? 'Sign in to your account' : 'Create your account'}</div>
-        {error && <div className="auth-error">{error}</div>}
-        <form onSubmit={handleSubmit} className="auth-form">
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1a3a1a 0%, #0d2010 40%, #070f28 70%, #020408 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px',
+      fontFamily: 'sans-serif'
+    }}>
+      {/* Back to home */}
+      <a href="/" style={{
+        position: 'absolute', top: 24, left: 24,
+        color: '#A8D4A8', fontSize: '15px', textDecoration: 'none',
+        display: 'flex', alignItems: 'center', gap: 6,
+        opacity: 0.8
+      }}>
+        ← Home
+      </a>
+
+      <div style={{
+        width: '100%', maxWidth: '460px',
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(168,212,168,0.2)',
+        borderRadius: '24px',
+        padding: '48px 40px',
+        backdropFilter: 'blur(10px)',
+      }}>
+        {/* Logo */}
+        <div style={{textAlign:'center', marginBottom:'36px'}}>
+          <svg width="56" height="56" viewBox="0 0 56 56" style={{marginBottom:'16px'}}>
+            <defs>
+              <linearGradient id="iconbg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#1a3a1a"/>
+                <stop offset="100%" stopColor="#070f28"/>
+              </linearGradient>
+            </defs>
+            <rect width="56" height="56" rx="14" fill="url(#iconbg)"/>
+            <polygon points="28,8 14,42 42,42" fill="#ffd166" opacity="0.2"/>
+            <polygon points="28,8 21,26 28,23 35,26" fill="#ffd166" opacity="0.9"/>
+            <line x1="14" y1="42" x2="42" y2="42" stroke="#ffd166" strokeWidth="1.5" opacity="0.4"/>
+          </svg>
+          <div style={{fontSize:'28px', fontWeight:'700', color:'#ffd166', letterSpacing:'0.5px', fontFamily:'Georgia, serif'}}>
+            Mountain Top Ledger
+          </div>
+          <div style={{fontSize:'13px', color:'#7A9A7A', marginTop:'6px', letterSpacing:'2px'}}>
+            BUILT FOR WHERE YOU ARE GOING
+          </div>
+        </div>
+
+        {/* Title */}
+        <div style={{fontSize:'20px', fontWeight:'600', color:'#fff', marginBottom:'28px', textAlign:'center'}}>
+          {mode === 'login' ? 'Sign in to your account' : 'Create your account'}
+        </div>
+
+        {error && (
+          <div style={{
+            background:'rgba(192,57,43,0.15)', border:'1px solid rgba(192,57,43,0.4)',
+            borderRadius:'10px', padding:'12px 16px', marginBottom:'20px',
+            color:'#ff8a7a', fontSize:'14px'
+          }}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
           {mode === 'register' && (
             <>
-              <div className="form-field">
-                <label>Full name</label>
-                <input type="text" value={form.fullName} onChange={e => setField('fullName', e.target.value)} placeholder="Jane Smith" required />
+              <div style={{marginBottom:'16px'}}>
+                <label style={{display:'block', fontSize:'13px', color:'#A8D4A8', marginBottom:'8px', fontWeight:'500'}}>Full Name</label>
+                <input
+                  type="text" value={form.fullName} onChange={e => setField('fullName', e.target.value)}
+                  placeholder="Jane Smith" required
+                  style={{
+                    width:'100%', padding:'14px 16px', borderRadius:'12px', fontSize:'16px',
+                    background:'rgba(255,255,255,0.06)', border:'1px solid rgba(168,212,168,0.25)',
+                    color:'#fff', outline:'none', boxSizing:'border-box',
+                  }}
+                />
               </div>
-              <div className="form-field">
-                <label>Company name</label>
-                <input type="text" value={form.orgName} onChange={e => setField('orgName', e.target.value)} placeholder="Acme Co." required />
+              <div style={{marginBottom:'16px'}}>
+                <label style={{display:'block', fontSize:'13px', color:'#A8D4A8', marginBottom:'8px', fontWeight:'500'}}>Company Name</label>
+                <input
+                  type="text" value={form.orgName} onChange={e => setField('orgName', e.target.value)}
+                  placeholder="Acme Co." required
+                  style={{
+                    width:'100%', padding:'14px 16px', borderRadius:'12px', fontSize:'16px',
+                    background:'rgba(255,255,255,0.06)', border:'1px solid rgba(168,212,168,0.25)',
+                    color:'#fff', outline:'none', boxSizing:'border-box',
+                  }}
+                />
               </div>
             </>
           )}
-          <div className="form-field">
-            <label>Email</label>
-            <input type="email" value={form.email} onChange={e => setField('email', e.target.value)} placeholder="you@company.com" required />
+
+          <div style={{marginBottom:'16px'}}>
+            <label style={{display:'block', fontSize:'13px', color:'#A8D4A8', marginBottom:'8px', fontWeight:'500'}}>Email</label>
+            <input
+              type="email" value={form.email} onChange={e => setField('email', e.target.value)}
+              placeholder="you@company.com" required
+              style={{
+                width:'100%', padding:'14px 16px', borderRadius:'12px', fontSize:'16px',
+                background:'rgba(255,255,255,0.06)', border:'1px solid rgba(168,212,168,0.25)',
+                color:'#fff', outline:'none', boxSizing:'border-box',
+              }}
+            />
           </div>
-          <div className="form-field">
-            <label>Password</label>
+
+          <div style={{marginBottom:'28px'}}>
+            <label style={{display:'block', fontSize:'13px', color:'#A8D4A8', marginBottom:'8px', fontWeight:'500'}}>Password</label>
             <div style={{position:'relative'}}>
-              <input type={showPw ? 'text' : 'password'} value={form.password} onChange={e => setField('password', e.target.value)} placeholder="••••••••" required minLength={8} style={{width:'100%',paddingRight:'60px',boxSizing:'border-box'}} />
-              <button type="button" onClick={()=>setShowPw(p=>!p)} style={{position:'absolute',right:'8px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#7A9A7A',fontSize:'13px'}}>
+              <input
+                type={showPw ? 'text' : 'password'} value={form.password} onChange={e => setField('password', e.target.value)}
+                placeholder="••••••••" required minLength={8}
+                style={{
+                  width:'100%', padding:'14px 56px 14px 16px', borderRadius:'12px', fontSize:'16px',
+                  background:'rgba(255,255,255,0.06)', border:'1px solid rgba(168,212,168,0.25)',
+                  color:'#fff', outline:'none', boxSizing:'border-box',
+                }}
+              />
+              <button type="button" onClick={() => setShowPw(p => !p)} style={{
+                position:'absolute', right:'16px', top:'50%', transform:'translateY(-50%)',
+                background:'none', border:'none', cursor:'pointer', color:'#7A9A7A', fontSize:'13px'
+              }}>
                 {showPw ? 'Hide' : 'Show'}
               </button>
             </div>
           </div>
-          <button type="submit" className="btn-primary auth-submit" disabled={loading}>
-            {loading ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
+
+          <button type="submit" disabled={loading} style={{
+            width:'100%', padding:'15px', borderRadius:'12px', fontSize:'16px', fontWeight:'700',
+            background: loading ? '#5a8a5a' : 'linear-gradient(135deg, #ffd166 0%, #f5a623 100%)',
+            color: '#0d2010', border:'none', cursor: loading ? 'not-allowed' : 'pointer',
+            letterSpacing:'0.5px', transition:'opacity 0.2s'
+          }}>
+            {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}
           </button>
         </form>
-        <div className="auth-switch">
-          {mode === 'login'
-            ? <><span>Don't have an account? </span><button onClick={() => setMode('register')}>Sign up</button></>
-            : <><span>Already have an account? </span><button onClick={() => setMode('login')}>Sign in</button></>
-          }
+
+        <div style={{textAlign:'center', marginTop:'24px', fontSize:'14px', color:'#7A9A7A'}}>
+          {mode === 'login' ? (
+            <>Don't have an account? <button onClick={() => setMode('register')} style={{background:'none',border:'none',color:'#A8D4A8',cursor:'pointer',fontSize:'14px',fontWeight:'600'}}>Sign up free</button></>
+          ) : (
+            <>Already have an account? <button onClick={() => setMode('login')} style={{background:'none',border:'none',color:'#A8D4A8',cursor:'pointer',fontSize:'14px',fontWeight:'600'}}>Sign in</button></>
+          )}
+        </div>
+
+        <div style={{textAlign:'center', marginTop:'32px', paddingTop:'24px', borderTop:'1px solid rgba(168,212,168,0.1)'}}>
+          <div style={{fontSize:'11px', color:'#3a5a3a', letterSpacing:'1px'}}>
+            © 2026 MOUNTAIN TOP LEDGER · mountaintopledger.com
+          </div>
         </div>
       </div>
     </div>
