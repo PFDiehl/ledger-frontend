@@ -60,7 +60,7 @@ function CompanySettings() {
           <FieldRow label="Business email"><input type="email" value={form.email||''} onChange={e => setForm(f=>({...f,email:e.target.value}))} /></FieldRow>
         </div>
         <div className="form-row two-col">
-          <FieldRow label="Phone"><input value={form.phone||''} onChange={e => setForm(f=>({...f,phone:e.target.value}))} placeholder="(555) 000-0000" /></FieldRow>
+          <FieldRow label="Phone"><input value={form.phone||''} onChange={e => { const digits = e.target.value.replace(/\D/g,'').slice(0,10); let formatted = ''; if (digits.length > 0) formatted = '(' + digits.slice(0,3); if (digits.length >= 4) formatted += ') ' + digits.slice(3,6); if (digits.length >= 7) formatted += '-' + digits.slice(6,10); setForm(f=>({...f,phone:formatted})); }} placeholder="(555) 000-0000" /></FieldRow>
           <FieldRow label="Tax ID / EIN"><input value={form.taxId||''} onChange={e => setForm(f=>({...f,taxId:e.target.value}))} placeholder="12-3456789" /></FieldRow>
         </div>
         <FieldRow label="Website"><input value={form.website||''} onChange={e => setForm(f=>({...f,website:e.target.value}))} placeholder="https://yourcompany.com" /></FieldRow>
