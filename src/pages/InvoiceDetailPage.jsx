@@ -55,7 +55,7 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
     } finally { setReminder(false); }
   }
 
-  function downloadPDF() {
+  async function handleDelete() {() {
     import('../lib/generateInvoicePdf').then(({ generateInvoicePdf }) => {
       generateInvoicePdf(invoice);
     });
