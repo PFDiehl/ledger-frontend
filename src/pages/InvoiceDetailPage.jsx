@@ -97,6 +97,11 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
           )}
           <button className="btn-secondary" onClick={() => onEdit?.(invoice)}>
             <i className="ti ti-edit" /> Edit
+          </button><button className="btn-secondary" style={{color:'#c0392b',borderColor:'#c0392b'}} onClick={handleDelete}>
+            <i className="ti ti-trash" /> Delete
+          </button>
+          <button className="btn-secondary" onClick={downloadPDF}>
+            <i className="ti ti-download" /> Download PDF
           </button>
           <button className="btn-secondary" onClick={downloadPDF}>
             <i className="ti ti-download" /> Download PDF
