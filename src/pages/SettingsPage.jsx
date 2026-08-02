@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth }  from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import ThemePicker   from '../components/ui/ThemePicker';
@@ -208,4 +208,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
 
