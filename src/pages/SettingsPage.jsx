@@ -32,7 +32,7 @@ function CompanySettings() {
     if (!org) return;
     fetch(`${API}/orgs/${org.id}/settings`, { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` } })
       .then(r => r.json())
-      .then(j => { if (j.success && j.data) setForm(f => ({ ...f, ...j.data })); })
+      .then(j => { if (j.success && j.data) setForm(f => ({ ...f, ...j.data, invoicePrefix: j.data.invoicePrefix || 'INV-' })); })
       .catch(() => {});
   }, [org?.id]);
 
@@ -80,7 +80,7 @@ function CompanySettings() {
       <div style={{ borderTop:'0.5px solid var(--color-border-tertiary)', paddingTop:20 }}>
         <div style={{ fontSize:13, fontWeight:500, marginBottom:14 }}>Invoice defaults</div>
         <div className="form-row two-col">
-          <FieldRow label="Invoice prefix"><input value={form.invoicePrefix||''} onChange={e => setForm(f=>({...f,invoicePrefix:e.target.value}))} style={{ maxWidth:120 }} /></FieldRow>
+          <FieldRow label="Invoice prefix"><input value={form.invoicePrefix:'INV-'} onChange={e => setForm(f=>({...f,invoicePrefix:e.target.value}))} style={{ maxWidth:120 }} /></FieldRow>
           <FieldRow label="Payment terms">
             <select value={form.paymentTerms||'30'} onChange={e => setForm(f=>({...f,paymentTerms:e.target.value}))}>
               {[['0','Due on receipt'],['7','Net 7'],['15','Net 15'],['30','Net 30'],['60','Net 60']].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
