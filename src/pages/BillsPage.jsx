@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 
-const today = new Date().toISOString().slice(0, 10);
+const BILL_CATEGORIES = [
+  'Rent & Lease', 'Utilities', 'Insurance', 'Loan Payment',
+  'Supplier Invoice', 'Equipment Lease', 'Professional Services',
+  'Payroll', 'Taxes', 'Software & Subscriptions', 'Other'
+];
 
 export default function BillsPage() {
   const { org } = useAuth();
@@ -10,8 +14,7 @@ export default function BillsPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>CATEGORY</label><select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}}><option>Rent & Lease</option><option>Utilities</option><option>Insurance</option><option>Loan Payment</option><option>Supplier Invoice</option><option>Equipment Lease</option><option>Professional Services</option><option>Payroll</option><option>Taxes</option><option>Software & Subscriptions</option><option>Other</option></select></div>
-                <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>AMOUNT ($)</label><input type='number' value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} placeholder='0.00' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} /></div>
+  const [form, setForm] = useState({ vendor:'', amount:'', dueDate:'', description:'', category:'Other' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -83,7 +86,7 @@ export default function BillsPage() {
             <thead>
               <tr style={{borderBottom:'1px solid #D4DDCC'}}>
                 <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Vendor</th>
-                <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Description</th>
+                <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Category</th>
                 <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Due Date</th>
                 <th style={{padding:'10px 16px',textAlign:'right',fontWeight:500,color:'#7A9A7A'}}>Amount</th>
                 <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Status</th>
@@ -96,7 +99,7 @@ export default function BillsPage() {
                   onMouseEnter={e=>e.currentTarget.style.background='#f8fbf8'}
                   onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                   <td style={{padding:'12px 16px',fontWeight:500}}>{b.vendor}</td>
-                  <td style={{padding:'12px 16px',color:'#7A9A7A'}}>{b.description||'-'}</td>
+                  <td style={{padding:'12px 16px',color:'#7A9A7A'}}>{b.category||'-'}</td>
                   <td style={{padding:'12px 16px',color:'#7A9A7A'}}>{b.dueDate ? new Date(b.dueDate).toLocaleDateString() : '-'}</td>
                   <td style={{padding:'12px 16px',textAlign:'right',fontWeight:500}}>{fmt(b.amount)}</td>
                   <td style={{padding:'12px 16px'}}>
@@ -111,7 +114,6 @@ export default function BillsPage() {
         </div>
       )}
 
-      {/* Bill Detail Modal */}
       {selected && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center'}}>
           <div style={{background:'#fff',borderRadius:14,padding:28,width:480,maxWidth:'90vw'}}>
@@ -119,6 +121,7 @@ export default function BillsPage() {
               <h2 style={{fontSize:18,fontWeight:600}}>{selected.vendor}</h2>
               <button onClick={()=>setSelected(null)} style={{background:'none',border:'none',fontSize:22,cursor:'pointer'}}>×</button>
             </div>
+            <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Category: </span><span style={{fontSize:13}}>{selected.category||'-'}</span></div>
             <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Amount: </span><span style={{fontSize:18,fontWeight:700,color:'#c0392b'}}>{fmt(selected.amount)}</span></div>
             <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Status: </span><span style={{fontSize:13,textTransform:'capitalize'}}>{selected.status}</span></div>
             {selected.dueDate && <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Due: </span><span style={{fontSize:13}}>{new Date(selected.dueDate).toLocaleDateString()}</span></div>}
@@ -134,7 +137,6 @@ export default function BillsPage() {
         </div>
       )}
 
-      {/* New Bill Form */}
       {showForm && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center'}}>
           <div style={{background:'#fff',borderRadius:14,padding:28,width:440,maxWidth:'90vw'}}>
@@ -143,10 +145,28 @@ export default function BillsPage() {
               <button onClick={()=>setShowForm(false)} style={{background:'none',border:'none',fontSize:22,cursor:'pointer'}}>×</button>
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:14}}>
-              <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>VENDOR</label><input value={form.vendor} onChange={e=>setForm(f=>({...f,vendor:e.target.value}))} placeholder='Landlord' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} /></div>
-              <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>CATEGORY</label><select value={<input type='number' value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} placeholder='0.00' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} /></div>
-              <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>DUE DATE</label><input type='date' value={form.dueDate} onChange={e=>setForm(f=>({...f,dueDate:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} /></div>
-              <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>DESCRIPTION</label><input value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder='Monthly rent' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} /></div>
+              <div>
+                <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>VENDOR</label>
+                <input value={form.vendor} onChange={e=>setForm(f=>({...f,vendor:e.target.value}))} placeholder='Landlord' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} />
+              </div>
+              <div>
+                <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>CATEGORY</label>
+                <select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}}>
+                  {BILL_CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>AMOUNT ($)</label>
+                <input type='number' value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} placeholder='0.00' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} />
+              </div>
+              <div>
+                <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>DUE DATE</label>
+                <input type='date' value={form.dueDate} onChange={e=>setForm(f=>({...f,dueDate:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} />
+              </div>
+              <div>
+                <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>DESCRIPTION</label>
+                <input value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder='Monthly rent' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} />
+              </div>
               <div style={{display:'flex',gap:10}}>
                 <button onClick={()=>setShowForm(false)} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #D4DDCC',background:'#fff',fontSize:13,cursor:'pointer'}}>Cancel</button>
                 <button onClick={save} disabled={saving} style={{flex:2,padding:'10px',borderRadius:8,border:'none',background:'#2D4A35',color:'#A8D4A8',fontSize:13,fontWeight:500,cursor:'pointer'}}>{saving?'Saving...':'Save bill'}</button>
