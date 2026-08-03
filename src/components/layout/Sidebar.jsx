@@ -18,6 +18,7 @@ function markFeatureUsed(id) {
 
 const ALL_NAV = [
   { id:'dashboard',      icon:'home',          label:'Dashboard',      level:0, section:null },
+  { id:'customers', icon:'users', label:'Customers', level:0, section:'Money in' },
   { id:'invoices',      icon:'file-invoice',  label:'Invoices',       level:0, section:'Money in' },
   { id:'expenses',      icon:'credit-card',   label:'Expenses',       level:0, section:'Money in' },
   { id:'bank',          icon:'building-bank', label:'Banking',        level:0, section:'Money in' },
@@ -93,4 +94,5 @@ export default function Sidebar({ activeId='digest', onNavigate }) {
     </nav>
   );
 }
+
 

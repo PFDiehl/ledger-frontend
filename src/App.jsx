@@ -28,6 +28,7 @@ import MultiCompanyPage          from './pages/MultiCompanyPage';
 import AICategorizePage          from './pages/AICategorizePage';
 import AnomalyDetectionPage      from './pages/AnomalyDetectionPage';
 import CashFlowForecastPage      from './pages/CashFlowForecastPage';
+import CustomersPage from './pages/CustomersPage';
 import SettingsPage              from './pages/SettingsPage';
 import AIInsightsPanel           from './components/ai/AIInsightsPanel';
 import LandingPage from './pages/LandingPage';
@@ -66,6 +67,7 @@ export default function App() {
         if (view.type==='detail') return <BillDetailPage bill={view.data} onBack={()=>setView({type:'list'})} onEdit={b=>setView({type:'form',data:b})} />;
         if (view.type==='form')   return <BillFormPage   bill={view.data} onBack={()=>setView(view.data?{type:'detail',data:view.data}:{type:'list'})} onSave={()=>setView({type:'list'})} />;
         return <BillsPage onView={b=>setView({type:'detail',data:b})} onNew={()=>setView({type:'form',data:null})} />;
+      case 'customers':   return <CustomersPage org={org} />;
       case 'expenses':    return <ExpensesPage />;
       case 'bank':        return <BankingPage />;
       case 'reports':     return <ReportsPage />;
@@ -97,6 +99,8 @@ export default function App() {
     </div>
   );
 }
+
+
 
 
 
