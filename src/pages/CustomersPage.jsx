@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../lib/api';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 const fmt = (n) => Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 
@@ -16,8 +16,8 @@ export default function CustomersPage({ org }) {
   async function loadCustomers() {
     setLoading(true);
     try {
-      const res = await api.get(`/orgs/${org.id}/contacts?type=customer`);
-      setCustomers(res.data.data || []);
+      const res = await fetch(`${API}/orgs/${org.id}/contacts?type=customer`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }); const data = await res.json();
+      setCustomers(data.data || []);
     } catch(e) { console.error(e); }
     setLoading(false);
   }
@@ -39,9 +39,9 @@ export default function CustomersPage({ org }) {
     if (!form.name.trim()) return alert('Name is required');
     try {
       if (editing) {
-        await api.patch(`/orgs/${org.id}/contacts/${editing.id}`, { ...form, type:'customer' });
+        await fetch(`${API}/orgs/${org.id}/contacts/${editing.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` }, body: JSON.stringify({ ...form, type:'customer' }) });
       } else {
-        await api.post(`/orgs/${org.id}/contacts`, { ...form, type:'customer' });
+        await fetch(`${API}/orgs/${org.id}/contacts`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` }, body: JSON.stringify({ ...form, type:'customer' }) });
       }
       setShowForm(false);
       loadCustomers();
@@ -51,7 +51,7 @@ export default function CustomersPage({ org }) {
   async function deleteCustomer(c) {
     if (!window.confirm(`Delete ${c.name}?`)) return;
     try {
-      await api.delete(`/orgs/${org.id}/contacts/${c.id}`);
+      await fetch(`${API}/orgs/${org.id}/contacts/${c.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
       setSelected(null);
       loadCustomers();
     } catch(e) { alert('Error deleting customer'); }
@@ -203,3 +203,4 @@ export default function CustomersPage({ org }) {
     </div>
   );
 }
+
