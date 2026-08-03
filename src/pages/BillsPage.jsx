@@ -10,7 +10,8 @@ export default function BillsPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ vendor:'', amount:'', dueDate:'', description:'', category:'Other' });
+  <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>CATEGORY</label><select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}}><option>Rent & Lease</option><option>Utilities</option><option>Insurance</option><option>Loan Payment</option><option>Supplier Invoice</option><option>Equipment Lease</option><option>Professional Services</option><option>Payroll</option><option>Taxes</option><option>Software & Subscriptions</option><option>Other</option></select></div>
+                <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>AMOUNT ($)</label><input type='number' value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} placeholder='0.00' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} /></div>
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
