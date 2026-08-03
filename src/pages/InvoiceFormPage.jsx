@@ -27,6 +27,7 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
       : [emptyLine()]
   );
   const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState({});
 
   function setField(k, v) { setForm(f => ({...f, [k]: v})); }
@@ -59,6 +60,8 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
   async function handleSave(sendNow = false) {
     if (!validate()) return;
     if (!org) return alert('No organization found');
+    if (saved) return;
+    setSaved(true);
     setLoading(true);
     try {
       const payload = {
@@ -285,4 +288,6 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
     </div>
   );
 }
+
+
 
