@@ -10,7 +10,7 @@ export default function BillsPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ vendor:'', amount:'', dueDate:'', description:'' });
+  const [form, setForm] = useState({ vendor:'', amount:'', dueDate:'', description:'', category:'Other' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function BillsPage() {
       const r = await api.post(`/orgs/${org.id}/bills`, form);
       if (r.data?.data) setBills(prev => [r.data.data, ...prev]);
       setShowForm(false);
-      setForm({ vendor:'', amount:'', dueDate:'', description:'' });
+      setForm({ vendor:'', amount:'', dueDate:'', description:'', category:'Other' });
     } catch(e) { alert('Error saving bill'); }
     finally { setSaving(false); }
   }
@@ -143,7 +143,7 @@ export default function BillsPage() {
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:14}}>
               <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>VENDOR</label><input value={form.vendor} onChange={e=>setForm(f=>({...f,vendor:e.target.value}))} placeholder='Landlord' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} /></div>
-              <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>AMOUNT ($)</label><input type='number' value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} placeholder='0.00' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} /></div>
+              <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>CATEGORY</label><select value={<input type='number' value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} placeholder='0.00' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} /></div>
               <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>DUE DATE</label><input type='date' value={form.dueDate} onChange={e=>setForm(f=>({...f,dueDate:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} /></div>
               <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>DESCRIPTION</label><input value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder='Monthly rent' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} /></div>
               <div style={{display:'flex',gap:10}}>
