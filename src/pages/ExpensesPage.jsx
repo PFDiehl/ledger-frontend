@@ -90,7 +90,7 @@ export default function ExpensesPage() {
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:14}}>
               <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>VENDOR</label><input value={form.vendor} onChange={e=>setForm(f=>({...f,vendor:e.target.value}))} placeholder='Amazon' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13}} /></div>
-              <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>CATEGORY</label><select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13}}><option>Other</option><option>Software</option><option>Travel</option><option>Meals</option><option>Office</option><option>Marketing</option><option>Utilities</option><option>Rent</option></select></div>
+              <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>CATEGORY</label><select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13}}><option>Advertising & Marketing</option><option>Bank Charges</option><option>Equipment</option><option>Insurance</option><option>Legal & Professional Fees</option><option>Meals & Entertainment</option><option>Office Supplies</option><option>Payroll</option><option>Rent & Lease</option><option>Software & Subscriptions</option><option>Taxes & Licenses</option><option>Travel</option><option>Utilities</option><option>Vehicle</option><option>Other</option></select></div>
               <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>AMOUNT ($)</label><input type='number' value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} placeholder='0.00' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13}} /></div>
               <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>DESCRIPTION</label><input value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder='Optional notes' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13}} /></div>
               <div style={{display:'flex',gap:10,marginTop:4}}>
@@ -120,5 +120,6 @@ export default function ExpensesPage() {
       )}</div>
   );
 }
+
 
 
