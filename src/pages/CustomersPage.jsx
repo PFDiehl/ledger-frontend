@@ -232,7 +232,7 @@ export default function CustomersPage({ org }) {
       )}
 
       {showForm && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}}>
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}}>
           <div style={{background:'var(--color-background)',borderRadius:18,padding:32,width:'100%',maxWidth:560,maxHeight:'90vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}}>
               <h2 style={{margin:0,fontSize:20,fontWeight:700}}>{editing ? 'Edit Customer' : 'New Customer'}</h2>
@@ -259,5 +259,6 @@ export default function CustomersPage({ org }) {
     </div>
   );
 }
+
 
 
