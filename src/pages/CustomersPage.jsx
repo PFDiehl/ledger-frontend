@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 const fmt = (n) => Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-const getToken = () => localStorage.getItem('token');
-const authHeaders = () => ({ Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' });
+const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' });
 
 function Avatar({ name }) {
   const colors = ['#2D6A4F','#1B4332','#40916C','#52B788','#1E6091','#184E77','#6B2D8B','#9B2226'];
@@ -14,14 +13,74 @@ function Avatar({ name }) {
   );
 }
 
+function CustomerForm({ org, editing, onSave, onCancel }) {
+  const [form, setForm] = useState({ name:'', email:'', phone:'', address:'', city:'', state:'', zip:'', poNumber:'', salesperson:'', ...editing });
+
+  async function save() {
+    if (!form.name.trim()) return alert('Name is required');
+    try {
+      if (editing?.id) {
+        await fetch(`${API}/orgs/${org.id}/contacts/${editing.id}`, { method:'PATCH', headers: authHeaders(), body: JSON.stringify({ ...form, type:'customer' }) });
+      } else {
+        await fetch(`${API}/orgs/${org.id}/contacts`, { method:'POST', headers: authHeaders(), body: JSON.stringify({ ...form, type:'customer' }) });
+      }
+      onSave();
+    } catch(e) { alert('Error saving customer'); }
+  }
+
+  const F = ({label, field, placeholder, type='text'}) => (
+    <div style={{marginBottom:20}}>
+      <div style={{fontSize:11,color:'var(--color-text-secondary)',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600}}>{label}</div>
+      <input type={type} value={form[field]||''} onChange={e=>setForm(f=>({...f,[field]:e.target.value}))}
+        placeholder={placeholder} style={{width:'100%',padding:'12px 14px',borderRadius:10,border:'1.5px solid #40916C',background:'var(--color-surface)',color:'var(--color-text)',fontSize:15,boxSizing:'border-box'}} />
+    </div>
+  );
+
+  return (
+    <div style={{padding:32,maxWidth:600,margin:'0 auto'}}>
+      <button onClick={onCancel} style={{background:'none',border:'none',color:'var(--color-text-secondary)',cursor:'pointer',fontSize:14,marginBottom:28,display:'flex',alignItems:'center',gap:6,padding:0}}>
+        ← Back to Customers
+      </button>
+      <h1 style={{margin:'0 0 32px',fontSize:26,fontWeight:700}}>{editing?.id ? 'Edit Customer' : 'New Customer'}</h1>
+
+      <div style={{background:'var(--color-surface)',borderRadius:14,padding:28,border:'1px solid var(--color-border)',marginBottom:20}}>
+        <h3 style={{margin:'0 0 20px',fontSize:13,fontWeight:600,color:'var(--color-text-secondary)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Basic Info</h3>
+        <F label="Name *" field="name" placeholder="Acme Corp" />
+        <F label="Email" field="email" placeholder="billing@acme.com" type="email" />
+        <F label="Phone" field="phone" placeholder="(555) 000-0000" />
+      </div>
+
+      <div style={{background:'var(--color-surface)',borderRadius:14,padding:28,border:'1px solid var(--color-border)',marginBottom:20}}>
+        <h3 style={{margin:'0 0 20px',fontSize:13,fontWeight:600,color:'var(--color-text-secondary)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Address</h3>
+        <F label="Street Address" field="address" placeholder="123 Main St" />
+        <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr',gap:12}}>
+          <F label="City" field="city" placeholder="Miami" />
+          <F label="State" field="state" placeholder="FL" />
+          <F label="Zip" field="zip" placeholder="33101" />
+        </div>
+      </div>
+
+      <div style={{background:'var(--color-surface)',borderRadius:14,padding:28,border:'1px solid var(--color-border)',marginBottom:28}}>
+        <h3 style={{margin:'0 0 20px',fontSize:13,fontWeight:600,color:'var(--color-text-secondary)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Account Details</h3>
+        <F label="Default PO Number" field="poNumber" placeholder="PO-001" />
+        <F label="Salesperson" field="salesperson" placeholder="Jane Smith" />
+      </div>
+
+      <div style={{display:'flex',gap:12}}>
+        <button onClick={onCancel} style={{flex:1,padding:'13px',borderRadius:10,border:'1px solid var(--color-border)',background:'none',cursor:'pointer',fontSize:15,color:'var(--color-text)'}}>Cancel</button>
+        <button onClick={save} style={{flex:2,padding:'13px',borderRadius:10,border:'none',background:'#2D6A4F',color:'#fff',cursor:'pointer',fontSize:15,fontWeight:600}}>Save Customer</button>
+      </div>
+    </div>
+  );
+}
+
 export default function CustomersPage({ org }) {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [view, setView] = useState('list'); // 'list' | 'form' | 'detail'
   const [editing, setEditing] = useState(null);
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState('');
-  const [form, setForm] = useState({ name:'', email:'', phone:'', address:'', city:'', state:'', zip:'', poNumber:'', salesperson:'' });
 
   useEffect(() => { if (org) loadCustomers(); }, [org]);
 
@@ -35,37 +94,12 @@ export default function CustomersPage({ org }) {
     setLoading(false);
   }
 
-  function openNew() {
-    setEditing(null);
-    setForm({ name:'', email:'', phone:'', address:'', city:'', state:'', zip:'', poNumber:'', salesperson:'' });
-    setShowForm(true);
-  }
-
-  function openEdit(c) {
-    setEditing(c);
-    setForm({ name:c.name||'', email:c.email||'', phone:c.phone||'', address:c.address||'', city:c.city||'', state:c.state||'', zip:c.zip||'', poNumber:c.poNumber||'', salesperson:c.salesperson||'' });
-    setShowForm(true);
-    setSelected(null);
-  }
-
-  async function saveCustomer() {
-    if (!form.name.trim()) return alert('Name is required');
-    try {
-      if (editing) {
-        await fetch(`${API}/orgs/${org.id}/contacts/${editing.id}`, { method:'PATCH', headers: authHeaders(), body: JSON.stringify({ ...form, type:'customer' }) });
-      } else {
-        await fetch(`${API}/orgs/${org.id}/contacts`, { method:'POST', headers: authHeaders(), body: JSON.stringify({ ...form, type:'customer' }) });
-      }
-      setShowForm(false);
-      loadCustomers();
-    } catch(e) { alert('Error saving customer'); }
-  }
-
   async function deleteCustomer(c) {
     if (!window.confirm(`Delete ${c.name}?`)) return;
     try {
       await fetch(`${API}/orgs/${org.id}/contacts/${c.id}`, { method:'DELETE', headers: authHeaders() });
       setSelected(null);
+      setView('list');
       loadCustomers();
     } catch(e) { alert('Error deleting customer'); }
   }
@@ -80,19 +114,15 @@ export default function CustomersPage({ org }) {
 
   const filtered = customers.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || (c.email||'').toLowerCase().includes(search.toLowerCase()));
 
-  const F = ({label, field, placeholder, type='text'}) => (
-    <div style={{marginBottom:16}}>
-      <div style={{fontSize:11,color:'var(--color-text-tertiary)',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600}}>{label}</div>
-      <input type={type} value={form[field]} onChange={e=>setForm(f=>({...f,[field]:e.target.value}))}
-        placeholder={placeholder} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1.5px solid #40916C',background:'var(--color-surface)',color:'var(--color-text)',fontSize:14,boxSizing:'border-box'}} />
-    </div>
+  if (view === 'form') return (
+    <CustomerForm org={org} editing={editing} onCancel={()=>setView(selected?'detail':'list')} onSave={()=>{ loadCustomers(); setView(selected?'detail':'list'); }} />
   );
 
-  if (selected) {
+  if (view === 'detail' && selected) {
     const {totalInvoiced, totalPaid, outstanding} = getTotals(selected);
     return (
       <div style={{padding:32,maxWidth:860,margin:'0 auto'}}>
-        <button onClick={()=>setSelected(null)} style={{background:'none',border:'none',color:'var(--color-text-secondary)',cursor:'pointer',fontSize:14,marginBottom:28,display:'flex',alignItems:'center',gap:6,padding:0}}>
+        <button onClick={()=>setView('list')} style={{background:'none',border:'none',color:'var(--color-text-secondary)',cursor:'pointer',fontSize:14,marginBottom:28,display:'flex',alignItems:'center',gap:6,padding:0}}>
           ← Back to Customers
         </button>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:28}}>
@@ -104,7 +134,7 @@ export default function CustomersPage({ org }) {
             </div>
           </div>
           <div style={{display:'flex',gap:8}}>
-            <button onClick={()=>openEdit(selected)} style={{padding:'8px 18px',borderRadius:8,border:'1px solid var(--color-border)',background:'var(--color-surface)',color:'var(--color-text)',cursor:'pointer',fontSize:14,fontWeight:500}}>Edit</button>
+            <button onClick={()=>{setEditing(selected);setView('form');}} style={{padding:'8px 18px',borderRadius:8,border:'1px solid var(--color-border)',background:'var(--color-surface)',color:'var(--color-text)',cursor:'pointer',fontSize:14,fontWeight:500}}>Edit</button>
             <button onClick={()=>deleteCustomer(selected)} style={{padding:'8px 18px',borderRadius:8,border:'none',background:'#dc2626',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:500}}>Delete</button>
           </div>
         </div>
@@ -120,7 +150,7 @@ export default function CustomersPage({ org }) {
 
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
           <div style={{background:'var(--color-surface)',borderRadius:14,padding:22,border:'1px solid var(--color-border)'}}>
-            <h3 style={{margin:'0 0 16px',fontSize:14,fontWeight:600,color:'var(--color-text-secondary)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Contact Info</h3>
+            <h3 style={{margin:'0 0 16px',fontSize:13,fontWeight:600,color:'var(--color-text-secondary)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Contact Info</h3>
             {[['Email',selected.email],['Phone',selected.phone],['Address',selected.address],['City',selected.city],['State',selected.state],['Zip',selected.zip]].map(([l,v])=> v ? (
               <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--color-border)',fontSize:14}}>
                 <span style={{color:'var(--color-text-secondary)'}}>{l}</span><span style={{fontWeight:500}}>{v}</span>
@@ -128,7 +158,7 @@ export default function CustomersPage({ org }) {
             ) : null)}
           </div>
           <div style={{background:'var(--color-surface)',borderRadius:14,padding:22,border:'1px solid var(--color-border)'}}>
-            <h3 style={{margin:'0 0 16px',fontSize:14,fontWeight:600,color:'var(--color-text-secondary)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Account Details</h3>
+            <h3 style={{margin:'0 0 16px',fontSize:13,fontWeight:600,color:'var(--color-text-secondary)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Account Details</h3>
             {[['PO Number',selected.poNumber],['Salesperson',selected.salesperson]].map(([l,v])=>(
               <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--color-border)',fontSize:14}}>
                 <span style={{color:'var(--color-text-secondary)'}}>{l}</span><span style={{fontWeight:500}}>{v||'-'}</span>
@@ -138,7 +168,7 @@ export default function CustomersPage({ org }) {
         </div>
 
         <div style={{background:'var(--color-surface)',borderRadius:14,padding:22,border:'1px solid var(--color-border)'}}>
-          <h3 style={{margin:'0 0 16px',fontSize:14,fontWeight:600,color:'var(--color-text-secondary)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Invoice History</h3>
+          <h3 style={{margin:'0 0 16px',fontSize:13,fontWeight:600,color:'var(--color-text-secondary)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Invoice History</h3>
           {(selected.invoices||[]).length === 0 ? (
             <div style={{color:'var(--color-text-secondary)',fontSize:14,padding:'20px 0',textAlign:'center'}}>No invoices yet</div>
           ) : (
@@ -174,13 +204,13 @@ export default function CustomersPage({ org }) {
           <h1 style={{margin:0,fontSize:28,fontWeight:700}}>Customers</h1>
           <div style={{color:'var(--color-text-secondary)',fontSize:14,marginTop:4}}>{customers.length} customer{customers.length!==1?'s':''}</div>
         </div>
-        <button onClick={openNew} style={{padding:'10px 22px',borderRadius:10,border:'none',background:'#2D6A4F',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:600,display:'flex',alignItems:'center',gap:6}}>
+        <button onClick={()=>{setEditing(null);setView('form');}} style={{padding:'10px 22px',borderRadius:10,border:'none',background:'#2D6A4F',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:600}}>
           + Add Customer
         </button>
       </div>
 
       <div style={{marginBottom:20}}>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Search customers..." style={{width:'100%',padding:'11px 16px',borderRadius:10,border:'1.5px solid #40916C',background:'var(--color-surface)',color:'var(--color-text)',fontSize:14,boxSizing:'border-box'}} />
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Search customers..." style={{width:'100%',padding:'11px 16px',borderRadius:10,border:'1px solid var(--color-border)',background:'var(--color-surface)',color:'var(--color-text)',fontSize:14,boxSizing:'border-box'}} />
       </div>
 
       {loading ? (
@@ -190,7 +220,7 @@ export default function CustomersPage({ org }) {
           <div style={{fontSize:48,marginBottom:16}}>👥</div>
           <div style={{fontSize:18,fontWeight:600,marginBottom:8,color:'var(--color-text)'}}>No customers yet</div>
           <div style={{fontSize:14,marginBottom:24}}>Add your first customer to get started</div>
-          <button onClick={openNew} style={{padding:'10px 22px',borderRadius:10,border:'none',background:'var(--color-primary)',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:600}}>+ Add Customer</button>
+          <button onClick={()=>{setEditing(null);setView('form');}} style={{padding:'10px 22px',borderRadius:10,border:'none',background:'#2D6A4F',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:600}}>+ Add Customer</button>
         </div>
       ) : (
         <div style={{background:'var(--color-surface)',borderRadius:14,border:'1px solid var(--color-border)',overflow:'hidden'}}>
@@ -203,7 +233,7 @@ export default function CustomersPage({ org }) {
             <tbody>{filtered.map(c => {
               const {totalInvoiced, outstanding} = getTotals(c);
               return (
-                <tr key={c.id} onClick={()=>setSelected(c)} style={{borderBottom:'1px solid var(--color-border)',cursor:'pointer',transition:'background 0.15s'}}
+                <tr key={c.id} onClick={()=>{setSelected(c);setView('detail');}} style={{borderBottom:'1px solid var(--color-border)',cursor:'pointer'}}
                   onMouseEnter={e=>e.currentTarget.style.background='var(--color-surface-secondary)'}
                   onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                   <td style={{padding:'12px 16px'}}>
@@ -222,7 +252,7 @@ export default function CustomersPage({ org }) {
                       : <span style={{color:'var(--color-text-secondary)'}}>$0.00</span>}
                   </td>
                   <td style={{padding:'12px 16px'}}>
-                    <button onClick={e=>{e.stopPropagation();openEdit(c);}} style={{padding:'5px 14px',borderRadius:6,border:'1px solid var(--color-border)',background:'none',cursor:'pointer',fontSize:12,color:'var(--color-text-secondary)',fontWeight:500}}>Edit</button>
+                    <button onClick={e=>{e.stopPropagation();setEditing(c);setView('form');}} style={{padding:'5px 14px',borderRadius:6,border:'1px solid var(--color-border)',background:'none',cursor:'pointer',fontSize:12,color:'var(--color-text-secondary)',fontWeight:500}}>Edit</button>
                   </td>
                 </tr>
               );
@@ -230,35 +260,6 @@ export default function CustomersPage({ org }) {
           </table>
         </div>
       )}
-
-      {showForm && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}}>
-          <div style={{background:'var(--color-background)',borderRadius:18,padding:32,width:'100%',maxWidth:560,maxHeight:'90vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}}>
-              <h2 style={{margin:0,fontSize:20,fontWeight:700}}>{editing ? 'Edit Customer' : 'New Customer'}</h2>
-              <button onClick={()=>setShowForm(false)} style={{background:'none',border:'none',fontSize:22,cursor:'pointer',color:'var(--color-text-secondary)',lineHeight:1}}>×</button>
-            </div>
-            <F label="Name *" field="name" placeholder="Acme Corp" />
-            <F label="Email" field="email" placeholder="billing@acme.com" type="email" />
-            <F label="Phone" field="phone" placeholder="(555) 000-0000" />
-            <F label="Address" field="address" placeholder="123 Main St" />
-            <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr',gap:12}}>
-              <F label="City" field="city" placeholder="Miami" />
-              <F label="State" field="state" placeholder="FL" />
-              <F label="Zip" field="zip" placeholder="33101" />
-            </div>
-            <F label="Default PO Number" field="poNumber" placeholder="PO-001" />
-            <F label="Salesperson" field="salesperson" placeholder="Jane Smith" />
-            <div style={{display:'flex',gap:12,marginTop:8}}>
-              <button onClick={()=>setShowForm(false)} style={{flex:1,padding:'12px',borderRadius:10,border:'1px solid var(--color-border)',background:'none',cursor:'pointer',fontSize:14,color:'var(--color-text)'}}>Cancel</button>
-              <button onClick={saveCustomer} style={{flex:1,padding:'12px',borderRadius:10,border:'none',background:'var(--color-primary)',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:600}}>Save Customer</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
-
-
-
