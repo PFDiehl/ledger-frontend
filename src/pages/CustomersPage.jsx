@@ -174,7 +174,7 @@ export default function CustomersPage({ org }) {
           <h1 style={{margin:0,fontSize:28,fontWeight:700}}>Customers</h1>
           <div style={{color:'var(--color-text-secondary)',fontSize:14,marginTop:4}}>{customers.length} customer{customers.length!==1?'s':''}</div>
         </div>
-        <button onClick={openNew} style={{padding:'10px 22px',borderRadius:10,border:'none',background:'#2D6A4F',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:600,display:'flex',alignItems:'center',gap:6}}
+        <button onClick={openNew} style={{padding:'10px 22px',borderRadius:10,border:'none',background:'#2D6A4F',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:600,display:'flex',alignItems:'center',gap:6}}>
           + Add Customer
         </button>
       </div>
@@ -259,4 +259,5 @@ export default function CustomersPage({ org }) {
     </div>
   );
 }
+
 
