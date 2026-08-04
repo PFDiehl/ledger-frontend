@@ -84,7 +84,7 @@ export default function CustomersPage({ org }) {
     <div style={{marginBottom:16}}>
       <div style={{fontSize:11,color:'var(--color-text-tertiary)',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600}}>{label}</div>
       <input type={type} value={form[field]} onChange={e=>setForm(f=>({...f,[field]:e.target.value}))}
-        placeholder={placeholder} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1.5px solid #40916C',background:'var(--color-surface)',color:'var(--color-text)',fontSize:14,boxSizing:'border-box'r-box',outline:'none',outline:'none'}} />
+        placeholder={placeholder} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1.5px solid #40916C',background:'var(--color-surface)',color:'var(--color-text)',fontSize:14,boxSizing:'border-box'}} />
     </div>
   );
 
@@ -180,7 +180,7 @@ export default function CustomersPage({ org }) {
       </div>
 
       <div style={{marginBottom:20}}>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Search customers..." style={{width:'100%',padding:'11px 16px',borderRadius:10,border:'1.5px solid #40916C',background:'var(--color-surface)',color:'var(--color-text)',fontSize:14,boxSizing:'border-box'r-box',outline:'none',outline:'none'}} />
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Search customers..." style={{width:'100%',padding:'11px 16px',borderRadius:10,border:'1.5px solid #40916C',background:'var(--color-surface)',color:'var(--color-text)',fontSize:14,boxSizing:'border-box'}} />
       </div>
 
       {loading ? (
