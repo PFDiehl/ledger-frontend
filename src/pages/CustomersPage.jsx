@@ -84,7 +84,7 @@ export default function CustomersPage({ org }) {
     <div style={{marginBottom:16}}>
       <div style={{fontSize:11,color:'var(--color-text-tertiary)',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600}}>{label}</div>
       <input type={type} value={form[field]} onChange={e=>setForm(f=>({...f,[field]:e.target.value}))}
-        placeholder={placeholder} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid var(--color-border)',background:'var(--color-surface)',color:'var(--color-text)',fontSize:14,boxSizing:'border-box'}} />
+        placeholder={placeholder} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1.5px solid #40916C',background:'var(--color-surface)',color:'var(--color-text)',fontSize:14,boxSizing:'border-box'r-box',outline:'none',outline:'none'}} />
     </div>
   );
 
@@ -174,13 +174,13 @@ export default function CustomersPage({ org }) {
           <h1 style={{margin:0,fontSize:28,fontWeight:700}}>Customers</h1>
           <div style={{color:'var(--color-text-secondary)',fontSize:14,marginTop:4}}>{customers.length} customer{customers.length!==1?'s':''}</div>
         </div>
-        <button onClick={openNew} style={{padding:'10px 22px',borderRadius:10,border:'none',background:'var(--color-primary)',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:600,display:'flex',alignItems:'center',gap:6}}>
+        <button onClick={openNew} style={{padding:'10px 22px',borderRadius:10,border:'none',background:'#2D6A4F',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:600,display:'flex',alignItems:'center',gap:6,border:'ap:6}}>
           + Add Customer
         </button>
       </div>
 
       <div style={{marginBottom:20}}>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Search customers..." style={{width:'100%',padding:'11px 16px',borderRadius:10,border:'1px solid var(--color-border)',background:'var(--color-surface)',color:'var(--color-text)',fontSize:14,boxSizing:'border-box'}} />
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Search customers..." style={{width:'100%',padding:'11px 16px',borderRadius:10,border:'1.5px solid #40916C',background:'var(--color-surface)',color:'var(--color-text)',fontSize:14,boxSizing:'border-box'r-box',outline:'none',outline:'none'}} />
       </div>
 
       {loading ? (
@@ -232,7 +232,7 @@ export default function CustomersPage({ org }) {
       )}
 
       {showForm && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.55)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}}>
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}}>
           <div style={{background:'var(--color-background)',borderRadius:18,padding:32,width:'100%',maxWidth:560,maxHeight:'90vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}}>
               <h2 style={{margin:0,fontSize:20,fontWeight:700}}>{editing ? 'Edit Customer' : 'New Customer'}</h2>
