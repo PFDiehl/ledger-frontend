@@ -305,8 +305,8 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
               </button>
             </div>
             <div style={{marginTop:12,fontSize:12,color:'#7A9A7A'}}>
-              <p style={{margin:'4px 0'}}>â€¢ Save as draft to finish later</p>
-              <p style={{margin:'4px 0'}}>â€¢ "Save & send" emails the invoice immediately</p>
+              <p style={{margin:'4px 0'}}>• Save as draft to finish later</p>
+              <p style={{margin:'4px 0'}}>• "Save & send" emails the invoice immediately</p>
             </div>
           </div>
         </div>
@@ -314,6 +314,7 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
     </div>
   );
 }
+
 
 
 
