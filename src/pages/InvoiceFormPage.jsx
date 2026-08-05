@@ -142,7 +142,6 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
                   placeholder="billing@client.com" type="email" style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
               </div>
             </div>
-            </div>
             <div style={{marginTop:12}}>
               <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Salesperson</label>
               <input value={form.salesperson} onChange={e=>setField('salesperson',e.target.value)} placeholder="Jane Smith" style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
@@ -314,6 +313,9 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
     </div>
   );
 }
+
+
+
 
 
 
