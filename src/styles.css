@@ -1046,7 +1046,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .sidebar             { background: var(--brand-sidebar); }
 .nav-section-label   { color: var(--brand-sidebar-icon); opacity: 0.7; }
 
-.nav-item            { color: var(--brand-sidebar-icon); }
+.nav-item            { color: var(--brand-sidebar-icon) !important; }
 .nav-item:hover      { background: var(--brand-sidebar-mid); color: var(--brand-sidebar-icon); }
 .nav-item.active     {
   background:    var(--brand-nav-active-bg);
@@ -1106,3 +1106,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 
+
+
+
+.nav-item { color: #C8E6C8 !important; }
+.nav-section-label { color: #A8D4A8 !important; opacity: 1 !important; }
