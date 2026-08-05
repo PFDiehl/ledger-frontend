@@ -129,8 +129,8 @@ button { cursor: pointer; font: inherit; background: none; border: none; }
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 7px 16px;
-  font-size: 13px;
+  padding: 8px 16px;
+  font-size: 14px;
   color: var(--gray-700);
   border-radius: 0;
   text-align: left;
@@ -1006,7 +1006,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   /* Default = Sage theme */
   --brand-sidebar:          #2D4A35;
   --brand-sidebar-mid:      #3D6045;
-  --brand-sidebar-icon:     #6A9A70;
+  --brand-sidebar-icon:     #C8E6C8;
   --brand-nav-active-bg:    #A8D4A8;
   --brand-nav-active-icon:  #1A3020;
   --brand-nav-active-border:#A8D4A8;
@@ -1104,3 +1104,5 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .app      { background: #0f0f0e; }
   .main-content { background: #121211; }
 }
+
+
