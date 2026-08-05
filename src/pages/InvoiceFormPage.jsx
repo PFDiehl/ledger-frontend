@@ -19,7 +19,10 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
     due: invoice?.dueDate ? invoice.dueDate.slice(0,10) : thirtyDays,
     taxRate: invoice?.taxRate || '',
     shipping: invoice?.shipping || '',
-    discount: invoice?.discount || '',
+    discount: invoice?.discount || '',salesperson: invoice?.salesperson || '',
+    shipToName: invoice?.shipToName || '',
+    shipToAddress: invoice?.shipToAddress || '',
+    currency: invoice?.currency || 'USD',
   });
   const [lines, setLines] = useState(
     invoice?.lines?.length
@@ -67,7 +70,10 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
       const payload = {
         clientName: form.clientName,
         clientEmail: form.clientEmail,
-        poNumber: form.poNumber,
+        poNumber: form.poNumber,salesperson: form.salesperson,
+        shipToName: form.shipToName,
+        shipToAddress: form.shipToAddress,
+        currency: form.currency,
         notes: form.notes,
         dueDate: form.due,
         taxRate: form.taxRate,
@@ -136,10 +142,30 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
                   placeholder="billing@client.com" type="email" style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
               </div>
             </div>
+            </div>
             <div style={{marginTop:12}}>
-              <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>PO / Work Order Number (Optional)</label>
-              <input value={form.poNumber} onChange={e=>setField('poNumber',e.target.value)}
-                placeholder="PO-12345" style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
+              <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Salesperson</label>
+              <input value={form.salesperson} onChange={e=>setField('salesperson',e.target.value)} placeholder="Jane Smith" style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
+            </div>
+            <div style={{marginTop:12}}>
+              <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Ship To Name</label>
+              <input value={form.shipToName} onChange={e=>setField('shipToName',e.target.value)} placeholder="Recipient name" style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
+            </div>
+            <div style={{marginTop:12}}>
+              <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Ship To Address</label>
+              <input value={form.shipToAddress} onChange={e=>setField('shipToAddress',e.target.value)} placeholder="123 Main St, Miami FL 33101" style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
+            </div>
+            <div style={{marginTop:12}}>
+              <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Currency</label>
+              <select value={form.currency} onChange={e=>setField('currency',e.target.value)} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box',background:'#fff'}}>
+                <option value="USD">USD — US Dollar</option>
+                <option value="EUR">EUR — Euro</option>
+                <option value="GBP">GBP — British Pound</option>
+                <option value="CAD">CAD — Canadian Dollar</option>
+                <option value="AUD">AUD — Australian Dollar</option>
+                <option value="MXN">MXN — Mexican Peso</option>
+                <option value="JPY">JPY — Japanese Yen</option>
+              </select>
             </div>
           </div>
 
