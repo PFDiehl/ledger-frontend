@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const today = new Date().toISOString().slice(0,10);
 
 function getAuth() {
   const org = JSON.parse(localStorage.getItem('ledger_org') || '{}');
@@ -8,10 +9,13 @@ function getAuth() {
   return { orgId: org.id, token };
 }
 
+const CATEGORIES = ['Advertising & Marketing','Bank Charges','Equipment','Insurance','Legal & Professional Fees','Meals & Entertainment','Office Supplies','Payroll','Rent & Lease','Software & Subscriptions','Taxes & Licenses','Travel','Utilities','Vehicle','Other'];
+const PAYMENT_METHODS = ['Cash','Check','Credit Card','Debit Card','ACH / Bank Transfer','Wire Transfer','PayPal','Venmo','Zelle','Other'];
+
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ vendor:'', category:'Other', amount:'', description:'' });
+  const [form, setForm] = useState({ vendor:'', category:'Other', amount:'', date:today, description:'', receiptNumber:'', paymentMethod:'' });
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(null);
   const { orgId, token } = getAuth();
@@ -28,7 +32,7 @@ export default function ExpensesPage() {
     try {
       const r = await fetch(API+'/orgs/'+orgId+'/expenses', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+token }, body: JSON.stringify(form) });
       const j = await r.json();
-      if (j.success) { setExpenses(prev => [j.data, ...prev]); setShowForm(false); setForm({ vendor:'', category:'Other', amount:'', description:'' }); }
+      if (j.success) { setExpenses(prev => [j.data, ...prev]); setShowForm(false); setForm({ vendor:'', category:'Other', amount:'', date:today, description:'', receiptNumber:'', paymentMethod:'' }); }
       else alert(j.message);
     } catch(e) { alert('Error saving expense'); } finally { setLoading(false); }
   }
@@ -42,7 +46,20 @@ export default function ExpensesPage() {
       else alert(j.message);
     } catch(e) { alert('Error deleting expense'); }
   }
+
   function fmt(n) { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n); }
+  const F = (label, field, el='input', props={}) => (
+    <div key={field}>
+      <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>{label}</label>
+      {el === 'select' ? (
+        <select value={form[field]} onChange={e=>setForm(f=>({...f,[field]:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13}} {...props}>
+          {props.options?.map(o => <option key={o}>{o}</option>)}
+        </select>
+      ) : (
+        <input value={form[field]} onChange={e=>setForm(f=>({...f,[field]:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13}} {...props} />
+      )}
+    </div>
+  );
 
   return (
     <div className='page'>
@@ -63,7 +80,8 @@ export default function ExpensesPage() {
             <thead><tr style={{borderBottom:'1px solid #D4DDCC'}}>
               <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Vendor</th>
               <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Category</th>
-              <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Description</th>
+              <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Date</th>
+              <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Payment</th>
               <th style={{padding:'10px 16px',textAlign:'right',fontWeight:500,color:'#7A9A7A'}}>Amount</th>
               <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Status</th>
             </tr></thead>
@@ -72,7 +90,8 @@ export default function ExpensesPage() {
                 <tr key={e.id} style={{borderBottom:'0.5px solid #EBF2E8',cursor:'pointer'}} onClick={()=>setSelected(e)} onMouseEnter={ev=>ev.currentTarget.style.background='#f8fbf8'} onMouseLeave={ev=>ev.currentTarget.style.background='transparent'}>
                   <td style={{padding:'12px 16px',fontWeight:500}}>{e.vendor}</td>
                   <td style={{padding:'12px 16px',color:'#7A9A7A'}}>{e.category}</td>
-                  <td style={{padding:'12px 16px',color:'#7A9A7A'}}>{e.description}</td>
+                  <td style={{padding:'12px 16px',color:'#7A9A7A'}}>{e.date ? new Date(e.date).toLocaleDateString() : '-'}</td>
+                  <td style={{padding:'12px 16px',color:'#7A9A7A'}}>{e.paymentMethod || '-'}</td>
                   <td style={{padding:'12px 16px',textAlign:'right',fontWeight:500}}>{fmt(e.amount)}</td>
                   <td style={{padding:'12px 16px'}}><span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:20,background:'#FAEEDA',color:'#854F0B',textTransform:'capitalize'}}>{e.status}</span></td>
                 </tr>
@@ -81,18 +100,24 @@ export default function ExpensesPage() {
           </table>
         </div>
       )}
+
       {showForm && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center'}}>
-          <div style={{background:'#fff',borderRadius:14,padding:28,width:440,maxWidth:'90vw'}}>
+          <div style={{background:'#fff',borderRadius:14,padding:28,width:500,maxWidth:'90vw',maxHeight:'90vh',overflowY:'auto'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
               <h2 style={{fontSize:18,fontWeight:600}}>New Expense</h2>
               <button onClick={()=>setShowForm(false)} style={{background:'none',border:'none',fontSize:22,cursor:'pointer'}}>×</button>
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:14}}>
-              <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>VENDOR</label><input value={form.vendor} onChange={e=>setForm(f=>({...f,vendor:e.target.value}))} placeholder='Amazon' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13}} /></div>
-              <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>CATEGORY</label><select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13}}><option>Advertising & Marketing</option><option>Bank Charges</option><option>Equipment</option><option>Insurance</option><option>Legal & Professional Fees</option><option>Meals & Entertainment</option><option>Office Supplies</option><option>Payroll</option><option>Rent & Lease</option><option>Software & Subscriptions</option><option>Taxes & Licenses</option><option>Travel</option><option>Utilities</option><option>Vehicle</option><option>Other</option></select></div>
-              <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>AMOUNT ($)</label><input type='number' value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} placeholder='0.00' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13}} /></div>
-              <div><label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>DESCRIPTION</label><input value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder='Optional notes' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13}} /></div>
+              {F('VENDOR', 'vendor', 'input', {placeholder:'Amazon'})}
+              {F('CATEGORY', 'category', 'select', {options: CATEGORIES})}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                {F('AMOUNT ($)', 'amount', 'input', {type:'number', placeholder:'0.00'})}
+                {F('DATE', 'date', 'input', {type:'date'})}
+              </div>
+              {F('PAYMENT METHOD', 'paymentMethod', 'select', {options: ['', ...PAYMENT_METHODS]})}
+              {F('RECEIPT NUMBER', 'receiptNumber', 'input', {placeholder:'REC-001 (optional)'})}
+              {F('DESCRIPTION', 'description', 'input', {placeholder:'Optional notes'})}
               <div style={{display:'flex',gap:10,marginTop:4}}>
                 <button onClick={()=>setShowForm(false)} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #D4DDCC',background:'#fff',fontSize:13,cursor:'pointer'}}>Cancel</button>
                 <button onClick={save} disabled={loading} style={{flex:2,padding:'10px',borderRadius:8,border:'none',background:'#2D4A35',color:'#A8D4A8',fontSize:13,fontWeight:500,cursor:'pointer'}}>{loading ? 'Saving...' : 'Save expense'}</button>
@@ -101,25 +126,24 @@ export default function ExpensesPage() {
           </div>
         </div>
       )}
-    {selected && (
+
+      {selected && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center'}}>
           <div style={{background:'#fff',borderRadius:14,padding:28,width:440,maxWidth:'90vw'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
               <h2 style={{fontSize:18,fontWeight:600}}>{selected.vendor}</h2>
               <button onClick={()=>setSelected(null)} style={{background:'none',border:'none',fontSize:22,cursor:'pointer'}}>×</button>
             </div>
-            <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Category: </span><span style={{fontSize:13}}>{selected.category}</span></div>
-            <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Amount: </span><span style={{fontSize:16,fontWeight:700,color:'#2D4A35'}}>{fmt(selected.amount)}</span></div>
-            {selected.description && <div style={{marginBottom:20}}><span style={{color:'#7A9A7A',fontSize:13}}>Description: </span><span style={{fontSize:13}}>{selected.description}</span></div>}
+            {[['Category', selected.category],['Date', selected.date ? new Date(selected.date).toLocaleDateString() : '-'],['Amount', fmt(selected.amount)],['Payment Method', selected.paymentMethod],['Receipt #', selected.receiptNumber],['Description', selected.description]].map(([l,v]) => v ? (
+              <div key={l} style={{marginBottom:10}}><span style={{color:'#7A9A7A',fontSize:13}}>{l}: </span><span style={{fontSize:13,fontWeight:l==='Amount'?700:400,color:l==='Amount'?'#2D4A35':'inherit'}}>{v}</span></div>
+            ) : null)}
             <div style={{display:'flex',gap:10,marginTop:20}}>
               <button onClick={()=>deleteExpense(selected.id)} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #c0392b',background:'#fff',color:'#c0392b',cursor:'pointer',fontSize:14,fontWeight:600}}>Delete</button>
               <button onClick={()=>setSelected(null)} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #D4DDCC',background:'#fff',cursor:'pointer',fontSize:14}}>Close</button>
             </div>
           </div>
         </div>
-      )}</div>
+      )}
+    </div>
   );
 }
-
-
-
