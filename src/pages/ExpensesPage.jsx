@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 const today = new Date().toISOString().slice(0,10);
@@ -18,6 +18,9 @@ export default function ExpensesPage() {
   const [form, setForm] = useState({ vendor:'', category:'Other', amount:'', date:today, description:'', receiptNumber:'', paymentMethod:'' });
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const [viewingImage, setViewingImage] = useState(null);
+  const fileInputRef = useRef(null);
   const { orgId, token } = getAuth();
 
   useEffect(() => {
@@ -47,7 +50,48 @@ export default function ExpensesPage() {
     } catch(e) { alert('Error deleting expense'); }
   }
 
+  async function uploadReceipt(file) {
+    if (!file || !selected) return;
+    setUploadingReceipt(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64 = e.target.result.split(',')[1];
+        const mediaType = file.type || 'image/jpeg';
+        const r = await fetch(API+'/orgs/'+orgId+'/expenses/'+selected.id+'/receipt', {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+token },
+          body: JSON.stringify({ imageBase64: base64, mediaType })
+        });
+        const j = await r.json();
+        if (j.success) {
+          const updated = { ...selected, receiptUrl: j.receiptUrl };
+          setSelected(updated);
+          setExpenses(prev => prev.map(ex => ex.id === selected.id ? updated : ex));
+        } else alert(j.message);
+        setUploadingReceipt(false);
+      };
+      reader.readAsDataURL(file);
+    } catch(e) { alert('Error uploading receipt'); setUploadingReceipt(false); }
+  }
+
+  async function deleteReceipt() {
+    if (!selected || !window.confirm('Remove this receipt image?')) return;
+    try {
+      const r = await fetch(API+'/orgs/'+orgId+'/expenses/'+selected.id+'/receipt', {
+        method:'DELETE', headers:{ Authorization:'Bearer '+token }
+      });
+      const j = await r.json();
+      if (j.success) {
+        const updated = { ...selected, receiptUrl: null };
+        setSelected(updated);
+        setExpenses(prev => prev.map(ex => ex.id === selected.id ? updated : ex));
+      } else alert(j.message);
+    } catch(e) { alert('Error removing receipt'); }
+  }
+
   function fmt(n) { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n); }
+
   const F = (label, field, el='input', props={}) => (
     <div key={field}>
       <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>{label}</label>
@@ -67,6 +111,7 @@ export default function ExpensesPage() {
         <h1 className='page-title'>Expenses</h1>
         <button className='btn-primary' onClick={()=>setShowForm(true)} style={{display:'flex',alignItems:'center',gap:6}}><span>+</span> New expense</button>
       </div>
+
       {expenses.length === 0 ? (
         <div className='card' style={{padding:40,marginTop:20,textAlign:'center'}}>
           <div style={{fontSize:40,marginBottom:16}}>💳</div>
@@ -83,6 +128,7 @@ export default function ExpensesPage() {
               <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Date</th>
               <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Payment</th>
               <th style={{padding:'10px 16px',textAlign:'right',fontWeight:500,color:'#7A9A7A'}}>Amount</th>
+              <th style={{padding:'10px 16px',textAlign:'center',fontWeight:500,color:'#7A9A7A'}}>Receipt</th>
               <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Status</th>
             </tr></thead>
             <tbody>
@@ -93,6 +139,7 @@ export default function ExpensesPage() {
                   <td style={{padding:'12px 16px',color:'#7A9A7A'}}>{e.date ? new Date(e.date).toLocaleDateString() : '-'}</td>
                   <td style={{padding:'12px 16px',color:'#7A9A7A'}}>{e.paymentMethod || '-'}</td>
                   <td style={{padding:'12px 16px',textAlign:'right',fontWeight:500}}>{fmt(e.amount)}</td>
+                  <td style={{padding:'12px 16px',textAlign:'center'}}>{e.receiptUrl ? <span style={{fontSize:16}} title="Receipt attached">🧾</span> : <span style={{color:'#D4DDCC',fontSize:13}}>—</span>}</td>
                   <td style={{padding:'12px 16px'}}><span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:20,background:'#FAEEDA',color:'#854F0B',textTransform:'capitalize'}}>{e.status}</span></td>
                 </tr>
               ))}
@@ -101,6 +148,7 @@ export default function ExpensesPage() {
         </div>
       )}
 
+      {/* New Expense Form */}
       {showForm && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center'}}>
           <div style={{background:'#fff',borderRadius:14,padding:28,width:500,maxWidth:'90vw',maxHeight:'90vh',overflowY:'auto'}}>
@@ -127,21 +175,61 @@ export default function ExpensesPage() {
         </div>
       )}
 
+      {/* Expense Detail Modal */}
       {selected && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center'}}>
-          <div style={{background:'#fff',borderRadius:14,padding:28,width:440,maxWidth:'90vw'}}>
+          <div style={{background:'#fff',borderRadius:14,padding:28,width:480,maxWidth:'90vw',maxHeight:'90vh',overflowY:'auto'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
               <h2 style={{fontSize:18,fontWeight:600}}>{selected.vendor}</h2>
               <button onClick={()=>setSelected(null)} style={{background:'none',border:'none',fontSize:22,cursor:'pointer'}}>×</button>
             </div>
+
             {[['Category', selected.category],['Date', selected.date ? new Date(selected.date).toLocaleDateString() : '-'],['Amount', fmt(selected.amount)],['Payment Method', selected.paymentMethod],['Receipt #', selected.receiptNumber],['Description', selected.description]].map(([l,v]) => v ? (
               <div key={l} style={{marginBottom:10}}><span style={{color:'#7A9A7A',fontSize:13}}>{l}: </span><span style={{fontSize:13,fontWeight:l==='Amount'?700:400,color:l==='Amount'?'#2D4A35':'inherit'}}>{v}</span></div>
             ) : null)}
+
+            {/* Receipt Image Section */}
+            <div style={{marginTop:20,borderTop:'1px solid #EBF2E8',paddingTop:16}}>
+              <div style={{fontSize:12,fontWeight:500,color:'#7A9A7A',marginBottom:10}}>RECEIPT IMAGE</div>
+              {selected.receiptUrl ? (
+                <div>
+                  <img
+                    src={selected.receiptUrl}
+                    alt="Receipt"
+                    style={{width:'100%',maxHeight:240,objectFit:'contain',borderRadius:8,border:'1px solid #D4DDCC',cursor:'pointer',marginBottom:10}}
+                    onClick={() => setViewingImage(selected.receiptUrl)}
+                  />
+                  <div style={{display:'flex',gap:8}}>
+                    <button onClick={() => setViewingImage(selected.receiptUrl)} style={{flex:1,padding:'8px',borderRadius:8,border:'1px solid #2D4A35',background:'#fff',color:'#2D4A35',fontSize:13,cursor:'pointer'}}>View Full Size</button>
+                    <button onClick={() => fileInputRef.current?.click()} style={{flex:1,padding:'8px',borderRadius:8,border:'1px solid #D4DDCC',background:'#fff',fontSize:13,cursor:'pointer'}}>{uploadingReceipt ? 'Uploading...' : 'Replace'}</button>
+                    <button onClick={deleteReceipt} style={{padding:'8px 12px',borderRadius:8,border:'1px solid #c0392b',background:'#fff',color:'#c0392b',fontSize:13,cursor:'pointer'}}>Remove</button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div style={{border:'2px dashed #D4DDCC',borderRadius:8,padding:24,textAlign:'center',marginBottom:10}}>
+                    <div style={{fontSize:28,marginBottom:8}}>🧾</div>
+                    <p style={{fontSize:13,color:'#7A9A7A',marginBottom:12}}>No receipt attached</p>
+                    <button onClick={() => fileInputRef.current?.click()} style={{padding:'8px 16px',borderRadius:8,border:'none',background:'#2D4A35',color:'#A8D4A8',fontSize:13,cursor:'pointer'}}>{uploadingReceipt ? 'Uploading...' : 'Upload Receipt'}</button>
+                  </div>
+                </div>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={e => { if(e.target.files[0]) uploadReceipt(e.target.files[0]); e.target.value=''; }} />
+            </div>
+
             <div style={{display:'flex',gap:10,marginTop:20}}>
               <button onClick={()=>deleteExpense(selected.id)} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #c0392b',background:'#fff',color:'#c0392b',cursor:'pointer',fontSize:14,fontWeight:600}}>Delete</button>
               <button onClick={()=>setSelected(null)} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #D4DDCC',background:'#fff',cursor:'pointer',fontSize:14}}>Close</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Full Size Image Viewer */}
+      {viewingImage && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.9)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setViewingImage(null)}>
+          <img src={viewingImage} alt="Receipt full size" style={{maxWidth:'90vw',maxHeight:'90vh',objectFit:'contain',borderRadius:8}} />
+          <button onClick={()=>setViewingImage(null)} style={{position:'absolute',top:20,right:24,background:'none',border:'none',color:'#fff',fontSize:32,cursor:'pointer'}}>×</button>
         </div>
       )}
     </div>
