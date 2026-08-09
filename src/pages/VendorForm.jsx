@@ -60,7 +60,15 @@ export default function VendorForm({ org, editing, onSave, onCancel }) {
         <div style={fieldStyle}><label style={labelStyle}>Salesperson</label><input style={inputStyle} value={form.salesperson} onChange={set('salesperson')} placeholder="Jane Smith" /></div>
       </div>
 
-      <div style={{display:'flex',gap:12}}>
+      <div style={{background:'var(--color-surface)',borderRadius:14,padding:28,border:'1px solid var(--color-border)',marginBottom:28}}>
+        <h3 style={{margin:'0 0 20px',fontSize:13,fontWeight:600,color:'var(--color-text-secondary)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Dates & Notes</h3>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <div style={fieldStyle}><label style={labelStyle}>Date Added</label><input style={inputStyle} type="date" value={form.dateAdded ? new Date(form.dateAdded).toISOString().slice(0,10) : ''} onChange={set('dateAdded')} /></div>
+          <div style={fieldStyle}><label style={labelStyle}>Last Contact</label><input style={inputStyle} type="date" value={form.lastContact ? new Date(form.lastContact).toISOString().slice(0,10) : ''} onChange={set('lastContact')} /></div>
+        </div>
+        <div style={fieldStyle}><label style={labelStyle}>Notes</label><textarea style={{...inputStyle,minHeight:80,resize:'vertical'}} value={form.notes||''} onChange={set('notes')} placeholder="Any notes about this vendor..." /></div>
+      </div>
+<div style={{display:'flex',gap:12}}>
         <button onClick={onCancel} style={{flex:1,padding:'13px',borderRadius:10,border:'1px solid var(--color-border)',background:'none',cursor:'pointer',fontSize:15,color:'var(--color-text)'}}>Cancel</button>
         <button onClick={save} style={{flex:2,padding:'13px',borderRadius:10,border:'none',background:'#2D6A4F',color:'#fff',cursor:'pointer',fontSize:15,fontWeight:600}}>Save Vendor</button>
       </div>
