@@ -61,7 +61,18 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
     } catch(e) { alert('Error updating invoice'); }
   }
 
-  function downloadPDF() {
+  async function handlePayNow() {
+    try {
+      const r = await fetch(`${import.meta.env.VITE_API_URL}/orgs/${org.id}/stripe/invoices/${invoice.id}/payment-link`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` }
+      });
+      const j = await r.json();
+      if (j.success) window.open(j.url, '_blank');
+      else alert(j.message);
+    } catch(e) { alert('Error generating payment link'); }
+  }
+function downloadPDF() {
     import('../lib/generateInvoicePdf').then(({ generateInvoicePdf }) => {
       generateInvoicePdf(invoice);
     });
@@ -76,10 +87,9 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
           <StatusBadge status={invoice.status} />
         </div>
         <div className="page-actions">
-          {canSend && (
-            <button className="btn-secondary" onClick={handleSend} disabled={sending}>
-              {sending ? <Spinner size={14} /> : <i className="ti ti-send" />}
-              {sending ? ' Sending...' : ' Send invoice'}
+          {canPay && (
+            <button className="btn-primary" onClick={handlePayNow}>
+              <i className="ti ti-credit-card" /> Pay Now
             </button>
           )}
           {canPay && (
