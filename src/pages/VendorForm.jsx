@@ -75,3 +75,4 @@ export default function VendorForm({ org, editing, onSave, onCancel }) {
     </div>
   );
 }
+
