@@ -1,4 +1,3 @@
-
 export default function LandingPage({ onGetStarted }) {
   return (
     <div style={{minHeight:'100vh',backgroundColor:'#1a3a1a',fontFamily:'Georgia, serif'}}>
@@ -32,7 +31,7 @@ export default function LandingPage({ onGetStarted }) {
         <button onClick={onGetStarted} style={{backgroundColor:'#ffd166',color:'#0d2010',padding:'16px 48px',borderRadius:12,fontSize:18,fontWeight:700,cursor:'pointer',border:'none',fontFamily:'sans-serif',letterSpacing:1}}>
           Get Started Free
         </button>
-        <p style={{fontSize:13,color:'#5a8a5a',marginTop:16,fontFamily:'sans-serif'}}>No credit card required</p>
+        <p style={{fontSize:13,color:'#5a8a5a',marginTop:16,fontFamily:'sans-serif'}}>Free first month · Cancel anytime</p>
       </div>
 
       <div style={{padding:'60px 48px',backgroundColor:'#080f28'}}>
@@ -53,6 +52,70 @@ export default function LandingPage({ onGetStarted }) {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Pricing */}
+      <div style={{padding:'80px 24px 90px',background:'linear-gradient(180deg,#080f28 0%,#0a2010 55%,#071408 100%)'}}>
+        <div style={{textAlign:'center',maxWidth:760,margin:'0 auto 12px'}}>
+          <h2 style={{fontSize:38,color:'#ffd166',fontWeight:700,lineHeight:1.15}}>Simple pricing that grows with you</h2>
+          <p style={{fontSize:18,color:'#a8d4a8',fontFamily:'sans-serif',marginTop:16,lineHeight:1.6}}>Start free. No long contracts, no surprise fees — just clean books at an affordable price.</p>
+        </div>
+
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(300px,1fr))',gap:28,maxWidth:820,margin:'52px auto 0'}}>
+
+          {/* Startup */}
+          <div style={{background:'rgba(255,209,102,0.09)',border:'2px solid #ffd166',borderRadius:18,padding:'34px 30px',position:'relative',display:'flex',flexDirection:'column'}}>
+            <div style={{position:'absolute',top:-14,left:'50%',transform:'translateX(-50%)',background:'#ffd166',color:'#0d2010',fontFamily:'sans-serif',fontWeight:700,fontSize:12,letterSpacing:1,padding:'6px 16px',borderRadius:20,whiteSpace:'nowrap'}}>START HERE</div>
+            <div style={{fontSize:22,color:'#ffd166',fontWeight:700}}>Startup</div>
+            <div style={{fontFamily:'sans-serif',fontSize:13,color:'#7a9a7a',marginTop:6}}>Everything you need to run the books.</div>
+            <div style={{margin:'22px 0 4px'}}><span style={{fontSize:52,color:'#fff',fontWeight:700,fontFamily:'sans-serif'}}>$15</span><span style={{fontSize:16,color:'#a8d4a8',fontFamily:'sans-serif'}}> / month</span></div>
+
+            <div style={{margin:'18px 0 8px',background:'rgba(255,209,102,0.08)',border:'1px solid rgba(255,209,102,0.18)',borderRadius:12,padding:'14px 16px',fontFamily:'sans-serif'}}>
+              <div style={{fontSize:12,letterSpacing:1,color:'#ffd166',fontWeight:700,marginBottom:10}}>YOUR FIRST 3 MONTHS</div>
+              <div style={{display:'flex',justifyContent:'space-between',gap:6,textAlign:'center'}}>
+                <div style={{flex:1}}><div style={{fontSize:11,color:'#7a9a7a',marginBottom:3}}>Month 1</div><div style={{fontSize:17,color:'#ffd166',fontWeight:700}}>FREE</div></div>
+                <div style={{color:'#5a8a5a',alignSelf:'center',fontSize:13}}>›</div>
+                <div style={{flex:1}}><div style={{fontSize:11,color:'#7a9a7a',marginBottom:3}}>Month 2</div><div style={{fontSize:17,color:'#fff',fontWeight:700}}>$5</div></div>
+                <div style={{color:'#5a8a5a',alignSelf:'center',fontSize:13}}>›</div>
+                <div style={{flex:1}}><div style={{fontSize:11,color:'#7a9a7a',marginBottom:3}}>Month 3</div><div style={{fontSize:17,color:'#fff',fontWeight:700}}>$10</div></div>
+                <div style={{color:'#5a8a5a',alignSelf:'center',fontSize:13}}>›</div>
+                <div style={{flex:1}}><div style={{fontSize:11,color:'#7a9a7a',marginBottom:3}}>Then</div><div style={{fontSize:17,color:'#fff',fontWeight:700}}>$15</div></div>
+              </div>
+            </div>
+
+            <ul style={{listStyle:'none',margin:'22px 0 26px',padding:0,fontFamily:'sans-serif'}}>
+              <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#cbe3cb',fontSize:15,lineHeight:1.5,marginBottom:12}}><span style={{color:'#ffd166',fontWeight:700}}>✓</span> Unlimited invoices & estimates</li>
+              <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#cbe3cb',fontSize:15,lineHeight:1.5,marginBottom:12}}><span style={{color:'#ffd166',fontWeight:700}}>✓</span> Expense tracking with receipt scanning</li>
+              <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#cbe3cb',fontSize:15,lineHeight:1.5,marginBottom:12}}><span style={{color:'#ffd166',fontWeight:700}}>✓</span> Customers & vendors</li>
+              <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#cbe3cb',fontSize:15,lineHeight:1.5,marginBottom:12}}><span style={{color:'#ffd166',fontWeight:700}}>✓</span> Core financial reports</li>
+              <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#cbe3cb',fontSize:15,lineHeight:1.5,marginBottom:12}}><span style={{color:'#ffd166',fontWeight:700}}>✓</span> iPhone mobile app</li>
+              <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#cbe3cb',fontSize:15,lineHeight:1.5,marginBottom:12}}><span style={{color:'#ffd166',fontWeight:700}}>✓</span> Single user</li>
+            </ul>
+
+            <button onClick={onGetStarted} style={{marginTop:'auto',padding:'15px 24px',borderRadius:12,fontSize:17,fontWeight:700,fontFamily:'sans-serif',letterSpacing:1,cursor:'pointer',border:'none',background:'#ffd166',color:'#0d2010',width:'100%'}}>Start free</button>
+          </div>
+
+          {/* Growth */}
+          <div style={{background:'rgba(255,209,102,0.05)',border:'1px solid rgba(255,209,102,0.15)',borderRadius:18,padding:'34px 30px',position:'relative',display:'flex',flexDirection:'column'}}>
+            <div style={{fontSize:22,color:'#ffd166',fontWeight:700}}>Growth</div>
+            <div style={{fontFamily:'sans-serif',fontSize:13,color:'#7a9a7a',marginTop:6}}>For teams ready to scale up.</div>
+            <div style={{margin:'22px 0 4px'}}><span style={{fontSize:52,color:'#fff',fontWeight:700,fontFamily:'sans-serif'}}>$39</span><span style={{fontSize:16,color:'#a8d4a8',fontFamily:'sans-serif'}}> / month</span></div>
+            <div style={{fontFamily:'sans-serif',fontSize:13,color:'#7a9a7a',margin:'10px 0 0'}}>Free first month, then $39.</div>
+
+            <ul style={{listStyle:'none',margin:'22px 0 26px',padding:0,fontFamily:'sans-serif'}}>
+              <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#cbe3cb',fontSize:15,lineHeight:1.5,marginBottom:12}}><span style={{color:'#ffd166',fontWeight:700}}>✓</span> <strong style={{color:'#fff',fontWeight:600}}>Everything in Startup, plus:</strong></li>
+              <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#cbe3cb',fontSize:15,lineHeight:1.5,marginBottom:12}}><span style={{color:'#ffd166',fontWeight:700}}>✓</span> Payroll</li>
+              <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#cbe3cb',fontSize:15,lineHeight:1.5,marginBottom:12}}><span style={{color:'#ffd166',fontWeight:700}}>✓</span> Automatic bank connections</li>
+              <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#cbe3cb',fontSize:15,lineHeight:1.5,marginBottom:12}}><span style={{color:'#ffd166',fontWeight:700}}>✓</span> Multiple team members</li>
+              <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#cbe3cb',fontSize:15,lineHeight:1.5,marginBottom:12}}><span style={{color:'#ffd166',fontWeight:700}}>✓</span> Advanced reports</li>
+            </ul>
+
+            <button onClick={onGetStarted} style={{marginTop:'auto',padding:'15px 24px',borderRadius:12,fontSize:17,fontWeight:700,fontFamily:'sans-serif',letterSpacing:1,cursor:'pointer',background:'transparent',color:'#ffd166',border:'1px solid #ffd166',width:'100%'}}>Start free</button>
+          </div>
+
+        </div>
+
+        <div style={{textAlign:'center',fontFamily:'sans-serif',color:'#5a8a5a',fontSize:14,marginTop:40}}>Free first month on both plans · Card required · Cancel anytime</div>
       </div>
 
       <div style={{textAlign:'center',padding:'80px 48px',background:'linear-gradient(180deg,#080f28 0%,#0a2010 50%,#071408 100%)'}}>
