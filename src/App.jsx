@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth }               from './lib/AuthContext';
 import AuthPage                  from './pages/AuthPage';
 import OnboardingPage            from './pages/OnboardingPage';
@@ -38,6 +38,7 @@ import './styles.css';
 
 const isPortal = window.location.pathname.startsWith('/portal/');
 const isPrivacy = window.location.pathname === '/privacy';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://ledger-accounting-production.up.railway.app/api';
 
 export default function App() {
   const { user, org, loading, logout } = useAuth();
@@ -46,6 +47,45 @@ export default function App() {
   const [onboarded, setOnboarded]  = useState(() => !!localStorage.getItem('onboarded'));
   const [showLanding, setShowLanding] = useState(true);
   const [showAI, setShowAI]        = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState(null); // null | 'checking' | 'paid' | 'notpaid' | 'error'
+
+  // After Stripe redirects back to /?paid=true&session_id=..., confirm the payment with our backend
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('paid') === 'true' && params.get('session_id')) {
+      const sessionId = params.get('session_id');
+      setPaymentStatus('checking');
+      // Clean the URL so refreshing this page won't re-run the check
+      window.history.replaceState({}, '', window.location.pathname);
+      fetch(`${API_BASE}/stripe/verify-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId })
+      })
+        .then(r => r.json())
+        .then(data => setPaymentStatus(data.paid ? 'paid' : 'notpaid'))
+        .catch(() => setPaymentStatus('error'));
+    }
+  }, []);
+
+  if (paymentStatus) {
+    const box = { minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16, fontFamily:'system-ui, sans-serif', padding:24, textAlign:'center' };
+    if (paymentStatus === 'checking')
+      return <div style={box}><div style={{fontSize:18, color:'#555'}}>Confirming your payment…</div></div>;
+    if (paymentStatus === 'paid')
+      return <div style={box}>
+        <div style={{fontSize:48}}>✅</div>
+        <h1 style={{margin:0, fontSize:24}}>Payment received</h1>
+        <p style={{color:'#555', maxWidth:360}}>Thank you! Your invoice has been marked as paid.</p>
+        <a href="/" style={{padding:'10px 20px', background:'#2D7A4A', color:'#fff', borderRadius:8, textDecoration:'none', fontWeight:600}}>Continue</a>
+      </div>;
+    return <div style={box}>
+      <div style={{fontSize:48}}>⚠️</div>
+      <h1 style={{margin:0, fontSize:24}}>We couldn't confirm the payment yet</h1>
+      <p style={{color:'#555', maxWidth:400}}>If you completed the payment it may take a moment to process. You can refresh this page, or contact support if you were charged.</p>
+      <a href="/" style={{padding:'10px 20px', background:'#555', color:'#fff', borderRadius:8, textDecoration:'none', fontWeight:600}}>Back to app</a>
+    </div>;
+  }
 
   if (isPrivacy) return <PrivacyPage />;
   if (isPortal) return <CustomerPortalPage token={window.location.pathname.replace('/portal/','')} />;
@@ -101,13 +141,3 @@ export default function App() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
