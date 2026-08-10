@@ -47,15 +47,15 @@ export default function App() {
   const [onboarded, setOnboarded]  = useState(() => !!localStorage.getItem('onboarded'));
   const [showLanding, setShowLanding] = useState(true);
   const [showAI, setShowAI]        = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState(null); // null | 'checking' | 'paid' | 'notpaid' | 'error'
+  const [paymentStatus, setPaymentStatus] = useState(null); // invoice payment
+  const [subStatus, setSubStatus]  = useState(null);          // subscription
 
-  // After Stripe redirects back to /?paid=true&session_id=..., confirm the payment with our backend
+  // After Stripe redirects back from an INVOICE payment (/?paid=true&session_id=...)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('paid') === 'true' && params.get('session_id')) {
       const sessionId = params.get('session_id');
       setPaymentStatus('checking');
-      // Clean the URL so refreshing this page won't re-run the check
       window.history.replaceState({}, '', window.location.pathname);
       fetch(`${API_BASE}/stripe/verify-payment`, {
         method: 'POST',
@@ -65,6 +65,24 @@ export default function App() {
         .then(r => r.json())
         .then(data => setPaymentStatus(data.paid ? 'paid' : 'notpaid'))
         .catch(() => setPaymentStatus('error'));
+    }
+  }, []);
+
+  // After Stripe redirects back from a SUBSCRIPTION signup (/?subscribed=true&session_id=...)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('subscribed') === 'true' && params.get('session_id')) {
+      const sessionId = params.get('session_id');
+      setSubStatus('checking');
+      window.history.replaceState({}, '', window.location.pathname);
+      fetch(`${API_BASE}/billing/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId })
+      })
+        .then(r => r.json())
+        .then(data => setSubStatus(data.active ? 'active' : 'inactive'))
+        .catch(() => setSubStatus('error'));
     }
   }, []);
 
@@ -83,6 +101,25 @@ export default function App() {
       <div style={{fontSize:48}}>⚠️</div>
       <h1 style={{margin:0, fontSize:24}}>We couldn't confirm the payment yet</h1>
       <p style={{color:'#555', maxWidth:400}}>If you completed the payment it may take a moment to process. You can refresh this page, or contact support if you were charged.</p>
+      <a href="/" style={{padding:'10px 20px', background:'#555', color:'#fff', borderRadius:8, textDecoration:'none', fontWeight:600}}>Back to app</a>
+    </div>;
+  }
+
+  if (subStatus) {
+    const box = { minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16, fontFamily:'system-ui, sans-serif', padding:24, textAlign:'center' };
+    if (subStatus === 'checking')
+      return <div style={box}><div style={{fontSize:18, color:'#555'}}>Setting up your subscription…</div></div>;
+    if (subStatus === 'active')
+      return <div style={box}>
+        <div style={{fontSize:48}}>🎉</div>
+        <h1 style={{margin:0, fontSize:24}}>You're all set!</h1>
+        <p style={{color:'#555', maxWidth:380}}>Your first month is free — welcome to Mountain Top Ledger. You won't be charged until next month.</p>
+        <a href="/" style={{padding:'10px 20px', background:'#2D7A4A', color:'#fff', borderRadius:8, textDecoration:'none', fontWeight:600}}>Go to my dashboard</a>
+      </div>;
+    return <div style={box}>
+      <div style={{fontSize:48}}>⚠️</div>
+      <h1 style={{margin:0, fontSize:24}}>We couldn't finish setting up your subscription</h1>
+      <p style={{color:'#555', maxWidth:400}}>If you entered your card it may take a moment. You can refresh, or try again from the Billing page.</p>
       <a href="/" style={{padding:'10px 20px', background:'#555', color:'#fff', borderRadius:8, textDecoration:'none', fontWeight:600}}>Back to app</a>
     </div>;
   }
