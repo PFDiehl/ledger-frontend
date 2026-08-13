@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { fmt } from '../lib/utils';
 
@@ -32,6 +32,20 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState({});
+  const [serviceOptions, setServiceOptions] = useState([]);
+
+  // Build the service suggestion list from services already used on invoices
+  useEffect(() => {
+    if (!org) return;
+    fetch(`${API}/orgs/${org.id}/invoices`, { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` } })
+      .then(r => r.json())
+      .then(j => {
+        if (j.success) {
+          const svcs = [...new Set((j.data || []).flatMap(inv => (inv.lines || []).map(l => l.service)).filter(Boolean))].sort();
+          setServiceOptions(svcs);
+        }
+      }).catch(() => {});
+  }, [org]);
 
   function setField(k, v) { setForm(f => ({...f, [k]: v})); }
   function addLine() { setLines(l => [...l, emptyLine()]); }
@@ -212,7 +226,7 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
                     </td>
                     <td style={{padding:'8px'}}>
                       <input value={line.service} onChange={e=>updateLine(i,'service',e.target.value)}
-                        placeholder="Optional" style={{width:'100%',padding:'8px',borderRadius:6,border:'1px solid #D4DDCC',fontSize:13}} />
+                        list="ledger-service-options" placeholder="Pick or type…" style={{width:'100%',padding:'8px',borderRadius:6,border:'1px solid #D4DDCC',fontSize:13}} />
                     </td>
                     <td style={{padding:'8px'}}>
                       <input value={line.qty} onChange={e=>updateLine(i,'qty',e.target.value)}
@@ -238,6 +252,9 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
                 ))}
               </tbody>
             </table>
+            <datalist id="ledger-service-options">
+              {serviceOptions.map(s => <option key={s} value={s} />)}
+            </datalist>
             <button onClick={addLine} style={{background:'none',border:'1px dashed #D4DDCC',borderRadius:8,padding:'8px 16px',cursor:'pointer',color:'#2D4A35',fontSize:13,width:'100%'}}>
               + Add line item
             </button>
