@@ -5,7 +5,7 @@ import { fmt } from '../lib/utils';
 const API = 'https://ledger-accounting-production.up.railway.app/api';
 const today = new Date().toISOString().slice(0, 10);
 const thirtyDays = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
-const emptyLine = () => ({ description: '', qty: '1', rate: '', amount: 0 });
+const emptyLine = () => ({ description: '', qty: '1', rate: '', amount: 0, service: '', taxable: true });
 
 export default function InvoiceFormPage({ invoice, onBack, onSave }) {
   const { org } = useAuth();
@@ -26,7 +26,7 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
   });
   const [lines, setLines] = useState(
     invoice?.lines?.length
-      ? invoice.lines.map(l => ({ description: l.description, qty: String(l.quantity), rate: String(l.unitPrice), amount: Number(l.amount) }))
+      ? invoice.lines.map(l => ({ description: l.description, qty: String(l.quantity), rate: String(l.unitPrice), amount: Number(l.amount), service: l.service || '', taxable: l.taxable !== false }))
       : [emptyLine()]
   );
   const [loading, setLoading] = useState(false);
@@ -48,8 +48,10 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
   }
 
   const subtotal = lines.reduce((s, l) => s + (Math.round((Number(l.qty||0) * Number(l.rate||0)) * 100) / 100), 0);
-  const taxAmount = subtotal * (parseFloat(form.taxRate || 0) / 100);
+  const taxableSubtotal = lines.reduce((s, l) => s + (l.taxable === false ? 0 : Math.round((Number(l.qty||0) * Number(l.rate||0)) * 100) / 100), 0);
+  const taxAmount = taxableSubtotal * (parseFloat(form.taxRate || 0) / 100);
   const total = subtotal + taxAmount + parseFloat(form.shipping || 0) - parseFloat(form.discount || 0);
+  const hasNonTaxable = lines.some(l => l.taxable === false);
 
   function validate() {
     const e = {};
@@ -79,7 +81,7 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
         taxRate: form.taxRate,
         shipping: form.shipping,
         discount: form.discount,
-        lines: lines.map(l => ({ description: l.description, quantity: l.qty, unitPrice: l.rate }))
+        lines: lines.map(l => ({ description: l.description, quantity: l.qty, unitPrice: l.rate, service: l.service || null, taxable: l.taxable !== false }))
       };
       const method = isEdit ? 'PATCH' : 'POST';
       const url = isEdit
@@ -193,8 +195,10 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
               <thead>
                 <tr style={{borderBottom:'1px solid #D4DDCC'}}>
                   <th style={{padding:'8px 0',textAlign:'left',fontSize:11,color:'#7A9A7A',fontWeight:500}}>DESCRIPTION</th>
+                  <th style={{padding:'8px 8px',textAlign:'left',fontSize:11,color:'#7A9A7A',fontWeight:500,width:150}}>SERVICE</th>
                   <th style={{padding:'8px 8px',textAlign:'center',fontSize:11,color:'#7A9A7A',fontWeight:500,width:60}}>QTY</th>
-                  <th style={{padding:'8px 8px',textAlign:'right',fontSize:11,color:'#7A9A7A',fontWeight:500,width:100}}>RATE ($)</th>
+                  <th style={{padding:'8px 8px',textAlign:'right',fontSize:11,color:'#7A9A7A',fontWeight:500,width:90}}>RATE ($)</th>
+                  <th style={{padding:'8px 8px',textAlign:'center',fontSize:11,color:'#7A9A7A',fontWeight:500,width:44}}>TAX</th>
                   <th style={{padding:'8px 8px',textAlign:'right',fontSize:11,color:'#7A9A7A',fontWeight:500,width:100}}>AMOUNT</th>
                   <th style={{width:30}}></th>
                 </tr>
@@ -207,12 +211,20 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
                         placeholder="Item description" style={{width:'100%',padding:'8px',borderRadius:6,border:'1px solid #D4DDCC',fontSize:13}} />
                     </td>
                     <td style={{padding:'8px'}}>
+                      <input value={line.service} onChange={e=>updateLine(i,'service',e.target.value)}
+                        placeholder="Optional" style={{width:'100%',padding:'8px',borderRadius:6,border:'1px solid #D4DDCC',fontSize:13}} />
+                    </td>
+                    <td style={{padding:'8px'}}>
                       <input value={line.qty} onChange={e=>updateLine(i,'qty',e.target.value)}
                         type="number" min="0" style={{width:'100%',padding:'8px',borderRadius:6,border:'1px solid #D4DDCC',fontSize:13,textAlign:'center'}} />
                     </td>
                     <td style={{padding:'8px'}}>
                       <input value={line.rate} onChange={e=>updateLine(i,'rate',e.target.value)}
                         type="number" min="0" step="0.01" placeholder="0.00" style={{width:'100%',padding:'8px',borderRadius:6,border:'1px solid #D4DDCC',fontSize:13,textAlign:'right'}} />
+                    </td>
+                    <td style={{padding:'8px',textAlign:'center'}}>
+                      <input type="checkbox" checked={line.taxable !== false} onChange={e=>updateLine(i,'taxable',e.target.checked)}
+                        title="Charge tax on this line" style={{width:16,height:16,cursor:'pointer',accentColor:'#2D4A35'}} />
                     </td>
                     <td style={{padding:'8px',textAlign:'right',fontWeight:500,fontSize:13}}>
                       {fmt(line.amount)}
@@ -273,7 +285,7 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
             </div>
             {parseFloat(form.taxRate||0) > 0 && (
               <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
-                <span style={{color:'#7A9A7A',fontSize:14}}>Tax ({form.taxRate}%)</span>
+                <span style={{color:'#7A9A7A',fontSize:14}}>Tax ({form.taxRate}%{hasNonTaxable ? ' Â· taxable items' : ''})</span>
                 <span style={{fontSize:14}}>{fmt(taxAmount)}</span>
               </div>
             )}
@@ -304,8 +316,8 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
               </button>
             </div>
             <div style={{marginTop:12,fontSize:12,color:'#7A9A7A'}}>
-              <p style={{margin:'4px 0'}}>• Save as draft to finish later</p>
-              <p style={{margin:'4px 0'}}>• "Save & send" emails the invoice immediately</p>
+              <p style={{margin:'4px 0'}}>ï¿½ Save as draft to finish later</p>
+              <p style={{margin:'4px 0'}}>ï¿½ "Save & send" emails the invoice immediately</p>
             </div>
           </div>
         </div>
@@ -313,10 +325,3 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
     </div>
   );
 }
-
-
-
-
-
-
-
