@@ -140,8 +140,10 @@ function downloadPDF() {
             <thead>
               <tr style={{ borderBottom:'1px solid #D4DDCC' }}>
                 <th style={{ padding:'8px 0', textAlign:'left', fontWeight:500, color:'#7A9A7A' }}>Description</th>
+                <th style={{ padding:'8px 8px', textAlign:'left', fontWeight:500, color:'#7A9A7A', width:150 }}>Service</th>
                 <th style={{ padding:'8px 8px', textAlign:'center', fontWeight:500, color:'#7A9A7A', width:60 }}>Qty</th>
-                <th style={{ padding:'8px 8px', textAlign:'right', fontWeight:500, color:'#7A9A7A', width:100 }}>Rate</th>
+                <th style={{ padding:'8px 8px', textAlign:'right', fontWeight:500, color:'#7A9A7A', width:90 }}>Rate</th>
+                <th style={{ padding:'8px 8px', textAlign:'center', fontWeight:500, color:'#7A9A7A', width:70 }}>Tax</th>
                 <th style={{ padding:'8px 8px', textAlign:'right', fontWeight:500, color:'#7A9A7A', width:100 }}>Amount</th>
               </tr>
             </thead>
@@ -149,8 +151,10 @@ function downloadPDF() {
               {lines.map((line, i) => (
                 <tr key={i} style={{ borderBottom:'0.5px solid #EBF2E8' }}>
                   <td style={{ padding:'10px 0' }}>{line.description}</td>
+                  <td style={{ padding:'10px 8px', color:'#2D4A35' }}>{line.service || '—'}</td>
                   <td style={{ padding:'10px 8px', textAlign:'center' }}>{Number(line.quantity)}</td>
                   <td style={{ padding:'10px 8px', textAlign:'right' }}>{fmt(line.unitPrice)}</td>
+                  <td style={{ padding:'10px 8px', textAlign:'center', color: line.taxable === false ? '#7A9A7A' : '#2D4A35' }}>{line.taxable === false ? 'No' : 'Yes'}</td>
                   <td style={{ padding:'10px 8px', textAlign:'right', fontWeight:500 }}>{fmt(line.amount)}</td>
                 </tr>
               ))}
