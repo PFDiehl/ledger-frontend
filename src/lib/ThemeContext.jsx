@@ -1,15 +1,16 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 
 // ── Theme definitions ─────────────────────────────────────────────────────────
+// Palettes mirror the Mountain Top Ledger mobile app: Original, Evergreen, Slate.
+// Ocean is kept as an extra option.
 
 export const THEMES = {
-  sage: {
-    id:          'sage',
-    name:        'Sage',
-    description: 'Forest green — calm, grounded, distinctive',
-    preview:     ['#2D4A35', '#A8D4A8', '#EBF2E8', '#C07A50'],
+  original: {
+    id:          'original',
+    name:        'Original',
+    description: 'Forest green — the Mountain Top look',
+    preview:     ['#2D4A35', '#A8D4A8', '#EBF2E8', '#FFD166'],
 
-    // CSS variable overrides applied to [data-theme="sage"]
     vars: {
       '--brand-sidebar':        '#2D4A35',
       '--brand-sidebar-mid':    '#3D6045',
@@ -46,45 +47,87 @@ export const THEMES = {
     },
   },
 
+  evergreen: {
+    id:          'evergreen',
+    name:        'Evergreen',
+    description: 'Cream & deep green — light and clean',
+    preview:     ['#2D7A4A', '#F4F1E9', '#EAE6DA', '#B9852B'],
+
+    vars: {
+      '--brand-sidebar':        '#234E33',
+      '--brand-sidebar-mid':    '#2D7A4A',
+      '--brand-sidebar-icon':   '#8FB89A',
+      '--brand-nav-active-bg':  '#2D7A4A',
+      '--brand-nav-active-icon':'#FFFFFF',
+      '--brand-nav-active-border':'#2D7A4A',
+      '--brand-topbar':         '#234E33',
+      '--brand-logo':           '#A8D4A8',
+      '--brand-topbar-sub':     '#8FB89A',
+      '--brand-primary':        '#2D7A4A',
+      '--brand-primary-hover':  '#246140',
+      '--brand-primary-text':   '#FFFFFF',
+      '--brand-btn-primary-bg': '#2D7A4A',
+      '--brand-btn-primary-text':'#FFFFFF',
+      '--brand-kpi-hero-bg':    '#234E33',
+      '--brand-kpi-hero-label': '#8FB89A',
+      '--brand-kpi-hero-val':   '#FFFFFF',
+      '--brand-kpi-tint-bg':    '#EAE6DA',
+      '--brand-kpi-tint-border':'#DED8C8',
+      '--brand-page-bg':        '#F4F1E9',
+      '--brand-card-border':    '#E2DCCF',
+      '--brand-section-label':  '#6B7A6B',
+      '--brand-inv-header':     '#234E33',
+      '--brand-inv-header-logo':'#A8D4A8',
+      '--brand-inv-header-sub': '#8FB89A',
+      '--brand-inv-total':      '#234E33',
+      '--brand-pay-btn-bg':     '#2D7A4A',
+      '--brand-pay-btn-text':   '#FFFFFF',
+      '--brand-mobile-bar':     '#234E33',
+      '--brand-mobile-active':  '#A8D4A8',
+      '--brand-accent-light':   '#EAE6DA',
+      '--brand-alert-bar':      '#B4472D',
+    },
+  },
+
   slate: {
     id:          'slate',
     name:        'Slate',
-    description: 'Warm charcoal & gold — authoritative, editorial',
-    preview:     ['#2E2C28', '#D4AA60', '#F5F2EA', '#C4603A'],
+    description: 'Charcoal & gold — sleek and modern',
+    preview:     ['#21252C', '#5FCF9A', '#2A2F38', '#E8B94A'],
 
     vars: {
-      '--brand-sidebar':        '#2E2C28',
-      '--brand-sidebar-mid':    '#3E3C38',
-      '--brand-sidebar-icon':   '#7A7770',
-      '--brand-nav-active-bg':  '#D4AA60',
-      '--brand-nav-active-icon':'#1A1610',
-      '--brand-nav-active-border':'#D4AA60',
-      '--brand-topbar':         '#2E2C28',
-      '--brand-logo':           '#D4AA60',
-      '--brand-topbar-sub':     '#7A7770',
-      '--brand-primary':        '#2E2C28',
-      '--brand-primary-hover':  '#3E3C38',
-      '--brand-primary-text':   '#D4AA60',
-      '--brand-btn-primary-bg': '#D4AA60',
-      '--brand-btn-primary-text':'#1A1610',
-      '--brand-kpi-hero-bg':    '#2E2C28',
-      '--brand-kpi-hero-label': '#7A7770',
-      '--brand-kpi-hero-val':   '#D4AA60',
-      '--brand-kpi-tint-bg':    '#F5F2EA',
-      '--brand-kpi-tint-border':'#E2DDD5',
-      '--brand-page-bg':        '#F2F0EC',
-      '--brand-card-border':    '#E2DDD5',
-      '--brand-section-label':  '#9A9590',
-      '--brand-inv-header':     '#2E2C28',
-      '--brand-inv-header-logo':'#D4AA60',
-      '--brand-inv-header-sub': '#7A7770',
-      '--brand-inv-total':      '#2E2C28',
-      '--brand-pay-btn-bg':     '#2E2C28',
-      '--brand-pay-btn-text':   '#D4AA60',
-      '--brand-mobile-bar':     '#2E2C28',
-      '--brand-mobile-active':  '#D4AA60',
-      '--brand-accent-light':   '#F5F2EA',
-      '--brand-alert-bar':      '#C4603A',
+      '--brand-sidebar':        '#16181D',
+      '--brand-sidebar-mid':    '#21252C',
+      '--brand-sidebar-icon':   '#6A7480',
+      '--brand-nav-active-bg':  '#5FCF9A',
+      '--brand-nav-active-icon':'#16181D',
+      '--brand-nav-active-border':'#5FCF9A',
+      '--brand-topbar':         '#16181D',
+      '--brand-logo':           '#E8B94A',
+      '--brand-topbar-sub':     '#9AA3AE',
+      '--brand-primary':        '#21252C',
+      '--brand-primary-hover':  '#2A2F38',
+      '--brand-primary-text':   '#5FCF9A',
+      '--brand-btn-primary-bg': '#5FCF9A',
+      '--brand-btn-primary-text':'#16181D',
+      '--brand-kpi-hero-bg':    '#21252C',
+      '--brand-kpi-hero-label': '#9AA3AE',
+      '--brand-kpi-hero-val':   '#5FCF9A',
+      '--brand-kpi-tint-bg':    '#EEF1F4',
+      '--brand-kpi-tint-border':'#DDE2E8',
+      '--brand-page-bg':        '#F1F3F5',
+      '--brand-card-border':    '#DDE2E8',
+      '--brand-section-label':  '#8A94A0',
+      '--brand-inv-header':     '#21252C',
+      '--brand-inv-header-logo':'#E8B94A',
+      '--brand-inv-header-sub': '#9AA3AE',
+      '--brand-inv-total':      '#21252C',
+      '--brand-pay-btn-bg':     '#21252C',
+      '--brand-pay-btn-text':   '#5FCF9A',
+      '--brand-mobile-bar':     '#16181D',
+      '--brand-mobile-active':  '#5FCF9A',
+      '--brand-accent-light':   '#EEF1F4',
+      '--brand-alert-bar':      '#E5928A',
     },
   },
 
@@ -129,54 +172,12 @@ export const THEMES = {
       '--brand-alert-bar':      '#C05A3A',
     },
   },
-
-  default: {
-    id:          'default',
-    name:        'Classic',
-    description: 'Purple — the original Ledger look',
-    preview:     ['#534AB7', '#EEEDFE', '#5DCAA5', '#A32D2D'],
-
-    vars: {
-      '--brand-sidebar':        '#1a1a18',
-      '--brand-sidebar-mid':    '#242422',
-      '--brand-sidebar-icon':   '#888780',
-      '--brand-nav-active-bg':  '#EEEDFE',
-      '--brand-nav-active-icon':'#534AB7',
-      '--brand-nav-active-border':'#534AB7',
-      '--brand-topbar':         '#ffffff',
-      '--brand-logo':           '#534AB7',
-      '--brand-topbar-sub':     '#888780',
-      '--brand-primary':        '#534AB7',
-      '--brand-primary-hover':  '#3C3489',
-      '--brand-primary-text':   '#ffffff',
-      '--brand-btn-primary-bg': '#534AB7',
-      '--brand-btn-primary-text':'#ffffff',
-      '--brand-kpi-hero-bg':    '#534AB7',
-      '--brand-kpi-hero-label': '#AFA9EC',
-      '--brand-kpi-hero-val':   '#ffffff',
-      '--brand-kpi-tint-bg':    '#EEEDFE',
-      '--brand-kpi-tint-border':'#CECBF6',
-      '--brand-page-bg':        '#f8f8f6',
-      '--brand-card-border':    '#e8e6df',
-      '--brand-section-label':  '#888780',
-      '--brand-inv-header':     '#534AB7',
-      '--brand-inv-header-logo':'#ffffff',
-      '--brand-inv-header-sub': '#AFA9EC',
-      '--brand-inv-total':      '#534AB7',
-      '--brand-pay-btn-bg':     '#534AB7',
-      '--brand-pay-btn-text':   '#ffffff',
-      '--brand-mobile-bar':     '#534AB7',
-      '--brand-mobile-active':  '#EEEDFE',
-      '--brand-accent-light':   '#EEEDFE',
-      '--brand-alert-bar':      '#A32D2D',
-    },
-  },
 };
 
 // ── Apply theme vars to :root ─────────────────────────────────────────────────
 
 function applyTheme(themeId) {
-  const theme = THEMES[themeId] ?? THEMES.default;
+  const theme = THEMES[themeId] ?? THEMES.original;
   const root  = document.documentElement;
 
   // Apply all brand variables
@@ -185,7 +186,7 @@ function applyTheme(themeId) {
   });
 
   // Set data attribute for any direct CSS selectors
-  root.setAttribute('data-theme', themeId);
+  root.setAttribute('data-theme', theme.id);
 }
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -194,7 +195,8 @@ const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
   const [themeId, setThemeId] = useState(() => {
-    return localStorage.getItem('ledger-theme') ?? 'sage';
+    const saved = localStorage.getItem('ledger-theme');
+    return (saved && THEMES[saved]) ? saved : 'original';
   });
 
   // Apply on mount and whenever theme changes
