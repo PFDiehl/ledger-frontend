@@ -410,6 +410,9 @@ function IntegrationsSettings() {
   const canManage = (TEAM_ROLE_RANK[myRole] ?? 0) >= TEAM_ROLE_RANK.admin;
   const [status, setStatus] = useState(null); // { configured, connected, realmId, env, connectedAt }
   const [busy, setBusy] = useState(false);
+  const [company, setCompany] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
 
   async function loadStatus() {
     if (!org) return;
@@ -450,10 +453,35 @@ function IntegrationsSettings() {
     try {
       const r = await fetch(`${SEC_API}/orgs/${org.id}/quickbooks/disconnect`, { method:'POST', headers: secHeaders() });
       const j = await r.json();
-      if (j.success) { toast.success('QuickBooks disconnected'); loadStatus(); }
+      if (j.success) { toast.success('QuickBooks disconnected'); setCompany(null); setSyncResult(null); loadStatus(); }
       else toast.error(j.message || 'Could not disconnect');
     } catch { toast.error('Cannot connect'); }
     finally { setBusy(false); }
+  }
+
+  async function verify() {
+    setBusy(true);
+    try {
+      const r = await fetch(`${SEC_API}/orgs/${org.id}/quickbooks/company`, { headers: secHeaders() });
+      const j = await r.json();
+      if (j.success) { setCompany(j.data); toast.success(`Connected to ${j.data.companyName || 'QuickBooks'}`); }
+      else toast.error(j.message || 'Could not read company info');
+    } catch { toast.error('Cannot connect'); }
+    finally { setBusy(false); }
+  }
+
+  async function syncCustomers() {
+    setSyncing(true); setSyncResult(null);
+    try {
+      const r = await fetch(`${SEC_API}/orgs/${org.id}/quickbooks/sync/customers`, { method:'POST', headers: secHeaders() });
+      const j = await r.json();
+      if (j.success) {
+        setSyncResult(j.data);
+        const moved = (j.data.created || 0) + (j.data.linked || 0);
+        toast.success(`Synced ${moved} of ${j.data.total} customer${j.data.total === 1 ? '' : 's'} to QuickBooks`);
+      } else toast.error(j.message || 'Sync failed');
+    } catch { toast.error('Cannot connect'); }
+    finally { setSyncing(false); }
   }
 
   const connected  = status?.connected;
@@ -484,6 +512,39 @@ function IntegrationsSettings() {
           )}
         </div>
       </div>
+
+      {connected && canManage && (
+        <div style={{ border:'0.5px solid var(--color-border-tertiary)', borderRadius:10, padding:'16px 18px', display:'flex', flexDirection:'column', gap:14 }}>
+          <div>
+            <div style={{ fontSize:13, fontWeight:600, marginBottom:2 }}>Sync</div>
+            <div style={{ fontSize:12, color:'var(--color-text-tertiary)' }}>Push your Mountain Top Ledger customers into QuickBooks. Runs safely — already-synced customers are skipped.</div>
+          </div>
+
+          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+            <button className="btn-secondary" style={{ fontSize:12 }} disabled={busy} onClick={verify}>{busy ? '…' : 'Verify connection'}</button>
+            <button className="btn-primary" style={{ fontSize:12 }} disabled={syncing} onClick={syncCustomers}>{syncing ? 'Syncing…' : 'Sync customers → QuickBooks'}</button>
+          </div>
+
+          {company && (
+            <div style={{ fontSize:12, color:'var(--color-text-secondary)', background:'var(--color-background-secondary)', borderRadius:8, padding:'10px 12px' }}>
+              ✓ Verified: <b>{company.companyName || 'Unknown company'}</b>{company.country ? ` · ${company.country}` : ''}
+            </div>
+          )}
+
+          {syncResult && (
+            <div style={{ fontSize:12, color:'var(--color-text-secondary)', background:'var(--color-background-secondary)', borderRadius:8, padding:'10px 12px' }}>
+              <div style={{ fontWeight:600, marginBottom:4 }}>Sync complete</div>
+              <div>{syncResult.created} created · {syncResult.linked} linked to existing · {syncResult.skipped} already synced · {syncResult.failed} failed</div>
+              {syncResult.errors?.length > 0 && (
+                <ul style={{ margin:'8px 0 0', paddingLeft:18, color:'#b23b2e' }}>
+                  {syncResult.errors.map((e, i) => <li key={i}>{e.name}: {e.error}</li>)}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={{ fontSize:11, color:'var(--color-text-tertiary)' }}>
         More integrations are on the way. Only admins and owners can connect or disconnect.
       </div>
