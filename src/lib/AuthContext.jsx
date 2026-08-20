@@ -38,6 +38,19 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
+    // If the account has 2FA enabled, no session is issued yet — the caller
+    // must collect a code and call verify2FA with the short-lived token.
+    if (data.twoFactorRequired) return data;
+    setAccessToken(data.accessToken);
+    setUser(data.user);
+    setOrgs(data.orgs);
+    const firstOrg = data.orgs[0];
+    if (firstOrg) selectOrg(firstOrg);
+    return data;
+  }, []);
+
+  const verify2FA = useCallback(async (twoFactorToken, code) => {
+    const { data } = await api.post('/auth/2fa/verify', { twoFactorToken, code });
     setAccessToken(data.accessToken);
     setUser(data.user);
     setOrgs(data.orgs);
@@ -65,7 +78,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, orgs, org, loading, login, register, logout, selectOrg }}>
+    <AuthContext.Provider value={{ user, orgs, org, loading, login, verify2FA, register, logout, selectOrg }}>
       {children}
     </AuthContext.Provider>
   );

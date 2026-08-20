@@ -137,19 +137,142 @@ function TeamSettings() {
   );
 }
 
+const SEC_API = 'https://ledger-accounting-production.up.railway.app/api';
+function secHeaders() {
+  return { 'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('accessToken') ?? ''}` };
+}
+
+function TwoFactorRow() {
+  const toast = useToast();
+  const [enabled, setEnabled]   = useState(null);   // null = loading
+  const [step, setStep]         = useState('idle');  // idle | setup | backup | disable
+  const [busy, setBusy]         = useState(false);
+  const [qr, setQr]             = useState('');
+  const [secret, setSecret]     = useState('');
+  const [code, setCode]         = useState('');
+  const [password, setPassword] = useState('');
+  const [backupCodes, setBackupCodes] = useState([]);
+
+  useEffect(() => {
+    fetch(`${SEC_API}/auth/2fa/status`, { headers: secHeaders() })
+      .then(r => r.json())
+      .then(j => setEnabled(!!j?.data?.enabled))
+      .catch(() => setEnabled(false));
+  }, []);
+
+  async function beginSetup() {
+    setBusy(true);
+    try {
+      const r = await fetch(`${SEC_API}/auth/2fa/setup`, { method:'POST', headers: secHeaders() });
+      const j = await r.json();
+      if (!j.success) { toast.error(j.message || 'Could not start setup'); return; }
+      setQr(j.data.qrDataUrl); setSecret(j.data.secret); setCode(''); setStep('setup');
+    } catch { toast.error('Cannot connect'); }
+    finally { setBusy(false); }
+  }
+
+  async function confirmEnable() {
+    setBusy(true);
+    try {
+      const r = await fetch(`${SEC_API}/auth/2fa/enable`, { method:'POST', headers: secHeaders(), body: JSON.stringify({ code }) });
+      const j = await r.json();
+      if (!j.success) { toast.error(j.message || 'That code was incorrect'); return; }
+      setBackupCodes(j.data.backupCodes || []); setEnabled(true); setStep('backup');
+      toast.success('Two-factor authentication enabled');
+    } catch { toast.error('Cannot connect'); }
+    finally { setBusy(false); }
+  }
+
+  async function confirmDisable() {
+    setBusy(true);
+    try {
+      const r = await fetch(`${SEC_API}/auth/2fa/disable`, { method:'POST', headers: secHeaders(), body: JSON.stringify({ password }) });
+      const j = await r.json();
+      if (!j.success) { toast.error(j.message || 'Incorrect password'); return; }
+      setEnabled(false); setStep('idle'); setPassword('');
+      toast.success('Two-factor authentication disabled');
+    } catch { toast.error('Cannot connect'); }
+    finally { setBusy(false); }
+  }
+
+  const sub = enabled === null ? 'Checking…' : enabled ? 'Enabled — your account is protected' : 'Not enabled — recommended';
+
+  return (
+    <div style={{ border:'0.5px solid var(--color-border-tertiary)', borderRadius:10, padding:'14px 16px', background: enabled ? 'transparent' : 'var(--brand-accent-light)' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+        <i className="ti ti-shield" style={{ fontSize:18, color:'var(--color-text-secondary)' }} />
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:13, fontWeight:500 }}>Two-factor authentication</div>
+          <div style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:2 }}>{sub}</div>
+        </div>
+        {enabled === false && step === 'idle' && (
+          <button className="btn-primary" style={{ fontSize:12 }} disabled={busy} onClick={beginSetup}>{busy ? '…' : 'Enable'}</button>
+        )}
+        {enabled === true && step === 'idle' && (
+          <button className="btn-secondary" style={{ fontSize:12 }} onClick={() => { setPassword(''); setStep('disable'); }}>Disable</button>
+        )}
+      </div>
+
+      {step === 'setup' && (
+        <div style={{ marginTop:16, paddingTop:16, borderTop:'0.5px solid var(--color-border-tertiary)' }}>
+          <div style={{ fontSize:12, color:'var(--color-text-secondary)', marginBottom:12 }}>
+            1. Scan this QR code with an authenticator app (Google Authenticator, Authy, 1Password).
+          </div>
+          {qr && <img src={qr} alt="2FA QR code" style={{ width:180, height:180, borderRadius:8, background:'#fff', padding:8, display:'block' }} />}
+          <div style={{ fontSize:11, color:'var(--color-text-tertiary)', margin:'10px 0' }}>
+            Can't scan? Enter this key manually: <code style={{ fontSize:11 }}>{secret}</code>
+          </div>
+          <div style={{ fontSize:12, color:'var(--color-text-secondary)', marginBottom:8 }}>2. Enter the 6-digit code to confirm.</div>
+          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+            <input value={code} onChange={e => setCode(e.target.value)} placeholder="123456" inputMode="numeric"
+              style={{ width:120, fontSize:16, letterSpacing:3, textAlign:'center' }} />
+            <button className="btn-primary" style={{ fontSize:12 }} disabled={busy || code.length < 6} onClick={confirmEnable}>{busy ? '…' : 'Confirm'}</button>
+            <button className="btn-secondary" style={{ fontSize:12 }} onClick={() => setStep('idle')}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {step === 'backup' && (
+        <div style={{ marginTop:16, paddingTop:16, borderTop:'0.5px solid var(--color-border-tertiary)' }}>
+          <div style={{ fontSize:12, fontWeight:600, marginBottom:6 }}>Save your backup codes</div>
+          <div style={{ fontSize:11, color:'var(--color-text-tertiary)', marginBottom:12 }}>
+            Each code works once if you lose access to your authenticator. Store them somewhere safe — they won't be shown again.
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, fontFamily:'monospace', fontSize:14, marginBottom:12 }}>
+            {backupCodes.map(c => <div key={c} style={{ padding:'6px 10px', background:'var(--color-background-secondary)', borderRadius:6, textAlign:'center' }}>{c}</div>)}
+          </div>
+          <button className="btn-secondary" style={{ fontSize:12 }} onClick={() => { navigator.clipboard?.writeText(backupCodes.join('\n')); toast.success('Backup codes copied'); }}>Copy codes</button>
+          <button className="btn-primary" style={{ fontSize:12, marginLeft:8 }} onClick={() => setStep('idle')}>Done</button>
+        </div>
+      )}
+
+      {step === 'disable' && (
+        <div style={{ marginTop:16, paddingTop:16, borderTop:'0.5px solid var(--color-border-tertiary)' }}>
+          <div style={{ fontSize:12, color:'var(--color-text-secondary)', marginBottom:8 }}>Enter your password to turn off two-factor authentication.</div>
+          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Your password" style={{ maxWidth:220, fontSize:14 }} />
+            <button className="btn-primary" style={{ fontSize:12 }} disabled={busy || !password} onClick={confirmDisable}>{busy ? '…' : 'Disable'}</button>
+            <button className="btn-secondary" style={{ fontSize:12 }} onClick={() => setStep('idle')}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SecuritySettings() {
   const toast = useToast();
   const items = [
-    { title:'Change password', sub:'Last changed 3 months ago', action:'Change', icon:'lock' },
-    { title:'Two-factor authentication', sub:'Not enabled — recommended', action:'Enable', icon:'shield', highlight:true },
+    { title:'Change password', sub:'Use "Forgot password" on the sign-in screen', action:'Reset', icon:'lock' },
     { title:'Active sessions', sub:'1 active session', action:'View', icon:'device-laptop' },
     { title:'API keys', sub:'0 keys', action:'Manage', icon:'key' },
   ];
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+      <TwoFactorRow />
       <div style={{ border:'0.5px solid var(--color-border-tertiary)', borderRadius:10, overflow:'hidden' }}>
         {items.map((item, i) => (
-          <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', borderBottom: i<items.length-1 ? '0.5px solid var(--color-border-tertiary)' : 'none', background: item.highlight ? 'var(--brand-accent-light)' : 'transparent' }}>
+          <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', borderBottom: i<items.length-1 ? '0.5px solid var(--color-border-tertiary)' : 'none' }}>
             <i className={`ti ti-${item.icon}`} style={{ fontSize:18, color:'var(--color-text-secondary)' }} />
             <div style={{ flex:1 }}><div style={{ fontSize:13, fontWeight:500 }}>{item.title}</div><div style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:2 }}>{item.sub}</div></div>
             <button className="btn-secondary" style={{ fontSize:12 }} onClick={() => toast.info(item.title)}>{item.action}</button>

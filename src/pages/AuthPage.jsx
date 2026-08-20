@@ -4,13 +4,15 @@ import { useAuth } from '../lib/AuthContext';
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 export default function AuthPage({ onSuccess }) {
-  const { login, register } = useAuth();
+  const { login, verify2FA, register } = useAuth();
   const [mode, setMode] = useState('login');
   const [showPw, setShowPw] = useState(false);
   const [form, setForm] = useState({ email: '', password: '', fullName: '', orgName: '' });
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
+  const [twoFactorToken, setTwoFactorToken] = useState('');
+  const [twoFactorCode, setTwoFactorCode]   = useState('');
 
   function setField(k, v) { setForm(f => ({ ...f, [k]: v })); setError(''); }
 
@@ -29,8 +31,19 @@ export default function AuthPage({ onSuccess }) {
         setNotice(data.message || 'If that email is registered, a reset link is on its way. Check your inbox.');
         return;
       }
+      if (mode === '2fa') {
+        await verify2FA(twoFactorToken, twoFactorCode);
+        onSuccess?.();
+        return;
+      }
       if (mode === 'login') {
-        await login(form.email, form.password);
+        const result = await login(form.email, form.password);
+        if (result?.twoFactorRequired) {
+          setTwoFactorToken(result.twoFactorToken);
+          setTwoFactorCode('');
+          setMode('2fa');
+          return;
+        }
       } else {
         await register({ email: form.email, password: form.password, fullName: form.fullName, orgName: form.orgName });
       }
@@ -94,7 +107,10 @@ export default function AuthPage({ onSuccess }) {
 
         {/* Title */}
         <div style={{fontSize:'20px', fontWeight:'600', color:'#fff', marginBottom:'28px', textAlign:'center'}}>
-          {mode === 'login' ? 'Sign in to your account' : mode === 'forgot' ? 'Reset your password' : 'Create your account'}
+          {mode === 'login' ? 'Sign in to your account'
+            : mode === 'forgot' ? 'Reset your password'
+            : mode === '2fa' ? 'Two-factor authentication'
+            : 'Create your account'}
         </div>
 
         {error && (
@@ -123,7 +139,31 @@ export default function AuthPage({ onSuccess }) {
           </div>
         )}
 
+        {mode === '2fa' && (
+          <div style={{fontSize:'14px', color:'#7A9A7A', marginBottom:'20px', textAlign:'center'}}>
+            Enter the 6-digit code from your authenticator app. You can also use one of your backup codes.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
+          {mode === '2fa' && (
+            <div style={{marginBottom:'28px'}}>
+              <label style={{display:'block', fontSize:'13px', color:'#A8D4A8', marginBottom:'8px', fontWeight:'500'}}>Authentication code</label>
+              <input
+                type="text" inputMode="numeric" autoComplete="one-time-code" autoFocus
+                value={twoFactorCode}
+                onChange={e => { setTwoFactorCode(e.target.value); setError(''); }}
+                placeholder="123456"
+                style={{
+                  width:'100%', padding:'14px 16px', borderRadius:'12px', fontSize:'22px', letterSpacing:'6px',
+                  textAlign:'center',
+                  background:'rgba(255,255,255,0.06)', border:'1px solid rgba(168,212,168,0.25)',
+                  color:'#fff', outline:'none', boxSizing:'border-box',
+                }}
+              />
+            </div>
+          )}
+
           {mode === 'register' && (
             <>
               <div style={{marginBottom:'16px'}}>
@@ -153,6 +193,7 @@ export default function AuthPage({ onSuccess }) {
             </>
           )}
 
+          {mode !== '2fa' && (
           <div style={{marginBottom:'16px'}}>
             <label style={{display:'block', fontSize:'13px', color:'#A8D4A8', marginBottom:'8px', fontWeight:'500'}}>Email</label>
             <input
@@ -165,8 +206,9 @@ export default function AuthPage({ onSuccess }) {
               }}
             />
           </div>
+          )}
 
-          {mode !== 'forgot' && (
+          {mode !== 'forgot' && mode !== '2fa' && (
           <div style={{marginBottom:'28px'}}>
             <label style={{display:'block', fontSize:'13px', color:'#A8D4A8', marginBottom:'8px', fontWeight:'500'}}>Password</label>
             <div style={{position:'relative'}}>
@@ -201,10 +243,21 @@ export default function AuthPage({ onSuccess }) {
             color: '#0d2010', border:'none', cursor: loading ? 'not-allowed' : 'pointer',
             letterSpacing:'0.5px', transition:'opacity 0.2s'
           }}>
-            {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : mode === 'forgot' ? 'Send Reset Link' : 'Create Account'}
+            {loading ? 'Please wait...'
+              : mode === 'login' ? 'Sign In'
+              : mode === 'forgot' ? 'Send Reset Link'
+              : mode === '2fa' ? 'Verify'
+              : 'Create Account'}
           </button>
         </form>
 
+        {mode === '2fa' && (
+          <div style={{textAlign:'center', marginTop:'20px', fontSize:'14px'}}>
+            <button type="button" onClick={() => { setMode('login'); setError(''); setNotice(''); setTwoFactorCode(''); setTwoFactorToken(''); }} style={{background:'none',border:'none',color:'#7A9A7A',cursor:'pointer',fontSize:'14px'}}>← Back to sign in</button>
+          </div>
+        )}
+
+        {mode !== '2fa' && (
         <div style={{textAlign:'center', marginTop:'24px', fontSize:'14px', color:'#7A9A7A'}}>
           {mode === 'login' ? (
             <>Don't have an account? <button onClick={() => setMode('register')} style={{background:'none',border:'none',color:'#A8D4A8',cursor:'pointer',fontSize:'14px',fontWeight:'600'}}>Sign up free</button></>
@@ -212,6 +265,7 @@ export default function AuthPage({ onSuccess }) {
             <>Already have an account? <button onClick={() => { setMode('login'); setError(''); setNotice(''); }} style={{background:'none',border:'none',color:'#A8D4A8',cursor:'pointer',fontSize:'14px',fontWeight:'600'}}>Sign in</button></>
           )}
         </div>
+        )}
 
         <div style={{textAlign:'center', marginTop:'32px', paddingTop:'24px', borderTop:'1px solid rgba(168,212,168,0.1)'}}>
           <div style={{fontSize:'11px', color:'#3a5a3a', letterSpacing:'1px'}}>
