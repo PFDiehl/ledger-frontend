@@ -108,31 +108,146 @@ function CompanySettings() {
     </div>
   );
 }
+const TEAM_ROLE_RANK = { viewer:0, member:1, manager:2, admin:3, owner:4 };
+const ASSIGNABLE_ROLES = ['viewer','member','manager','admin'];
+const ROLE_LABEL = { viewer:'Viewer', member:'Member', manager:'Manager', admin:'Admin', owner:'Owner' };
+
+function initials(name, email) {
+  const src = (name || email || '?').trim();
+  const parts = src.split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return src.slice(0,2).toUpperCase();
+}
+
 function TeamSettings() {
   const toast = useToast();
-  const members = [
-    { name:'Alex Demo', email:'alex@acmeco.com', role:'Owner', avatar:'AD', lastActive:'Now' },
-    { name:'Jane Doe',  email:'jane@acmeco.com', role:'Admin', avatar:'JD', lastActive:'2h ago' },
-    { name:'Bob Smith', email:'bob@acmeco.com',  role:'Member',avatar:'BS', lastActive:'Yesterday' },
-  ];
+  const { org } = useAuth();
+  const myRole  = org?.role || 'viewer';
+  const canManage = (TEAM_ROLE_RANK[myRole] ?? 0) >= TEAM_ROLE_RANK.admin;
+
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('member');
+  const [busy, setBusy] = useState(false);
+
+  async function load() {
+    if (!org) return;
+    setLoading(true);
+    try {
+      const r = await fetch(`${SEC_API}/orgs/${org.id}/team`, { headers: secHeaders() });
+      const j = await r.json();
+      if (j.success) setMembers(j.data || []);
+    } catch { /* leave list as-is */ }
+    finally { setLoading(false); }
+  }
+  useEffect(() => { load(); }, [org?.id]);
+
+  async function changeRole(userId, role) {
+    setBusy(true);
+    try {
+      const r = await fetch(`${SEC_API}/orgs/${org.id}/team/${userId}`, {
+        method:'PATCH', headers: secHeaders(), body: JSON.stringify({ role }),
+      });
+      const j = await r.json();
+      if (j.success) { toast.success('Role updated'); setMembers(ms => ms.map(m => m.userId===userId ? { ...m, role } : m)); }
+      else toast.error(j.message || 'Could not update role');
+    } catch { toast.error('Cannot connect'); }
+    finally { setBusy(false); }
+  }
+
+  async function removeMember(userId, name) {
+    setBusy(true);
+    try {
+      const r = await fetch(`${SEC_API}/orgs/${org.id}/team/${userId}`, { method:'DELETE', headers: secHeaders() });
+      const j = await r.json();
+      if (j.success) { toast.success(`Removed ${name || 'member'}`); setMembers(ms => ms.filter(m => m.userId!==userId)); }
+      else toast.error(j.message || 'Could not remove');
+    } catch { toast.error('Cannot connect'); }
+    finally { setBusy(false); }
+  }
+
+  async function sendInvite() {
+    const email = inviteEmail.trim().toLowerCase();
+    if (!email) { toast.error('Enter an email'); return; }
+    setBusy(true);
+    try {
+      const r = await fetch(`${SEC_API}/orgs/${org.id}/team`, {
+        method:'POST', headers: secHeaders(), body: JSON.stringify({ email, role: inviteRole }),
+      });
+      const j = await r.json();
+      if (j.success) {
+        toast.success('Added to your team');
+        setInviteEmail(''); setInviteOpen(false); load();
+      } else toast.error(j.message || 'Could not add that person');
+    } catch { toast.error('Cannot connect'); }
+    finally { setBusy(false); }
+  }
+
   return (
     <div>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
-        <div><div style={{ fontSize:13, fontWeight:500 }}>Team members</div><div style={{ fontSize:12, color:'var(--color-text-secondary)', marginTop:2 }}>3 of 10 seats used</div></div>
-        <button className="btn-primary" onClick={() => toast.info('Invite dialog…')}><i className="ti ti-plus" /> Invite</button>
-      </div>
-      <div style={{ border:'0.5px solid var(--color-border-tertiary)', borderRadius:10, overflow:'hidden' }}>
-        {members.map((m,i) => (
-          <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px', borderBottom: i<members.length-1 ? '0.5px solid var(--color-border-tertiary)' : 'none' }}>
-            <div style={{ width:34, height:34, borderRadius:'50%', background:'var(--brand-accent-light)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:500, color:'var(--brand-primary)', flexShrink:0 }}>{m.avatar}</div>
-            <div style={{ flex:1 }}><div style={{ fontSize:13, fontWeight:500 }}>{m.name}</div><div style={{ fontSize:11, color:'var(--color-text-tertiary)' }}>{m.email}</div></div>
-            <div style={{ fontSize:11, color:'var(--color-text-tertiary)', marginRight:8 }}>Active {m.lastActive}</div>
-            <select defaultValue={m.role} style={{ fontSize:12, padding:'4px 8px', borderRadius:6, border:'0.5px solid var(--color-border-secondary)', background:'var(--color-background-primary)', color:'var(--color-text-primary)' }}>
-              {['Owner','Admin','Accountant','Member','Viewer'].map(r => <option key={r}>{r}</option>)}
-            </select>
+        <div>
+          <div style={{ fontSize:13, fontWeight:500 }}>Team members</div>
+          <div style={{ fontSize:12, color:'var(--color-text-secondary)', marginTop:2 }}>
+            {loading ? 'Loading…' : `${members.length} member${members.length===1?'':'s'}`}
           </div>
-        ))}
+        </div>
+        {canManage && (
+          <button className="btn-primary" onClick={() => setInviteOpen(o => !o)}><i className="ti ti-plus" /> Invite</button>
+        )}
       </div>
+
+      {canManage && inviteOpen && (
+        <div style={{ border:'0.5px solid var(--color-border-tertiary)', borderRadius:10, padding:'14px 16px', marginBottom:16, display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+          <input type="email" placeholder="teammate@email.com" value={inviteEmail}
+            onChange={e => setInviteEmail(e.target.value)} style={{ flex:'1 1 220px', fontSize:13 }} />
+          <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} style={{ fontSize:13 }}>
+            {ASSIGNABLE_ROLES.map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+          </select>
+          <button className="btn-primary" style={{ fontSize:12 }} disabled={busy} onClick={sendInvite}>{busy ? '…' : 'Add'}</button>
+          <button className="btn-secondary" style={{ fontSize:12 }} onClick={() => setInviteOpen(false)}>Cancel</button>
+          <div style={{ flexBasis:'100%', fontSize:11, color:'var(--color-text-tertiary)' }}>
+            They need a Mountain Top Ledger account first. Roles: Viewer (read-only), Member (day-to-day work), Manager, Admin (settings &amp; team).
+          </div>
+        </div>
+      )}
+
+      <div style={{ border:'0.5px solid var(--color-border-tertiary)', borderRadius:10, overflow:'hidden' }}>
+        {members.length === 0 && !loading && (
+          <div style={{ padding:'16px', fontSize:13, color:'var(--color-text-tertiary)' }}>No team members yet.</div>
+        )}
+        {members.map((m,i) => {
+          const editable = canManage && m.role !== 'owner' && !m.isSelf;
+          return (
+            <div key={m.userId} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px', borderBottom: i<members.length-1 ? '0.5px solid var(--color-border-tertiary)' : 'none' }}>
+              <div style={{ width:34, height:34, borderRadius:'50%', background:'var(--brand-accent-light)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:500, color:'var(--brand-primary)', flexShrink:0 }}>{initials(m.name, m.email)}</div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:13, fontWeight:500 }}>{m.name || m.email}{m.isSelf ? ' (you)' : ''}</div>
+                <div style={{ fontSize:11, color:'var(--color-text-tertiary)', overflow:'hidden', textOverflow:'ellipsis' }}>{m.email}</div>
+              </div>
+              {editable ? (
+                <select value={m.role} disabled={busy} onChange={e => changeRole(m.userId, e.target.value)}
+                  style={{ fontSize:12, padding:'4px 8px', borderRadius:6, border:'0.5px solid var(--color-border-secondary)', background:'var(--color-background-primary)', color:'var(--color-text-primary)' }}>
+                  {ASSIGNABLE_ROLES.map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+                </select>
+              ) : (
+                <span style={{ fontSize:12, color:'var(--color-text-secondary)', padding:'4px 8px' }}>{ROLE_LABEL[m.role] || m.role}</span>
+              )}
+              {editable && (
+                <button className="btn-secondary" style={{ fontSize:12, marginLeft:4 }} disabled={busy} onClick={() => removeMember(m.userId, m.name)}>Remove</button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {!canManage && (
+        <div style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:10 }}>
+          Only admins and owners can invite people or change roles.
+        </div>
+      )}
     </div>
   );
 }
@@ -288,6 +403,94 @@ function SecuritySettings() {
   );
 }
 
+function IntegrationsSettings() {
+  const toast = useToast();
+  const { org } = useAuth();
+  const myRole  = org?.role || 'viewer';
+  const canManage = (TEAM_ROLE_RANK[myRole] ?? 0) >= TEAM_ROLE_RANK.admin;
+  const [status, setStatus] = useState(null); // { configured, connected, realmId, env, connectedAt }
+  const [busy, setBusy] = useState(false);
+
+  async function loadStatus() {
+    if (!org) return;
+    try {
+      const r = await fetch(`${SEC_API}/orgs/${org.id}/quickbooks/status`, { headers: secHeaders() });
+      const j = await r.json();
+      if (j.success) setStatus(j.data);
+    } catch { /* leave null */ }
+  }
+  useEffect(() => { loadStatus(); }, [org?.id]);
+
+  // Surface the OAuth redirect result (?qbo=connected / error) once on mount.
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const qbo = p.get('qbo');
+    if (qbo === 'connected') { toast.success('QuickBooks connected'); loadStatus(); }
+    else if (qbo === 'error') { toast.error('QuickBooks connection failed: ' + (p.get('reason') || 'unknown')); }
+    if (qbo) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('qbo'); url.searchParams.delete('reason');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, []);
+
+  async function connect() {
+    setBusy(true);
+    try {
+      const r = await fetch(`${SEC_API}/orgs/${org.id}/quickbooks/connect`, { headers: secHeaders() });
+      const j = await r.json();
+      if (j.success && j.data?.url) { window.location.href = j.data.url; }
+      else toast.error(j.message || 'Could not start QuickBooks connection');
+    } catch { toast.error('Cannot connect'); }
+    finally { setBusy(false); }
+  }
+
+  async function disconnect() {
+    setBusy(true);
+    try {
+      const r = await fetch(`${SEC_API}/orgs/${org.id}/quickbooks/disconnect`, { method:'POST', headers: secHeaders() });
+      const j = await r.json();
+      if (j.success) { toast.success('QuickBooks disconnected'); loadStatus(); }
+      else toast.error(j.message || 'Could not disconnect');
+    } catch { toast.error('Cannot connect'); }
+    finally { setBusy(false); }
+  }
+
+  const connected  = status?.connected;
+  const configured = status?.configured;
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+      <div style={{ border:'0.5px solid var(--color-border-tertiary)', borderRadius:10, padding:'16px 18px' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+          <div style={{ width:40, height:40, borderRadius:8, background:'#2CA01C', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:700, fontSize:18, flexShrink:0 }}>qb</div>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:14, fontWeight:600 }}>QuickBooks Online</div>
+            <div style={{ fontSize:12, color:'var(--color-text-tertiary)', marginTop:2 }}>
+              {status == null ? 'Checking…'
+                : connected ? `Connected${status.env ? ` · ${status.env}` : ''}${status.realmId ? ` · company ${status.realmId}` : ''}`
+                : configured ? 'Sync customers, invoices, and expenses with QuickBooks.'
+                : 'Not configured yet — coming soon.'}
+            </div>
+          </div>
+          {status != null && (
+            connected ? (
+              canManage && <button className="btn-secondary" style={{ fontSize:12 }} disabled={busy} onClick={disconnect}>{busy ? '…' : 'Disconnect'}</button>
+            ) : (
+              canManage
+                ? <button className="btn-primary" style={{ fontSize:12, opacity: configured ? 1 : 0.5 }} disabled={busy || !configured} onClick={connect}>{busy ? '…' : 'Connect'}</button>
+                : <span style={{ fontSize:11, color:'var(--color-text-tertiary)' }}>Admin only</span>
+            )
+          )}
+        </div>
+      </div>
+      <div style={{ fontSize:11, color:'var(--color-text-tertiary)' }}>
+        More integrations are on the way. Only admins and owners can connect or disconnect.
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const [tab, setTab] = useState('appearance');
 
@@ -297,6 +500,7 @@ export default function SettingsPage() {
       case 'company':      return <CompanySettings />;
       case 'team':         return <TeamSettings />;
       case 'security':     return <SecuritySettings />;
+      case 'integrations': return <IntegrationsSettings />;
       default: return (
         <div style={{ padding:'40px 0', textAlign:'center', color:'var(--color-text-tertiary)', fontSize:13 }}>
           <i className="ti ti-tools" style={{ fontSize:28, display:'block', marginBottom:10 }} />

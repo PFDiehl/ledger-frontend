@@ -16,7 +16,9 @@ async function refreshToken() {
   });
   if (!res.ok) throw new Error('Session expired');
   const { data } = await res.json();
-  accessToken = data.accessToken;
+  // Persist to both memory AND localStorage so components that read the token
+  // directly from localStorage (e.g. Settings) stay in sync after a refresh.
+  setAccessToken(data.accessToken);
   return accessToken;
 }
 

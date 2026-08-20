@@ -22,7 +22,9 @@ export default function ExpensesPage() {
   const [editForm, setEditForm] = useState({});
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [viewingImage, setViewingImage] = useState(null);
+  const [scanning, setScanning] = useState(false);
   const fileInputRef = useRef(null);
+  const scanInputRef = useRef(null);
   const { orgId, token } = getAuth();
 
   useEffect(() => {
@@ -65,6 +67,39 @@ export default function ExpensesPage() {
       if (j.success) { setExpenses(prev => prev.filter(e => e.id !== id)); setSelected(null); setEditing(false); }
       else alert(j.message);
     } catch(e) { alert('Error deleting expense'); }
+  }
+
+  // Scan a receipt image/PDF and pre-fill the New Expense form from OCR.
+  // Uses the same /receipts/scan endpoint the mobile app uses.
+  async function scanReceipt(file) {
+    if (!file) return;
+    setScanning(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const base64 = e.target.result.split(',')[1];
+          const mediaType = file.type || 'image/jpeg';
+          const r = await fetch(API+'/orgs/'+orgId+'/receipts/scan', {
+            method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+token },
+            body: JSON.stringify({ imageBase64: base64, mediaType })
+          });
+          const j = await r.json();
+          if (!j.success) { alert(j.message || 'Could not read that receipt. You can still enter it by hand.'); return; }
+          const info = j.data || {};
+          const safeDate = info.date && !isNaN(new Date(info.date)) ? new Date(info.date).toISOString().slice(0,10) : today;
+          setForm(f => ({
+            ...f,
+            vendor:   info.vendor || f.vendor,
+            amount:   (info.amount != null && info.amount !== '') ? String(info.amount) : f.amount,
+            date:     safeDate,
+            category: (info.category && CATEGORIES.includes(info.category)) ? info.category : f.category,
+          }));
+        } catch { alert('Could not read that receipt. You can still enter it by hand.'); }
+        finally { setScanning(false); }
+      };
+      reader.readAsDataURL(file);
+    } catch { alert('Could not read that receipt.'); setScanning(false); }
   }
 
   async function uploadReceipt(file) {
@@ -184,6 +219,15 @@ export default function ExpensesPage() {
               <button onClick={()=>setShowForm(false)} style={{background:'none',border:'none',fontSize:22,cursor:'pointer'}}>×</button>
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:14}}>
+              <div>
+                <input ref={scanInputRef} type="file" accept="image/*,application/pdf" style={{display:'none'}}
+                  onChange={e => { const file = e.target.files?.[0]; if (file) scanReceipt(file); e.target.value=''; }} />
+                <button type="button" onClick={()=>scanInputRef.current?.click()} disabled={scanning}
+                  style={{width:'100%',padding:'11px',borderRadius:8,border:'1px dashed #2D4A35',background:'#F4F8F4',color:'#2D4A35',fontSize:13,fontWeight:600,cursor:scanning?'wait':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+                  {scanning ? 'Scanning receipt…' : '📷 Scan receipt to auto-fill'}
+                </button>
+                <div style={{fontSize:11,color:'#7A9A7A',marginTop:6,textAlign:'center'}}>Upload a photo or PDF — we'll read the vendor, amount, and date.</div>
+              </div>
               {F('VENDOR', 'vendor', 'input', {placeholder:'Amazon'})}
               {F('CATEGORY', 'category', 'select', {options: CATEGORIES})}
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
