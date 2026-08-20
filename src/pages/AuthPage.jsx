@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
 
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
 export default function AuthPage({ onSuccess }) {
   const { login, register } = useAuth();
   const [mode, setMode] = useState('login');
   const [showPw, setShowPw] = useState(false);
   const [form, setForm] = useState({ email: '', password: '', fullName: '', orgName: '' });
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
 
   function setField(k, v) { setForm(f => ({ ...f, [k]: v })); setError(''); }
@@ -15,7 +18,17 @@ export default function AuthPage({ onSuccess }) {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setNotice('');
     try {
+      if (mode === 'forgot') {
+        const res = await fetch(`${API}/auth/forgot-password`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: form.email }),
+        });
+        const data = await res.json().catch(() => ({}));
+        setNotice(data.message || 'If that email is registered, a reset link is on its way. Check your inbox.');
+        return;
+      }
       if (mode === 'login') {
         await login(form.email, form.password);
       } else {
@@ -81,7 +94,7 @@ export default function AuthPage({ onSuccess }) {
 
         {/* Title */}
         <div style={{fontSize:'20px', fontWeight:'600', color:'#fff', marginBottom:'28px', textAlign:'center'}}>
-          {mode === 'login' ? 'Sign in to your account' : 'Create your account'}
+          {mode === 'login' ? 'Sign in to your account' : mode === 'forgot' ? 'Reset your password' : 'Create your account'}
         </div>
 
         {error && (
@@ -91,6 +104,22 @@ export default function AuthPage({ onSuccess }) {
             color:'#ff8a7a', fontSize:'14px'
           }}>
             {error}
+          </div>
+        )}
+
+        {notice && (
+          <div style={{
+            background:'rgba(168,212,168,0.15)', border:'1px solid rgba(168,212,168,0.4)',
+            borderRadius:'10px', padding:'12px 16px', marginBottom:'20px',
+            color:'#A8D4A8', fontSize:'14px'
+          }}>
+            {notice}
+          </div>
+        )}
+
+        {mode === 'forgot' && (
+          <div style={{fontSize:'14px', color:'#7A9A7A', marginBottom:'20px', textAlign:'center'}}>
+            Enter your email and we'll send you a link to reset your password.
           </div>
         )}
 
@@ -137,6 +166,7 @@ export default function AuthPage({ onSuccess }) {
             />
           </div>
 
+          {mode !== 'forgot' && (
           <div style={{marginBottom:'28px'}}>
             <label style={{display:'block', fontSize:'13px', color:'#A8D4A8', marginBottom:'8px', fontWeight:'500'}}>Password</label>
             <div style={{position:'relative'}}>
@@ -157,6 +187,13 @@ export default function AuthPage({ onSuccess }) {
               </button>
             </div>
           </div>
+          )}
+
+          {mode === 'login' && (
+            <div style={{textAlign:'right', marginTop:'-14px', marginBottom:'20px'}}>
+              <button type="button" onClick={() => { setMode('forgot'); setError(''); setNotice(''); }} style={{background:'none',border:'none',color:'#7A9A7A',cursor:'pointer',fontSize:'13px'}}>Forgot password?</button>
+            </div>
+          )}
 
           <button type="submit" disabled={loading} style={{
             width:'100%', padding:'15px', borderRadius:'12px', fontSize:'16px', fontWeight:'700',
@@ -164,7 +201,7 @@ export default function AuthPage({ onSuccess }) {
             color: '#0d2010', border:'none', cursor: loading ? 'not-allowed' : 'pointer',
             letterSpacing:'0.5px', transition:'opacity 0.2s'
           }}>
-            {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}
+            {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : mode === 'forgot' ? 'Send Reset Link' : 'Create Account'}
           </button>
         </form>
 
@@ -172,7 +209,7 @@ export default function AuthPage({ onSuccess }) {
           {mode === 'login' ? (
             <>Don't have an account? <button onClick={() => setMode('register')} style={{background:'none',border:'none',color:'#A8D4A8',cursor:'pointer',fontSize:'14px',fontWeight:'600'}}>Sign up free</button></>
           ) : (
-            <>Already have an account? <button onClick={() => setMode('login')} style={{background:'none',border:'none',color:'#A8D4A8',cursor:'pointer',fontSize:'14px',fontWeight:'600'}}>Sign in</button></>
+            <>Already have an account? <button onClick={() => { setMode('login'); setError(''); setNotice(''); }} style={{background:'none',border:'none',color:'#A8D4A8',cursor:'pointer',fontSize:'14px',fontWeight:'600'}}>Sign in</button></>
           )}
         </div>
 

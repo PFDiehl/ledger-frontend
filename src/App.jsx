@@ -34,10 +34,12 @@ import SettingsPage              from './pages/SettingsPage';
 import AIInsightsPanel           from './components/ai/AIInsightsPanel';
 import LandingPage from './pages/LandingPage';
 import PrivacyPage from './pages/PrivacyPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import './styles.css';
 
 const isPortal = window.location.pathname.startsWith('/portal/');
 const isPrivacy = window.location.pathname === '/privacy';
+const isReset = window.location.pathname === '/reset-password';
 const API_BASE = import.meta.env.VITE_API_URL || 'https://ledger-accounting-production.up.railway.app/api';
 
 export default function App() {
@@ -124,6 +126,7 @@ export default function App() {
     </div>;
   }
 
+  if (isReset) return <ResetPasswordPage />;
   if (isPrivacy) return <PrivacyPage />;
   if (isPortal) return <CustomerPortalPage token={window.location.pathname.replace('/portal/','')} />;
   if (loading)  return <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color:'var(--color-text-secondary)' }}>Loading…</div>;
