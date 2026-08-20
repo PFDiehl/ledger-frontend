@@ -1,6 +1,6 @@
 import { useState } from 'react';
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' });
+const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('accessToken')}`, 'Content-Type': 'application/json' });
 
 const inputStyle = {width:'100%',padding:'12px 14px',borderRadius:10,border:'1.5px solid #40916C',background:'var(--color-surface)',color:'var(--color-text)',fontSize:15,boxSizing:'border-box'};
 const labelStyle = {fontSize:11,color:'var(--color-text-secondary)',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600,display:'block'};

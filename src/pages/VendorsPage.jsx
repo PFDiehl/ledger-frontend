@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import VendorForm from './VendorForm';
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 const fmt = (n) => Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' });
+const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('accessToken')}`, 'Content-Type': 'application/json' });
 
 function Avatar({ name }) {
   const colors = ['#2D6A4F','#1B4332','#40916C','#52B788','#1E6091','#184E77','#6B2D8B','#9B2226'];
