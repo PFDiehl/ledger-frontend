@@ -419,6 +419,10 @@ function IntegrationsSettings() {
   const [expResult, setExpResult] = useState(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
+  const [importingInv, setImportingInv] = useState(false);
+  const [invImportResult, setInvImportResult] = useState(null);
+  const [importingExp, setImportingExp] = useState(false);
+  const [expImportResult, setExpImportResult] = useState(null);
 
   async function loadStatus() {
     if (!org) return;
@@ -530,6 +534,32 @@ function IntegrationsSettings() {
     finally { setImporting(false); }
   }
 
+  async function importInvoices() {
+    setImportingInv(true); setInvImportResult(null);
+    try {
+      const r = await fetch(`${SEC_API}/orgs/${org.id}/quickbooks/import/invoices`, { method:'POST', headers: secHeaders() });
+      const j = await r.json();
+      if (j.success) {
+        setInvImportResult(j.data);
+        toast.success(`Imported ${j.data.imported} of ${j.data.total} invoice${j.data.total === 1 ? '' : 's'} from QuickBooks`);
+      } else toast.error(j.message || 'Invoice import failed');
+    } catch { toast.error('Cannot connect'); }
+    finally { setImportingInv(false); }
+  }
+
+  async function importExpenses() {
+    setImportingExp(true); setExpImportResult(null);
+    try {
+      const r = await fetch(`${SEC_API}/orgs/${org.id}/quickbooks/import/expenses`, { method:'POST', headers: secHeaders() });
+      const j = await r.json();
+      if (j.success) {
+        setExpImportResult(j.data);
+        toast.success(`Imported ${j.data.imported} of ${j.data.total} expense${j.data.total === 1 ? '' : 's'} from QuickBooks`);
+      } else toast.error(j.message || 'Expense import failed');
+    } catch { toast.error('Cannot connect'); }
+    finally { setImportingExp(false); }
+  }
+
   const connected  = status?.connected;
   const configured = status?.configured;
 
@@ -617,8 +647,13 @@ function IntegrationsSettings() {
 
           <div style={{ borderTop:'0.5px solid var(--color-border-tertiary)', paddingTop:14, marginTop:2 }}>
             <div style={{ fontSize:13, fontWeight:600, marginBottom:2 }}>Import</div>
-            <div style={{ fontSize:12, color:'var(--color-text-tertiary)', marginBottom:10 }}>Already keep your books in QuickBooks? Pull your existing customers into Mountain Top Ledger. Safe to re-run — matches are updated, not duplicated.</div>
-            <button className="btn-secondary" style={{ fontSize:12 }} disabled={importing} onClick={importCustomers}>{importing ? 'Importing…' : 'Import customers ← QuickBooks'}</button>
+            <div style={{ fontSize:12, color:'var(--color-text-tertiary)', marginBottom:10 }}>Already keep your books in QuickBooks? Pull your existing data into Mountain Top Ledger. Safe to re-run — matches are updated, not duplicated. Import customers first, since invoices link to them.</div>
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+              <button className="btn-secondary" style={{ fontSize:12 }} disabled={importing} onClick={importCustomers}>{importing ? 'Importing…' : 'Import customers ← QuickBooks'}</button>
+              <button className="btn-secondary" style={{ fontSize:12 }} disabled={importingInv} onClick={importInvoices}>{importingInv ? 'Importing…' : 'Import invoices ← QuickBooks'}</button>
+              <button className="btn-secondary" style={{ fontSize:12 }} disabled={importingExp} onClick={importExpenses}>{importingExp ? 'Importing…' : 'Import expenses ← QuickBooks'}</button>
+            </div>
+
             {importResult && (
               <div style={{ fontSize:12, color:'var(--color-text-secondary)', background:'var(--color-background-secondary)', borderRadius:8, padding:'10px 12px', marginTop:10 }}>
                 <div style={{ fontWeight:600, marginBottom:4 }}>Customers imported</div>
@@ -626,6 +661,30 @@ function IntegrationsSettings() {
                 {importResult.errors?.length > 0 && (
                   <ul style={{ margin:'8px 0 0', paddingLeft:18, color:'#b23b2e' }}>
                     {importResult.errors.map((e, i) => <li key={i}>{e.name}: {e.error}</li>)}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {invImportResult && (
+              <div style={{ fontSize:12, color:'var(--color-text-secondary)', background:'var(--color-background-secondary)', borderRadius:8, padding:'10px 12px', marginTop:10 }}>
+                <div style={{ fontWeight:600, marginBottom:4 }}>Invoices imported</div>
+                <div>{invImportResult.imported} new · {invImportResult.skipped} already imported · {invImportResult.failed} failed</div>
+                {invImportResult.errors?.length > 0 && (
+                  <ul style={{ margin:'8px 0 0', paddingLeft:18, color:'#b23b2e' }}>
+                    {invImportResult.errors.map((e, i) => <li key={i}>#{e.name}: {e.error}</li>)}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {expImportResult && (
+              <div style={{ fontSize:12, color:'var(--color-text-secondary)', background:'var(--color-background-secondary)', borderRadius:8, padding:'10px 12px', marginTop:10 }}>
+                <div style={{ fontWeight:600, marginBottom:4 }}>Expenses imported</div>
+                <div>{expImportResult.imported} new · {expImportResult.skipped} already imported · {expImportResult.failed} failed</div>
+                {expImportResult.errors?.length > 0 && (
+                  <ul style={{ margin:'8px 0 0', paddingLeft:18, color:'#b23b2e' }}>
+                    {expImportResult.errors.map((e, i) => <li key={i}>{e.name}: {e.error}</li>)}
                   </ul>
                 )}
               </div>
