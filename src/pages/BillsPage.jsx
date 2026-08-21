@@ -8,9 +8,10 @@ const BILL_CATEGORIES = [
   'Payroll', 'Taxes', 'Software & Subscriptions', 'Other'
 ];
 
-export default function BillsPage() {
+export default function BillsPage({ presetVendor } = {}) {
   const { org } = useAuth();
   const [bills, setBills] = useState([]);
+  const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -23,7 +24,18 @@ export default function BillsPage() {
     api.get(`/orgs/${org.id}/bills`)
       .then(r => { setBills(r.data?.data || r.data || []); setLoading(false); })
       .catch(() => setLoading(false));
+    api.get(`/orgs/${org.id}/contacts`, { type: 'Vendor' })
+      .then(r => setVendors(r.data?.data || r.data || []))
+      .catch(() => {});
   }, [org?.id]);
+
+  // "New Bill" from a vendor opens the form pre-filled for them.
+  useEffect(() => {
+    if (presetVendor) {
+      setForm({ vendor: presetVendor.company || presetVendor.name || '', amount:'', dueDate:'', description:'', category:'Other' });
+      setShowForm(true);
+    }
+  }, [presetVendor]);
 
   async function save() {
     if (!form.vendor || !form.amount) return alert('Please fill in vendor and amount');
@@ -147,7 +159,8 @@ export default function BillsPage() {
             <div style={{display:'flex',flexDirection:'column',gap:14}}>
               <div>
                 <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>VENDOR</label>
-                <input value={form.vendor} onChange={e=>setForm(f=>({...f,vendor:e.target.value}))} placeholder='Landlord' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} />
+                <input list="bill-vendor-list" value={form.vendor} onChange={e=>setForm(f=>({...f,vendor:e.target.value}))} placeholder='Start typing a vendor…' autoComplete="off" style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} />
+                <datalist id="bill-vendor-list">{vendors.map(v => <option key={v.id} value={v.company || v.name} />)}</datalist>
               </div>
               <div>
                 <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>CATEGORY</label>

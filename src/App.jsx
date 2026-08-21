@@ -147,9 +147,9 @@ export default function App() {
       case 'bills':
         if (view.type==='detail') return <BillDetailPage bill={view.data} onBack={()=>setView({type:'list'})} onEdit={b=>setView({type:'form',data:b})} />;
         if (view.type==='form')   return <BillFormPage   bill={view.data} onBack={()=>setView(view.data?{type:'detail',data:view.data}:{type:'list'})} onSave={()=>setView({type:'list'})} />;
-        return <BillsPage onView={b=>setView({type:'detail',data:b})} onNew={()=>setView({type:'form',data:null})} />;
+        return <BillsPage presetVendor={view.presetVendor} />;
       case 'customers':   return <CustomersPage org={org} onNewInvoice={(c)=>{ setActiveNav('invoices'); setView({ type:'form', data:null, preset:c }); }} />;
-      case 'vendors':     return <VendorsPage org={org} />;
+      case 'vendors':     return <VendorsPage org={org} onNewBill={(v)=>{ setActiveNav('bills'); setView({ type:'list', presetVendor:v }); }} />;
       case 'expenses':    return <ExpensesPage />;
       case 'bank':        return <BankingPage />;
       case 'reports':     return <ReportsPage />;
