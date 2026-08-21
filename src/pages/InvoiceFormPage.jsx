@@ -11,6 +11,7 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
   const { org } = useAuth();
   const isEdit = Boolean(invoice);
   const [form, setForm] = useState({
+    company: invoice?.contact?.company || '',
     clientName: invoice?.contact?.name || '',
     clientEmail: invoice?.contact?.email || '',
     poNumber: invoice?.poNumber || '',
@@ -30,9 +31,42 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
       : [emptyLine()]
   );
   const [loading, setLoading] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState('');
   const [serviceOptions, setServiceOptions] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [contactId, setContactId] = useState(invoice?.contactId || invoice?.contact?.id || null);
+
+  // Load existing customers so the Company field can match/auto-fill them.
+  useEffect(() => {
+    if (!org) return;
+    fetch(`${API}/orgs/${org.id}/contacts?type=customer`, { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` } })
+      .then(r => r.json())
+      .then(j => { if (j.success) setCustomers(j.data || []); })
+      .catch(() => {});
+  }, [org]);
+
+  // When the Company field matches an existing customer, link to it and auto-fill.
+  function onCompanyChange(v) {
+    setForm(f => ({ ...f, company: v }));
+    setSubmitError('');
+    const lc = v.trim().toLowerCase();
+    const match = customers.find(c =>
+      (c.company || '').trim().toLowerCase() === lc ||
+      (c.name || '').trim().toLowerCase() === lc
+    );
+    if (match) {
+      setContactId(match.id);
+      setForm(f => ({
+        ...f,
+        company:     match.company || v,
+        clientName:  f.clientName || match.name || '',
+        clientEmail: f.clientEmail || match.email || '',
+      }));
+    } else {
+      setContactId(null);
+    }
+  }
 
   // Build the service suggestion list from services already used on invoices
   useEffect(() => {
@@ -69,28 +103,30 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
 
   function validate() {
     const e = {};
-    if (!form.clientName) e.clientName = 'Client name is required';
-    if (lines.some(l => !l.description)) e.lines = 'All line items need a description';
-    if (lines.some(l => !l.rate)) e.lines = 'All line items need a rate';
+    if (!form.company && !form.clientName) e.clientName = 'Enter a company or client name';
+    if (lines.some(l => !l.description)) e.lines = 'Every line item needs a description';
+    else if (lines.some(l => !l.rate)) e.lines = 'Every line item needs a rate';
     setErrors(e);
     return Object.keys(e).length === 0;
   }
 
   async function handleSave(sendNow = false) {
-    if (!validate()) return;
-    if (!org) return alert('No organization found');
-    if (saved) return;
-    setSaved(true);
+    setSubmitError('');
+    if (!validate()) { setSubmitError('Please fix the highlighted fields before saving.'); return; }
+    if (!org) { setSubmitError('No organization found — try reloading the page.'); return; }
     setLoading(true);
     try {
       const payload = {
-        clientName: form.clientName,
+        contactId,
+        company: form.company,
+        clientName: form.clientName || form.company,
         clientEmail: form.clientEmail,
-        poNumber: form.poNumber,salesperson: form.salesperson,
+        poNumber: form.poNumber, salesperson: form.salesperson,
         shipToName: form.shipToName,
         shipToAddress: form.shipToAddress,
         currency: form.currency,
         notes: form.notes,
+        issueDate: form.issued,
         dueDate: form.due,
         taxRate: form.taxRate,
         shipping: form.shipping,
@@ -106,20 +142,31 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken') ?? ''}` },
         body: JSON.stringify(payload)
       });
-      const j = await r.json();
+      if (r.status === 401) { setSubmitError('Your session has expired. Please log out and sign back in, then try again.'); return; }
+      const j = await r.json().catch(() => ({}));
       if (j.success) {
         if (sendNow && j.data?.id) {
-          await fetch(`${API}/orgs/${org.id}/invoices/${j.data.id}/send`, {
+          const sr = await fetch(`${API}/orgs/${org.id}/invoices/${j.data.id}/send`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken') ?? ''}` }
           });
+          const sj = await sr.json().catch(() => ({}));
+          if (!sj.success) {
+            // Invoice saved, but the email failed — tell the user rather than silently dropping it.
+            setSubmitError(`Invoice saved, but sending the email failed: ${sj.message || 'no client email on file'}. It's saved as a draft.`);
+            setLoading(false);
+            return;
+          }
         }
         onSave?.();
       } else {
-        alert('Error: ' + (j.message || 'Failed to save'));
+        setSubmitError(j.message || 'Could not save the invoice. Please try again.');
       }
-    } catch(e) { alert('Error: Cannot connect to server'); }
-    finally { setLoading(false); }
+    } catch (e) {
+      setSubmitError('Cannot reach the server. Check your connection and try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -139,18 +186,33 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
         </div>
       </div>
 
+      {submitError && (
+        <div style={{background:'#FCEBEB',border:'1px solid #F09595',color:'#A32D2D',borderRadius:10,padding:'12px 16px',marginBottom:16,fontSize:14}}>
+          {submitError}
+        </div>
+      )}
+
       <div style={{display:'grid',gridTemplateColumns:'1fr 320px',gap:20}}>
         <div>
 
           {/* Client */}
           <div className="card" style={{padding:24,marginBottom:16}}>
             <h3 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'#2D4A35'}}>Client</h3>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <div>
+              <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Company *</label>
+              <input value={form.company} onChange={e=>onCompanyChange(e.target.value)} list="ledger-customer-options"
+                placeholder="Start typing a customer name…" autoComplete="off"
+                style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
+              {contactId
+                ? <span style={{color:'#2D7A34',fontSize:12}}>✓ Linked to an existing customer — their details filled in below.</span>
+                : (form.company ? <span style={{color:'#7A9A7A',fontSize:12}}>New customer — will be added to your Customers list.</span> : null)}
+              {errors.clientName && <span style={{color:'#c0392b',fontSize:12,display:'block'}}>{errors.clientName}</span>}
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginTop:12}}>
               <div>
-                <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Client Name *</label>
+                <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Client Name (contact person)</label>
                 <input value={form.clientName} onChange={e=>setField('clientName',e.target.value)}
-                  placeholder="Acme Corp" style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
-                {errors.clientName && <span style={{color:'#c0392b',fontSize:12}}>{errors.clientName}</span>}
+                  placeholder="Jane Smith" style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
               </div>
               <div>
                 <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Client Email</label>
@@ -158,6 +220,9 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
                   placeholder="billing@client.com" type="email" style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
               </div>
             </div>
+            <datalist id="ledger-customer-options">
+              {customers.map(c => <option key={c.id} value={c.company || c.name} />)}
+            </datalist>
             <div style={{marginTop:12}}>
               <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Salesperson</label>
               <input value={form.salesperson} onChange={e=>setField('salesperson',e.target.value)} placeholder="Jane Smith" style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
