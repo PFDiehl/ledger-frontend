@@ -413,6 +413,8 @@ function IntegrationsSettings() {
   const [company, setCompany] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
+  const [syncingInv, setSyncingInv] = useState(false);
+  const [invResult, setInvResult] = useState(null);
 
   async function loadStatus() {
     if (!org) return;
@@ -484,6 +486,19 @@ function IntegrationsSettings() {
     finally { setSyncing(false); }
   }
 
+  async function syncInvoices() {
+    setSyncingInv(true); setInvResult(null);
+    try {
+      const r = await fetch(`${SEC_API}/orgs/${org.id}/quickbooks/sync/invoices`, { method:'POST', headers: secHeaders() });
+      const j = await r.json();
+      if (j.success) {
+        setInvResult(j.data);
+        toast.success(`Synced ${j.data.created} of ${j.data.total} invoice${j.data.total === 1 ? '' : 's'} to QuickBooks`);
+      } else toast.error(j.message || 'Invoice sync failed');
+    } catch { toast.error('Cannot connect'); }
+    finally { setSyncingInv(false); }
+  }
+
   const connected  = status?.connected;
   const configured = status?.configured;
 
@@ -523,6 +538,7 @@ function IntegrationsSettings() {
           <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
             <button className="btn-secondary" style={{ fontSize:12 }} disabled={busy} onClick={verify}>{busy ? '…' : 'Verify connection'}</button>
             <button className="btn-primary" style={{ fontSize:12 }} disabled={syncing} onClick={syncCustomers}>{syncing ? 'Syncing…' : 'Sync customers → QuickBooks'}</button>
+            <button className="btn-primary" style={{ fontSize:12 }} disabled={syncingInv} onClick={syncInvoices}>{syncingInv ? 'Syncing…' : 'Sync invoices → QuickBooks'}</button>
           </div>
 
           {company && (
@@ -533,11 +549,23 @@ function IntegrationsSettings() {
 
           {syncResult && (
             <div style={{ fontSize:12, color:'var(--color-text-secondary)', background:'var(--color-background-secondary)', borderRadius:8, padding:'10px 12px' }}>
-              <div style={{ fontWeight:600, marginBottom:4 }}>Sync complete</div>
+              <div style={{ fontWeight:600, marginBottom:4 }}>Customers synced</div>
               <div>{syncResult.created} created · {syncResult.linked} linked to existing · {syncResult.skipped} already synced · {syncResult.failed} failed</div>
               {syncResult.errors?.length > 0 && (
                 <ul style={{ margin:'8px 0 0', paddingLeft:18, color:'#b23b2e' }}>
                   {syncResult.errors.map((e, i) => <li key={i}>{e.name}: {e.error}</li>)}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {invResult && (
+            <div style={{ fontSize:12, color:'var(--color-text-secondary)', background:'var(--color-background-secondary)', borderRadius:8, padding:'10px 12px' }}>
+              <div style={{ fontWeight:600, marginBottom:4 }}>Invoices synced</div>
+              <div>{invResult.created} created · {invResult.skipped} already synced · {invResult.failed} failed</div>
+              {invResult.errors?.length > 0 && (
+                <ul style={{ margin:'8px 0 0', paddingLeft:18, color:'#b23b2e' }}>
+                  {invResult.errors.map((e, i) => <li key={i}>#{e.name}: {e.error}</li>)}
                 </ul>
               )}
             </div>
