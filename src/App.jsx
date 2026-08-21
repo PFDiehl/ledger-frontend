@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth }               from './lib/AuthContext';
 import AuthPage                  from './pages/AuthPage';
 import OnboardingPage            from './pages/OnboardingPage';
@@ -51,6 +51,14 @@ export default function App() {
   const [showAI, setShowAI]        = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(null); // invoice payment
   const [subStatus, setSubStatus]  = useState(null);          // subscription
+
+  // On a fresh sign-in (no-user → user), always land on the Dashboard rather than
+  // wherever the app was last viewing.
+  const prevUser = useRef(null);
+  useEffect(() => {
+    if (user && !prevUser.current) { setActiveNav('dashboard'); setView({ type:'list' }); }
+    prevUser.current = user;
+  }, [user]);
 
   // After Stripe redirects back from an INVOICE payment (/?paid=true&session_id=...)
   useEffect(() => {
