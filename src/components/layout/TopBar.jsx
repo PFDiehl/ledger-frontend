@@ -6,6 +6,7 @@ export default function TopBar({ onLogout, onAI }) {
   const { org, user } = useAuth();
   const { themeId, setTheme } = useTheme();
   const [showThemes, setShowThemes] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
 
   const initials = user?.fullName?.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() ?? 'U';
 
@@ -104,18 +105,44 @@ export default function TopBar({ onLogout, onAI }) {
         <button className="icon-btn" aria-label="Search"><i className="ti ti-search" /></button>
         <button className="icon-btn" aria-label="Notifications"><i className="ti ti-bell" /></button>
 
-        <div
-          style={{
-            width:28, height:28, borderRadius:'50%',
-            background:'var(--brand-accent-light)',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            fontSize:11, fontWeight:500, color:'var(--brand-primary)',
-            cursor:'pointer', border:'0.5px solid var(--color-border-secondary)',
-          }}
-          onClick={onLogout}
-          title="Sign out"
-        >
-          {initials}
+        <div style={{ position:'relative' }}>
+          <div
+            style={{
+              width:28, height:28, borderRadius:'50%',
+              background:'var(--brand-accent-light)',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize:11, fontWeight:500, color:'var(--brand-primary)',
+              cursor:'pointer', border:'0.5px solid var(--color-border-secondary)',
+            }}
+            onClick={() => setShowAccount(s => !s)}
+            title="Account"
+          >
+            {initials}
+          </div>
+
+          {showAccount && (
+            <>
+              <div style={{ position:'fixed', inset:0, zIndex:99 }} onClick={() => setShowAccount(false)} />
+              <div style={{
+                position:'absolute', top:'calc(100% + 8px)', right:0,
+                background:'var(--color-background-primary)',
+                border:'0.5px solid var(--color-border-secondary)',
+                borderRadius:12, padding:8, zIndex:100,
+                boxShadow:'0 8px 24px rgba(0,0,0,0.10)', width:210,
+              }}>
+                <div style={{ padding:'8px 10px', borderBottom:'0.5px solid var(--color-border-tertiary)', marginBottom:4 }}>
+                  <div style={{ fontSize:13, fontWeight:600, color:'var(--color-text-primary)' }}>{user?.fullName || 'Account'}</div>
+                  {user?.email && <div style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:1 }}>{user.email}</div>}
+                </div>
+                <button
+                  onClick={() => { setShowAccount(false); onLogout?.(); }}
+                  style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'8px 10px', borderRadius:8, border:'none', cursor:'pointer', textAlign:'left', background:'transparent', color:'var(--color-text-primary)', fontSize:13 }}
+                >
+                  <i className="ti ti-logout" style={{ fontSize:14 }} /> Sign out
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </header>

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { api, setAccessToken, setOrgId, clearAuth } from './api';
+import { api, setAccessToken, setRefreshToken, setOrgId, clearAuth, refreshSession } from './api';
 
 const AuthContext = createContext(null);
 
@@ -15,8 +15,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await api.post('/auth/refresh');
-        setAccessToken(data.accessToken);
+        await refreshSession();
         const me = await api.get('/auth/me');
         setUser(me.data.user);
         setOrgs(me.data.orgs);
@@ -44,10 +43,7 @@ export function AuthProvider({ children }) {
     if (!user) return;
     let cancelled = false;
     const doRefresh = async () => {
-      try {
-        const { data } = await api.post('/auth/refresh');
-        if (!cancelled && data?.accessToken) setAccessToken(data.accessToken);
-      } catch { /* refresh failed — the next protected call will handle it */ }
+      try { await refreshSession(); } catch { /* refresh failed — the next protected call will handle it */ }
     };
     const iv = setInterval(doRefresh, 10 * 60 * 1000); // every 10 minutes
     const onFocus = () => doRefresh();
@@ -61,6 +57,7 @@ export function AuthProvider({ children }) {
     // must collect a code and call verify2FA with the short-lived token.
     if (data.twoFactorRequired) return data;
     setAccessToken(data.accessToken);
+    if (data.refreshToken) setRefreshToken(data.refreshToken);
     setUser(data.user);
     setOrgs(data.orgs);
     const firstOrg = data.orgs[0];
@@ -71,6 +68,7 @@ export function AuthProvider({ children }) {
   const verify2FA = useCallback(async (twoFactorToken, code) => {
     const { data } = await api.post('/auth/2fa/verify', { twoFactorToken, code });
     setAccessToken(data.accessToken);
+    if (data.refreshToken) setRefreshToken(data.refreshToken);
     setUser(data.user);
     setOrgs(data.orgs);
     const firstOrg = data.orgs[0];
@@ -81,6 +79,7 @@ export function AuthProvider({ children }) {
   const register = useCallback(async (fields) => {
     const { data } = await api.post('/auth/register', fields);
     setAccessToken(data.accessToken);
+    if (data.refreshToken) setRefreshToken(data.refreshToken);
     setUser(data.user);
     setOrgs([data.org]);
     selectOrg(data.org);

@@ -2,23 +2,30 @@
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api';
 
-let accessToken = null;
-let orgId       = null;
+let accessToken  = null;
+let orgId        = null;
+let refreshTok   = (() => { try { return localStorage.getItem('refreshToken'); } catch { return null; } })();
 
 export function setAccessToken(token) { accessToken = token; try { if(token) localStorage.setItem('accessToken', token); else localStorage.removeItem('accessToken'); } catch(e) {} }
+export function setRefreshToken(token){ refreshTok = token; try { if(token) localStorage.setItem('refreshToken', token); else localStorage.removeItem('refreshToken'); } catch(e) {} }
 export function setOrgId(id)          { orgId = id; }
-export function clearAuth()           { accessToken = null; orgId = null; }
+export function clearAuth()           { accessToken = null; orgId = null; setRefreshToken(null); }
 
-async function refreshToken() {
+// Refresh the access token. Sends the stored refresh token in the body (robust
+// across domains, since third-party cookies are often blocked) and also allows
+// the httpOnly cookie when it happens to be available. Uses a plain fetch — NOT
+// the wrapped request() — so a failure here never recursively triggers itself.
+export async function refreshSession() {
   const res = await fetch(`${API_BASE}/auth/refresh`, {
     method:      'POST',
+    headers:     { 'Content-Type': 'application/json' },
     credentials: 'include',
+    body:        JSON.stringify(refreshTok ? { refreshToken: refreshTok } : {}),
   });
   if (!res.ok) throw new Error('Session expired');
   const { data } = await res.json();
-  // Persist to both memory AND localStorage so components that read the token
-  // directly from localStorage (e.g. Settings) stay in sync after a refresh.
   setAccessToken(data.accessToken);
+  if (data.refreshToken) setRefreshToken(data.refreshToken); // rotated for body-based callers
   return accessToken;
 }
 
@@ -32,10 +39,10 @@ async function request(path, options = {}) {
 
   let res = await fetch(`${API_BASE}${path}`, { ...options, headers, credentials: 'include' });
 
-  // Auto-refresh on 401
-  if (res.status === 401 && accessToken) {
+  // Auto-refresh on 401 (never for the refresh call itself, to avoid recursion)
+  if (res.status === 401 && accessToken && !path.startsWith('/auth/refresh')) {
     try {
-      await refreshToken();
+      await refreshSession();
       headers.Authorization = `Bearer ${accessToken}`;
       res = await fetch(`${API_BASE}${path}`, { ...options, headers, credentials: 'include' });
     } catch {
