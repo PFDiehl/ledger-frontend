@@ -22,6 +22,21 @@ export default function CustomersPage({ org, onNewInvoice }) {
   const [editing, setEditing] = useState(null);
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState('');
+  const [checkedIds, setCheckedIds] = useState(() => new Set());
+
+  const toggleCheck = (id) => setCheckedIds(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  async function bulkDelete() {
+    const ids = [...checkedIds];
+    if (!ids.length) return;
+    if (!window.confirm(`Delete ${ids.length} customer${ids.length>1?'s':''}? This also removes their invoices and cannot be undone.`)) return;
+    try {
+      const res = await fetch(`${API}/orgs/${org.id}/contacts/bulk-delete`, { method:'POST', headers: authHeaders(), body: JSON.stringify({ ids }) });
+      const j = await res.json();
+      if (j.success) { setCheckedIds(new Set()); loadCustomers(); }
+      else alert(j.message || 'Could not delete the selected customers');
+    } catch(e) { alert('Error deleting customers'); }
+  }
 
   useEffect(() => { if (org) loadCustomers(); }, [org]);
 
@@ -57,6 +72,15 @@ export default function CustomersPage({ org, onNewInvoice }) {
     const q = search.toLowerCase();
     return c.name.toLowerCase().includes(q) || (c.company||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q);
   });
+  const allVisibleChecked = filtered.length > 0 && filtered.every(c => checkedIds.has(c.id));
+  function toggleAllVisible() {
+    setCheckedIds(s => {
+      const n = new Set(s);
+      if (allVisibleChecked) filtered.forEach(c => n.delete(c.id));
+      else filtered.forEach(c => n.add(c.id));
+      return n;
+    });
+  }
 
   if (view === 'form') return (
     <CustomerForm org={org} editing={editing} onCancel={()=>setView(selected?'detail':'list')} onSave={()=>{ loadCustomers(); setView(selected?'detail':'list'); }} />
@@ -160,6 +184,15 @@ export default function CustomersPage({ org, onNewInvoice }) {
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Search customers..." style={{width:'100%',padding:'11px 16px',borderRadius:10,border:'1px solid var(--color-border)',background:'var(--color-surface)',color:'var(--color-text)',fontSize:14,boxSizing:'border-box'}} />
       </div>
 
+      {checkedIds.size > 0 && (
+        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:12,padding:'10px 16px',background:'#FCEBEB',border:'1px solid #F09595',borderRadius:10,flexWrap:'wrap'}}>
+          <span style={{fontSize:14,color:'#A32D2D',fontWeight:600}}>{checkedIds.size} selected</span>
+          <button onClick={bulkDelete} style={{padding:'6px 14px',borderRadius:8,border:'none',background:'#dc2626',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:600}}>Delete selected</button>
+          <button onClick={()=>setCheckedIds(new Set())} style={{padding:'6px 14px',borderRadius:8,border:'1px solid var(--color-border)',background:'none',cursor:'pointer',fontSize:13,color:'var(--color-text)'}}>Clear</button>
+          <span style={{fontSize:12,color:'#7A9A7A'}}>Removes the selected customers and their invoices — good for clearing imported sample data.</span>
+        </div>
+      )}
+
       {loading ? (
         <div style={{color:'var(--color-text-secondary)',padding:40,textAlign:'center'}}>Loading...</div>
       ) : filtered.length === 0 ? (
@@ -173,6 +206,9 @@ export default function CustomersPage({ org, onNewInvoice }) {
         <div style={{background:'var(--color-surface)',borderRadius:14,border:'1px solid var(--color-border)',overflow:'hidden'}}>
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:14}}>
             <thead><tr style={{background:'var(--color-surface-secondary)'}}>
+              <th style={{padding:'12px 16px',borderBottom:'1px solid var(--color-border)',width:36}}>
+                <input type="checkbox" checked={allVisibleChecked} onChange={toggleAllVisible} style={{cursor:'pointer',width:16,height:16}} title="Select all" />
+              </th>
               {['Company','Client Name','Email','Phone','Salesperson','Total Invoiced','Outstanding',''].map(h=>(
                 <th key={h} style={{textAlign:'left',padding:'12px 16px',color:'var(--color-text-secondary)',fontWeight:600,fontSize:11,borderBottom:'1px solid var(--color-border)',textTransform:'uppercase',letterSpacing:'0.05em'}}>{h}</th>
               ))}
@@ -180,9 +216,12 @@ export default function CustomersPage({ org, onNewInvoice }) {
             <tbody>{filtered.map(c => {
               const {totalInvoiced, outstanding} = getTotals(c);
               return (
-                <tr key={c.id} onClick={()=>{setSelected(c);setView('detail');}} style={{borderBottom:'1px solid var(--color-border)',cursor:'pointer'}}
-                  onMouseEnter={e=>e.currentTarget.style.background='var(--color-surface-secondary)'}
-                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                <tr key={c.id} onClick={()=>{setSelected(c);setView('detail');}} style={{borderBottom:'1px solid var(--color-border)',cursor:'pointer',background: checkedIds.has(c.id) ? 'var(--color-surface-secondary)' : 'transparent'}}
+                  onMouseEnter={e=>{ if(!checkedIds.has(c.id)) e.currentTarget.style.background='var(--color-surface-secondary)'; }}
+                  onMouseLeave={e=>{ if(!checkedIds.has(c.id)) e.currentTarget.style.background='transparent'; }}>
+                  <td style={{padding:'12px 16px'}} onClick={e=>e.stopPropagation()}>
+                    <input type="checkbox" checked={checkedIds.has(c.id)} onChange={()=>toggleCheck(c.id)} style={{cursor:'pointer',width:16,height:16}} />
+                  </td>
                   <td style={{padding:'12px 16px'}}>
                     <div style={{display:'flex',alignItems:'center',gap:12}}>
                       <Avatar name={c.company || c.name} />
