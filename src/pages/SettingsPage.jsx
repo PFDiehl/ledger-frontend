@@ -417,6 +417,8 @@ function IntegrationsSettings() {
   const [invResult, setInvResult] = useState(null);
   const [syncingExp, setSyncingExp] = useState(false);
   const [expResult, setExpResult] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
 
   async function loadStatus() {
     if (!org) return;
@@ -514,6 +516,20 @@ function IntegrationsSettings() {
     finally { setSyncingExp(false); }
   }
 
+  async function importCustomers() {
+    setImporting(true); setImportResult(null);
+    try {
+      const r = await fetch(`${SEC_API}/orgs/${org.id}/quickbooks/import/customers`, { method:'POST', headers: secHeaders() });
+      const j = await r.json();
+      if (j.success) {
+        setImportResult(j.data);
+        const added = (j.data.imported || 0) + (j.data.linked || 0);
+        toast.success(`Imported ${added} of ${j.data.total} customer${j.data.total === 1 ? '' : 's'} from QuickBooks`);
+      } else toast.error(j.message || 'Import failed');
+    } catch { toast.error('Cannot connect'); }
+    finally { setImporting(false); }
+  }
+
   const connected  = status?.connected;
   const configured = status?.configured;
 
@@ -598,6 +614,23 @@ function IntegrationsSettings() {
               )}
             </div>
           )}
+
+          <div style={{ borderTop:'0.5px solid var(--color-border-tertiary)', paddingTop:14, marginTop:2 }}>
+            <div style={{ fontSize:13, fontWeight:600, marginBottom:2 }}>Import</div>
+            <div style={{ fontSize:12, color:'var(--color-text-tertiary)', marginBottom:10 }}>Already keep your books in QuickBooks? Pull your existing customers into Mountain Top Ledger. Safe to re-run — matches are updated, not duplicated.</div>
+            <button className="btn-secondary" style={{ fontSize:12 }} disabled={importing} onClick={importCustomers}>{importing ? 'Importing…' : 'Import customers ← QuickBooks'}</button>
+            {importResult && (
+              <div style={{ fontSize:12, color:'var(--color-text-secondary)', background:'var(--color-background-secondary)', borderRadius:8, padding:'10px 12px', marginTop:10 }}>
+                <div style={{ fontWeight:600, marginBottom:4 }}>Customers imported</div>
+                <div>{importResult.imported} new · {importResult.linked} matched &amp; updated · {importResult.skipped} already linked · {importResult.failed} failed</div>
+                {importResult.errors?.length > 0 && (
+                  <ul style={{ margin:'8px 0 0', paddingLeft:18, color:'#b23b2e' }}>
+                    {importResult.errors.map((e, i) => <li key={i}>{e.name}: {e.error}</li>)}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
