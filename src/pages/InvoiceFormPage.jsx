@@ -7,13 +7,13 @@ const today = new Date().toISOString().slice(0, 10);
 const thirtyDays = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
 const emptyLine = () => ({ description: '', qty: '1', rate: '', amount: 0, service: '', taxable: true });
 
-export default function InvoiceFormPage({ invoice, onBack, onSave }) {
+export default function InvoiceFormPage({ invoice, presetContact, onBack, onSave }) {
   const { org } = useAuth();
   const isEdit = Boolean(invoice);
   const [form, setForm] = useState({
-    company: invoice?.contact?.company || '',
-    clientName: invoice?.contact?.name || '',
-    clientEmail: invoice?.contact?.email || '',
+    company: invoice?.contact?.company || presetContact?.company || '',
+    clientName: invoice?.contact?.name || presetContact?.name || '',
+    clientEmail: invoice?.contact?.email || presetContact?.email || '',
     poNumber: invoice?.poNumber || '',
     notes: invoice?.notes || '',
     issued: invoice?.issueDate ? invoice.issueDate.slice(0,10) : today,
@@ -35,7 +35,7 @@ export default function InvoiceFormPage({ invoice, onBack, onSave }) {
   const [submitError, setSubmitError] = useState('');
   const [serviceOptions, setServiceOptions] = useState([]);
   const [customers, setCustomers] = useState([]);
-  const [contactId, setContactId] = useState(invoice?.contactId || invoice?.contact?.id || null);
+  const [contactId, setContactId] = useState(invoice?.contactId || invoice?.contact?.id || presetContact?.id || null);
 
   // Load existing customers so the Company field can match/auto-fill them.
   useEffect(() => {

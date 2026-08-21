@@ -15,7 +15,7 @@ function Avatar({ name }) {
 }
 
 
-export default function CustomersPage({ org }) {
+export default function CustomersPage({ org, onNewInvoice }) {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('list'); // 'list' | 'form' | 'detail'
@@ -53,7 +53,10 @@ export default function CustomersPage({ org }) {
     return { totalInvoiced, totalPaid, outstanding };
   }
 
-  const filtered = customers.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || (c.email||'').toLowerCase().includes(search.toLowerCase()));
+  const filtered = customers.filter(c => {
+    const q = search.toLowerCase();
+    return c.name.toLowerCase().includes(q) || (c.company||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q);
+  });
 
   if (view === 'form') return (
     <CustomerForm org={org} editing={editing} onCancel={()=>setView(selected?'detail':'list')} onSave={()=>{ loadCustomers(); setView(selected?'detail':'list'); }} />
@@ -68,13 +71,16 @@ export default function CustomersPage({ org }) {
         </button>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:28}}>
           <div style={{display:'flex',alignItems:'center',gap:16}}>
-            <Avatar name={selected.name} />
+            <Avatar name={selected.company || selected.name} />
             <div>
-              <h2 style={{margin:0,fontSize:26,fontWeight:700}}>{selected.name}</h2>
-              <div style={{color:'var(--color-text-secondary)',fontSize:14,marginTop:2}}>{selected.email||'No email on file'}</div>
+              <h2 style={{margin:0,fontSize:26,fontWeight:700}}>{selected.company || selected.name}</h2>
+              <div style={{color:'var(--color-text-secondary)',fontSize:14,marginTop:2}}>
+                {selected.company && selected.name ? `${selected.name} · ` : ''}{selected.email||'No email on file'}
+              </div>
             </div>
           </div>
           <div style={{display:'flex',gap:8}}>
+            <button onClick={()=>onNewInvoice?.(selected)} style={{padding:'8px 18px',borderRadius:8,border:'none',background:'#2D6A4F',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:600}}>+ New Invoice</button>
             <button onClick={()=>{setEditing(selected);setView('form');}} style={{padding:'8px 18px',borderRadius:8,border:'1px solid var(--color-border)',background:'var(--color-surface)',color:'var(--color-text)',cursor:'pointer',fontSize:14,fontWeight:500}}>Edit</button>
             <button onClick={()=>deleteCustomer(selected)} style={{padding:'8px 18px',borderRadius:8,border:'none',background:'#dc2626',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:500}}>Delete</button>
           </div>
@@ -179,8 +185,11 @@ export default function CustomersPage({ org }) {
                   onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                   <td style={{padding:'12px 16px'}}>
                     <div style={{display:'flex',alignItems:'center',gap:12}}>
-                      <Avatar name={c.name} />
-                      <span style={{fontWeight:600}}>{c.name}</span>
+                      <Avatar name={c.company || c.name} />
+                      <div>
+                        <div style={{fontWeight:600}}>{c.company || c.name}</div>
+                        {c.company && c.name && <div style={{fontSize:12,color:'var(--color-text-secondary)'}}>{c.name}</div>}
+                      </div>
                     </div>
                   </td>
                   <td style={{padding:'12px 16px',color:'var(--color-text-secondary)'}}>{c.email||'-'}</td>
@@ -193,7 +202,10 @@ export default function CustomersPage({ org }) {
                       : <span style={{color:'var(--color-text-secondary)'}}>$0.00</span>}
                   </td>
                   <td style={{padding:'12px 16px'}}>
-                    <button onClick={e=>{e.stopPropagation();setEditing(c);setView('form');}} style={{padding:'5px 14px',borderRadius:6,border:'1px solid var(--color-border)',background:'none',cursor:'pointer',fontSize:12,color:'var(--color-text-secondary)',fontWeight:500}}>Edit</button>
+                    <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+                      <button onClick={e=>{e.stopPropagation(); onNewInvoice?.(c);}} style={{padding:'5px 12px',borderRadius:6,border:'1px solid #2D6A4F',background:'none',cursor:'pointer',fontSize:12,color:'#2D6A4F',fontWeight:600,whiteSpace:'nowrap'}}>+ Invoice</button>
+                      <button onClick={e=>{e.stopPropagation();setEditing(c);setView('form');}} style={{padding:'5px 14px',borderRadius:6,border:'1px solid var(--color-border)',background:'none',cursor:'pointer',fontSize:12,color:'var(--color-text-secondary)',fontWeight:500}}>Edit</button>
+                    </div>
                   </td>
                 </tr>
               );

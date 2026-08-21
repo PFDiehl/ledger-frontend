@@ -39,7 +39,8 @@ export default function CustomerForm({ org, editing, onSave, onCancel }) {
 
       <div style={{background:'var(--color-surface)',borderRadius:14,padding:28,border:'1px solid var(--color-border)',marginBottom:20}}>
         <h3 style={{margin:'0 0 20px',fontSize:13,fontWeight:600,color:'var(--color-text-secondary)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Basic Info</h3>
-        <div style={fieldStyle}><label style={labelStyle}>Name *</label><input style={inputStyle} value={form.name} onChange={set('name')} placeholder="Acme Corp" /></div>
+        <div style={fieldStyle}><label style={labelStyle}>Company</label><input style={inputStyle} value={form.company||''} onChange={set('company')} placeholder="Acme Corp" /></div>
+        <div style={fieldStyle}><label style={labelStyle}>Contact Name *</label><input style={inputStyle} value={form.name} onChange={set('name')} placeholder="Jane Smith" /></div>
         <div style={fieldStyle}><label style={labelStyle}>Email</label><input style={inputStyle} type="email" value={form.email} onChange={set('email')} placeholder="billing@acme.com" /></div>
         <div style={fieldStyle}><label style={labelStyle}>Phone</label><input style={inputStyle} value={form.phone} onChange={e=>setForm(f=>({...f,phone:formatPhone(e.target.value)}))} placeholder="(555) 000-0000" /></div>
       </div>
