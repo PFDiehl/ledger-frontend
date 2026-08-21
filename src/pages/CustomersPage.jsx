@@ -98,7 +98,7 @@ export default function CustomersPage({ org, onNewInvoice }) {
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
           <div style={{background:'var(--color-surface)',borderRadius:14,padding:22,border:'1px solid var(--color-border)'}}>
             <h3 style={{margin:'0 0 16px',fontSize:13,fontWeight:600,color:'var(--color-text-secondary)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Contact Info</h3>
-            {[['Email',selected.email],['Phone',selected.phone],['Address',selected.address],['City',selected.city],['State',selected.state],['Zip',selected.zip]].map(([l,v])=> v ? (
+            {[['Company',selected.company],['Customer Name',selected.name],['Email',selected.email],['Phone',selected.phone],['Address',selected.address],['City',selected.city],['State',selected.state],['Zip',selected.zip]].map(([l,v])=> v ? (
               <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--color-border)',fontSize:14}}>
                 <span style={{color:'var(--color-text-secondary)'}}>{l}</span><span style={{fontWeight:500}}>{v}</span>
               </div>
@@ -173,7 +173,7 @@ export default function CustomersPage({ org, onNewInvoice }) {
         <div style={{background:'var(--color-surface)',borderRadius:14,border:'1px solid var(--color-border)',overflow:'hidden'}}>
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:14}}>
             <thead><tr style={{background:'var(--color-surface-secondary)'}}>
-              {['Customer','Email','Phone','Salesperson','Total Invoiced','Outstanding',''].map(h=>(
+              {['Company','Client Name','Email','Phone','Salesperson','Total Invoiced','Outstanding',''].map(h=>(
                 <th key={h} style={{textAlign:'left',padding:'12px 16px',color:'var(--color-text-secondary)',fontWeight:600,fontSize:11,borderBottom:'1px solid var(--color-border)',textTransform:'uppercase',letterSpacing:'0.05em'}}>{h}</th>
               ))}
             </tr></thead>
@@ -186,12 +186,10 @@ export default function CustomersPage({ org, onNewInvoice }) {
                   <td style={{padding:'12px 16px'}}>
                     <div style={{display:'flex',alignItems:'center',gap:12}}>
                       <Avatar name={c.company || c.name} />
-                      <div>
-                        <div style={{fontWeight:600}}>{c.company || c.name}</div>
-                        {c.company && c.name && <div style={{fontSize:12,color:'var(--color-text-secondary)'}}>{c.name}</div>}
-                      </div>
+                      <span style={{fontWeight:600}}>{c.company || c.name}</span>
                     </div>
                   </td>
+                  <td style={{padding:'12px 16px'}}>{c.name||'-'}</td>
                   <td style={{padding:'12px 16px',color:'var(--color-text-secondary)'}}>{c.email||'-'}</td>
                   <td style={{padding:'12px 16px',color:'var(--color-text-secondary)'}}>{c.phone||'-'}</td>
                   <td style={{padding:'12px 16px',color:'var(--color-text-secondary)'}}>{c.salesperson||'-'}</td>
