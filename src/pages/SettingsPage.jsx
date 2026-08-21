@@ -423,6 +423,28 @@ function IntegrationsSettings() {
   const [invImportResult, setInvImportResult] = useState(null);
   const [importingExp, setImportingExp] = useState(false);
   const [expImportResult, setExpImportResult] = useState(null);
+  const [syncingVen, setSyncingVen] = useState(false);
+  const [venResult, setVenResult] = useState(null);
+  const [syncingBill, setSyncingBill] = useState(false);
+  const [billResult, setBillResult] = useState(null);
+  const [importingVen, setImportingVen] = useState(false);
+  const [venImportResult, setVenImportResult] = useState(null);
+  const [importingBill, setImportingBill] = useState(false);
+  const [billImportResult, setBillImportResult] = useState(null);
+
+  const runSync = async (path, setBusy, setResult, noun) => {
+    setBusy(true); setResult(null);
+    try {
+      const r = await fetch(`${SEC_API}/orgs/${org.id}/quickbooks/${path}`, { method:'POST', headers: secHeaders() });
+      const j = await r.json();
+      if (j.success) {
+        setResult(j.data);
+        const moved = (j.data.created || 0) + (j.data.linked || 0) + (j.data.imported || 0);
+        toast.success(`${moved} of ${j.data.total} ${noun}${j.data.total === 1 ? '' : 's'} processed`);
+      } else toast.error(j.message || 'Operation failed');
+    } catch { toast.error('Cannot connect'); }
+    finally { setBusy(false); }
+  };
 
   async function loadStatus() {
     if (!org) return;
@@ -601,6 +623,8 @@ function IntegrationsSettings() {
             <button className="btn-primary" style={{ fontSize:12 }} disabled={syncing} onClick={syncCustomers}>{syncing ? 'Syncing…' : 'Sync customers → QuickBooks'}</button>
             <button className="btn-primary" style={{ fontSize:12 }} disabled={syncingInv} onClick={syncInvoices}>{syncingInv ? 'Syncing…' : 'Sync invoices → QuickBooks'}</button>
             <button className="btn-primary" style={{ fontSize:12 }} disabled={syncingExp} onClick={syncExpenses}>{syncingExp ? 'Syncing…' : 'Sync expenses → QuickBooks'}</button>
+            <button className="btn-primary" style={{ fontSize:12 }} disabled={syncingVen} onClick={()=>runSync('sync/vendors', setSyncingVen, setVenResult, 'vendor')}>{syncingVen ? 'Syncing…' : 'Sync vendors → QuickBooks'}</button>
+            <button className="btn-primary" style={{ fontSize:12 }} disabled={syncingBill} onClick={()=>runSync('sync/bills', setSyncingBill, setBillResult, 'bill')}>{syncingBill ? 'Syncing…' : 'Sync bills → QuickBooks'}</button>
           </div>
 
           {company && (
@@ -645,6 +669,30 @@ function IntegrationsSettings() {
             </div>
           )}
 
+          {venResult && (
+            <div style={{ fontSize:12, color:'var(--color-text-secondary)', background:'var(--color-background-secondary)', borderRadius:8, padding:'10px 12px' }}>
+              <div style={{ fontWeight:600, marginBottom:4 }}>Vendors synced</div>
+              <div>{venResult.created} created · {venResult.linked} linked to existing · {venResult.skipped} already synced · {venResult.failed} failed</div>
+              {venResult.errors?.length > 0 && (
+                <ul style={{ margin:'8px 0 0', paddingLeft:18, color:'#b23b2e' }}>
+                  {venResult.errors.map((e, i) => <li key={i}>{e.name}: {e.error}</li>)}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {billResult && (
+            <div style={{ fontSize:12, color:'var(--color-text-secondary)', background:'var(--color-background-secondary)', borderRadius:8, padding:'10px 12px' }}>
+              <div style={{ fontWeight:600, marginBottom:4 }}>Bills synced</div>
+              <div>{billResult.created} created · {billResult.skipped} already synced · {billResult.failed} failed</div>
+              {billResult.errors?.length > 0 && (
+                <ul style={{ margin:'8px 0 0', paddingLeft:18, color:'#b23b2e' }}>
+                  {billResult.errors.map((e, i) => <li key={i}>{e.name}: {e.error}</li>)}
+                </ul>
+              )}
+            </div>
+          )}
+
           <div style={{ borderTop:'0.5px solid var(--color-border-tertiary)', paddingTop:14, marginTop:2 }}>
             <div style={{ fontSize:13, fontWeight:600, marginBottom:2 }}>Import</div>
             <div style={{ fontSize:12, color:'var(--color-text-tertiary)', marginBottom:10 }}>Already keep your books in QuickBooks? Pull your existing data into Mountain Top Ledger. Safe to re-run — matches are updated, not duplicated. Import customers first, since invoices link to them.</div>
@@ -652,6 +700,8 @@ function IntegrationsSettings() {
               <button className="btn-secondary" style={{ fontSize:12 }} disabled={importing} onClick={importCustomers}>{importing ? 'Importing…' : 'Import customers ← QuickBooks'}</button>
               <button className="btn-secondary" style={{ fontSize:12 }} disabled={importingInv} onClick={importInvoices}>{importingInv ? 'Importing…' : 'Import invoices ← QuickBooks'}</button>
               <button className="btn-secondary" style={{ fontSize:12 }} disabled={importingExp} onClick={importExpenses}>{importingExp ? 'Importing…' : 'Import expenses ← QuickBooks'}</button>
+              <button className="btn-secondary" style={{ fontSize:12 }} disabled={importingVen} onClick={()=>runSync('import/vendors', setImportingVen, setVenImportResult, 'vendor')}>{importingVen ? 'Importing…' : 'Import vendors ← QuickBooks'}</button>
+              <button className="btn-secondary" style={{ fontSize:12 }} disabled={importingBill} onClick={()=>runSync('import/bills', setImportingBill, setBillImportResult, 'bill')}>{importingBill ? 'Importing…' : 'Import bills ← QuickBooks'}</button>
             </div>
 
             {importResult && (
@@ -685,6 +735,30 @@ function IntegrationsSettings() {
                 {expImportResult.errors?.length > 0 && (
                   <ul style={{ margin:'8px 0 0', paddingLeft:18, color:'#b23b2e' }}>
                     {expImportResult.errors.map((e, i) => <li key={i}>{e.name}: {e.error}</li>)}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {venImportResult && (
+              <div style={{ fontSize:12, color:'var(--color-text-secondary)', background:'var(--color-background-secondary)', borderRadius:8, padding:'10px 12px', marginTop:10 }}>
+                <div style={{ fontWeight:600, marginBottom:4 }}>Vendors imported</div>
+                <div>{venImportResult.imported} new · {venImportResult.linked} matched &amp; updated · {venImportResult.skipped} already linked · {venImportResult.failed} failed</div>
+                {venImportResult.errors?.length > 0 && (
+                  <ul style={{ margin:'8px 0 0', paddingLeft:18, color:'#b23b2e' }}>
+                    {venImportResult.errors.map((e, i) => <li key={i}>{e.name}: {e.error}</li>)}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {billImportResult && (
+              <div style={{ fontSize:12, color:'var(--color-text-secondary)', background:'var(--color-background-secondary)', borderRadius:8, padding:'10px 12px', marginTop:10 }}>
+                <div style={{ fontWeight:600, marginBottom:4 }}>Bills imported</div>
+                <div>{billImportResult.imported} new · {billImportResult.skipped} already imported · {billImportResult.failed} failed</div>
+                {billImportResult.errors?.length > 0 && (
+                  <ul style={{ margin:'8px 0 0', paddingLeft:18, color:'#b23b2e' }}>
+                    {billImportResult.errors.map((e, i) => <li key={i}>{e.name}: {e.error}</li>)}
                   </ul>
                 )}
               </div>
