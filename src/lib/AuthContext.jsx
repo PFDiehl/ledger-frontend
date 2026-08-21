@@ -36,6 +36,25 @@ export function AuthProvider({ children }) {
     localStorage.setItem('ledger_org', JSON.stringify(o));
   }
 
+  // Keep the access token fresh. Access tokens are short-lived now, and several
+  // pages read the token straight from localStorage (no auto-retry), so we
+  // proactively refresh well before expiry — on an interval and when the tab
+  // regains focus — to keep those pages working seamlessly.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const doRefresh = async () => {
+      try {
+        const { data } = await api.post('/auth/refresh');
+        if (!cancelled && data?.accessToken) setAccessToken(data.accessToken);
+      } catch { /* refresh failed — the next protected call will handle it */ }
+    };
+    const iv = setInterval(doRefresh, 10 * 60 * 1000); // every 10 minutes
+    const onFocus = () => doRefresh();
+    window.addEventListener('focus', onFocus);
+    return () => { cancelled = true; clearInterval(iv); window.removeEventListener('focus', onFocus); };
+  }, [user]);
+
   const login = useCallback(async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
     // If the account has 2FA enabled, no session is issued yet — the caller
