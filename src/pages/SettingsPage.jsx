@@ -10,7 +10,59 @@ const TABS = [
   { id:'billing',      icon:'credit-card', label:'Billing'       },
   { id:'security',     icon:'lock',        label:'Security'      },
   { id:'integrations', icon:'plug',        label:'Integrations'  },
+  { id:'data',         icon:'download',    label:'Export'        },
 ];
+
+function DataExport() {
+  const toast = useToast();
+  const { org } = useAuth();
+  const [busy, setBusy] = useState('');
+  const API = 'https://ledger-accounting-production.up.railway.app/api';
+
+  async function download(entity, filename) {
+    if (!org) return;
+    setBusy(entity);
+    try {
+      const r = await fetch(`${API}/orgs/${org.id}/export/${entity}.csv`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` },
+      });
+      if (!r.ok) throw new Error('Export failed');
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } catch { toast.error('Could not export — please try again.'); }
+    finally { setBusy(''); }
+  }
+
+  const items = [
+    ['customers', 'customers.csv', 'Customers'],
+    ['vendors',   'vendors.csv',   'Vendors'],
+    ['invoices',  'invoices.csv',  'Invoices'],
+    ['expenses',  'expenses.csv',  'Expenses'],
+    ['bills',     'bills.csv',     'Bills'],
+  ];
+
+  return (
+    <div>
+      <div style={{ fontSize:13, fontWeight:600, marginBottom:2 }}>Export your data</div>
+      <div style={{ fontSize:12, color:'var(--color-text-tertiary)', marginBottom:16 }}>Download your records as CSV files — open them in Excel, Google Sheets, or Numbers. Your data is always yours.</div>
+      <div style={{ border:'0.5px solid var(--color-border-tertiary)', borderRadius:10, overflow:'hidden' }}>
+        {items.map(([entity, filename, label], i) => (
+          <div key={entity} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', borderBottom: i<items.length-1 ? '0.5px solid var(--color-border-tertiary)' : 'none' }}>
+            <i className="ti ti-file-spreadsheet" style={{ fontSize:18, color:'var(--color-text-secondary)' }} />
+            <div style={{ flex:1, fontSize:13, fontWeight:500 }}>{label}</div>
+            <button className="btn-secondary" style={{ fontSize:12 }} disabled={busy===entity} onClick={()=>download(entity, filename)}>
+              {busy===entity ? 'Preparing…' : 'Download CSV'}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function FieldRow({ label, children }) {
   return (
@@ -784,6 +836,7 @@ export default function SettingsPage() {
       case 'team':         return <TeamSettings />;
       case 'security':     return <SecuritySettings />;
       case 'integrations': return <IntegrationsSettings />;
+      case 'data':         return <DataExport />;
       default: return (
         <div style={{ padding:'40px 0', textAlign:'center', color:'var(--color-text-tertiary)', fontSize:13 }}>
           <i className="ti ti-tools" style={{ fontSize:28, display:'block', marginBottom:10 }} />
