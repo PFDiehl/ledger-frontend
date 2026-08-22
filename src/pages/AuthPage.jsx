@@ -249,6 +249,15 @@ export default function AuthPage({ onSuccess }) {
               : mode === '2fa' ? 'Verify'
               : 'Create Account'}
           </button>
+
+          {mode === 'register' && (
+            <div style={{marginTop:'16px', fontSize:'12px', color:'#7A9A7A', textAlign:'center', lineHeight:1.6}}>
+              By creating an account, you agree to our{' '}
+              <a href="/terms" target="_blank" rel="noopener noreferrer" style={{color:'#A8D4A8', textDecoration:'underline'}}>Terms of Service</a>{' '}
+              and{' '}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{color:'#A8D4A8', textDecoration:'underline'}}>Privacy Policy</a>.
+            </div>
+          )}
         </form>
 
         {mode === '2fa' && (
