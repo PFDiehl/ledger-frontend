@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth }  from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import ThemePicker   from '../components/ui/ThemePicker';
+import BillingPage   from './BillingPage';
 
 const TABS = [
   { id:'appearance',   icon:'palette',     label:'Appearance'    },
@@ -834,6 +835,7 @@ export default function SettingsPage() {
       case 'appearance':   return <ThemePicker />;
       case 'company':      return <CompanySettings />;
       case 'team':         return <TeamSettings />;
+      case 'billing':      return <BillingPage />;
       case 'security':     return <SecuritySettings />;
       case 'integrations': return <IntegrationsSettings />;
       case 'data':         return <DataExport />;
