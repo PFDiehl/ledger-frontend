@@ -36,6 +36,7 @@ import LandingPage from './pages/LandingPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import SubscribeGate from './pages/SubscribeGate';
 import './styles.css';
 
 const isPortal = window.location.pathname.startsWith('/portal/');
@@ -43,6 +44,10 @@ const isPrivacy = window.location.pathname === '/privacy';
 const isTerms = window.location.pathname === '/terms';
 const isReset = window.location.pathname === '/reset-password';
 const API_BASE = import.meta.env.VITE_API_URL || 'https://ledger-accounting-production.up.railway.app/api';
+// When 'true', users without an active/trialing subscription are sent to the
+// SubscribeGate (card required). Off by default so existing users are never
+// locked out during build/test — flipped on at launch.
+const BILLING_ENFORCED = import.meta.env.VITE_BILLING_ENFORCED === 'true';
 
 export default function App() {
   const { user, org, loading, logout } = useAuth();
@@ -52,7 +57,10 @@ export default function App() {
   const [showLanding, setShowLanding] = useState(true);
   const [showAI, setShowAI]        = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(null); // invoice payment
-  const [subStatus, setSubStatus]  = useState(null);          // subscription
+  const [subStatus, setSubStatus]  = useState(null);          // subscription (post-checkout verify)
+  const [selectedPlan, setSelectedPlan] = useState(() => localStorage.getItem('mtl_selected_plan') || null);
+  const [subInfo, setSubInfo]   = useState(null);             // billing gate: current subscription
+  const [subReady, setSubReady] = useState(!BILLING_ENFORCED); // gate open immediately when not enforced
 
   // On a fresh sign-in (no-user → user), always land on the Dashboard rather than
   // wherever the app was last viewing.
@@ -98,6 +106,19 @@ export default function App() {
     }
   }, []);
 
+  // Billing gate: when enforced, check the org's subscription so we can require
+  // a card before granting access. Fails OPEN on error to avoid locking anyone out.
+  useEffect(() => {
+    if (!BILLING_ENFORCED || !user || !org) return;
+    let cancelled = false;
+    setSubReady(false);
+    fetch(`${API_BASE}/billing/subscription?orgId=${org.id}`)
+      .then(r => r.json())
+      .then(d => { if (!cancelled) { setSubInfo(d.data || null); setSubReady(true); } })
+      .catch(() => { if (!cancelled) { setSubInfo({ active: true, _failedOpen: true }); setSubReady(true); } });
+    return () => { cancelled = true; };
+  }, [user, org]);
+
   if (paymentStatus) {
     const box = { minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16, fontFamily:'system-ui, sans-serif', padding:24, textAlign:'center' };
     if (paymentStatus === 'checking')
@@ -141,8 +162,15 @@ export default function App() {
   if (isTerms) return <TermsPage />;
   if (isPortal) return <CustomerPortalPage token={window.location.pathname.replace('/portal/','')} />;
   if (loading)  return <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color:'var(--color-text-secondary)' }}>Loading…</div>;
-  if (!user && showLanding) return <LandingPage onGetStarted={()=>setShowLanding(false)} />;
+  if (!user && showLanding) return <LandingPage onGetStarted={(plan)=>{ if (typeof plan === 'string' && plan) { setSelectedPlan(plan); localStorage.setItem('mtl_selected_plan', plan); } setShowLanding(false); }} />;
   if (!user) return <AuthPage onSuccess={() => {}} />;
+
+  // Card-required gate: block access until the org has an active/trialing plan.
+  if (BILLING_ENFORCED) {
+    if (!subReady) return <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color:'var(--color-text-secondary)' }}>Loading…</div>;
+    if (subInfo && !subInfo.active) return <SubscribeGate org={org} selectedPlan={selectedPlan} apiBase={API_BASE} onLogout={logout} />;
+  }
+
   if (!onboarded) return <OnboardingPage onComplete={() => { localStorage.setItem('onboarded','1'); setOnboarded(true); }} />;
 
   const nav = id => { setActiveNav(id); setView({ type:'list' }); };

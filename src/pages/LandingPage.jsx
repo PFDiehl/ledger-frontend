@@ -69,19 +69,7 @@ export default function LandingPage({ onGetStarted }) {
             <div style={{fontSize:22,color:'#ffd166',fontWeight:700}}>Startup</div>
             <div style={{fontFamily:'sans-serif',fontSize:13,color:'#7a9a7a',marginTop:6}}>Everything you need to run the books.</div>
             <div style={{margin:'22px 0 4px'}}><span style={{fontSize:52,color:'#fff',fontWeight:700,fontFamily:'sans-serif'}}>$15</span><span style={{fontSize:16,color:'#a8d4a8',fontFamily:'sans-serif'}}> / month</span></div>
-
-            <div style={{margin:'18px 0 8px',background:'rgba(255,209,102,0.08)',border:'1px solid rgba(255,209,102,0.18)',borderRadius:12,padding:'14px 16px',fontFamily:'sans-serif'}}>
-              <div style={{fontSize:12,letterSpacing:1,color:'#ffd166',fontWeight:700,marginBottom:10}}>YOUR FIRST 3 MONTHS</div>
-              <div style={{display:'flex',justifyContent:'space-between',gap:6,textAlign:'center'}}>
-                <div style={{flex:1}}><div style={{fontSize:11,color:'#7a9a7a',marginBottom:3}}>Month 1</div><div style={{fontSize:17,color:'#ffd166',fontWeight:700}}>FREE</div></div>
-                <div style={{color:'#5a8a5a',alignSelf:'center',fontSize:13}}>›</div>
-                <div style={{flex:1}}><div style={{fontSize:11,color:'#7a9a7a',marginBottom:3}}>Month 2</div><div style={{fontSize:17,color:'#fff',fontWeight:700}}>$5</div></div>
-                <div style={{color:'#5a8a5a',alignSelf:'center',fontSize:13}}>›</div>
-                <div style={{flex:1}}><div style={{fontSize:11,color:'#7a9a7a',marginBottom:3}}>Month 3</div><div style={{fontSize:17,color:'#fff',fontWeight:700}}>$10</div></div>
-                <div style={{color:'#5a8a5a',alignSelf:'center',fontSize:13}}>›</div>
-                <div style={{flex:1}}><div style={{fontSize:11,color:'#7a9a7a',marginBottom:3}}>Then</div><div style={{fontSize:17,color:'#fff',fontWeight:700}}>$15</div></div>
-              </div>
-            </div>
+            <div style={{fontFamily:'sans-serif',fontSize:13,color:'#7a9a7a',margin:'10px 0 0'}}>Free first month, then $15.</div>
 
             <ul style={{listStyle:'none',margin:'22px 0 26px',padding:0,fontFamily:'sans-serif'}}>
               <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#cbe3cb',fontSize:15,lineHeight:1.5,marginBottom:12}}><span style={{color:'#ffd166',fontWeight:700}}>✓</span> Unlimited invoices & estimates</li>
@@ -92,7 +80,7 @@ export default function LandingPage({ onGetStarted }) {
               <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#cbe3cb',fontSize:15,lineHeight:1.5,marginBottom:12}}><span style={{color:'#ffd166',fontWeight:700}}>✓</span> Single user</li>
             </ul>
 
-            <button onClick={onGetStarted} style={{marginTop:'auto',padding:'15px 24px',borderRadius:12,fontSize:17,fontWeight:700,fontFamily:'sans-serif',letterSpacing:1,cursor:'pointer',border:'none',background:'#ffd166',color:'#0d2010',width:'100%'}}>Start free</button>
+            <button onClick={() => onGetStarted('startup')} style={{marginTop:'auto',padding:'15px 24px',borderRadius:12,fontSize:17,fontWeight:700,fontFamily:'sans-serif',letterSpacing:1,cursor:'pointer',border:'none',background:'#ffd166',color:'#0d2010',width:'100%'}}>Start free</button>
           </div>
 
           {/* Growth */}
@@ -110,7 +98,7 @@ export default function LandingPage({ onGetStarted }) {
               <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#cbe3cb',fontSize:15,lineHeight:1.5,marginBottom:12}}><span style={{color:'#ffd166',fontWeight:700}}>✓</span> Advanced reports</li>
             </ul>
 
-            <button onClick={onGetStarted} style={{marginTop:'auto',padding:'15px 24px',borderRadius:12,fontSize:17,fontWeight:700,fontFamily:'sans-serif',letterSpacing:1,cursor:'pointer',background:'transparent',color:'#ffd166',border:'1px solid #ffd166',width:'100%'}}>Start free</button>
+            <button onClick={() => onGetStarted('growth')} style={{marginTop:'auto',padding:'15px 24px',borderRadius:12,fontSize:17,fontWeight:700,fontFamily:'sans-serif',letterSpacing:1,cursor:'pointer',background:'transparent',color:'#ffd166',border:'1px solid #ffd166',width:'100%'}}>Start free</button>
           </div>
 
         </div>

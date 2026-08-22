@@ -1,154 +1,169 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
-import { fmt } from '../lib/utils';
+
+const API = import.meta.env.VITE_API_URL || 'https://ledger-accounting-production.up.railway.app/api';
 
 const PLANS = [
   {
-    key:          'starter',
-    name:         'Starter',
-    price:        29,
-    description:  'For freelancers and solo operators',
-    features:     ['50 invoices/month','3 users','2 bank accounts','Invoicing & billing','Expenses & reports','Email support'],
-    limits:       { invoices:'50 / month', users:'3', banks:'2' },
+    key: 'startup', name: 'Startup', price: 15,
+    description: 'Everything you need to run the books.',
+    features: ['Unlimited invoices & estimates', 'Expense tracking with receipt scanning', 'Customers & vendors', 'Core financial reports', 'iPhone mobile app', 'Single user'],
   },
   {
-    key:          'professional',
-    name:         'Professional',
-    price:        79,
-    popular:      true,
-    description:  'For growing small businesses',
-    features:     ['500 invoices/month','10 users','10 bank accounts','Everything in Starter','Payroll','Budgets','Multi-currency','Recurring invoices','Document OCR'],
-    limits:       { invoices:'500 / month', users:'10', banks:'10' },
-  },
-  {
-    key:          'business',
-    name:         'Business',
-    price:        199,
-    description:  'For teams that need everything',
-    features:     ['Unlimited invoices','Unlimited users','Unlimited bank accounts','Everything in Professional','API access','Custom integrations','Priority support','Dedicated onboarding'],
-    limits:       { invoices:'Unlimited', users:'Unlimited', banks:'Unlimited' },
+    key: 'growth', name: 'Growth', price: 39, popular: true,
+    description: 'For teams ready to scale up.',
+    features: ['Everything in Startup, plus:', 'Payroll', 'Automatic bank connections', 'Multiple team members', 'Advanced reports'],
   },
 ];
 
-const USAGE_MOCK = {
-  plan:        'professional',
-  planStatus:  'active',
-  trialEndsAt: null,
-  usage: {
-    invoicesThisMonth: { used: 23,  limit: 500 },
-    users:             { used: 4,   limit: 10  },
-    bankAccounts:      { used: 2,   limit: 10  },
-  },
+const STATUS_LABEL = {
+  trialing:   'Free trial — first month',
+  active:     'Active · renews automatically',
+  past_due:   'Payment past due',
+  canceled:   'Canceled',
+  incomplete: 'Incomplete',
+  trial:      'No active subscription',
 };
 
-function UsageBar({ used, limit, label }) {
-  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
-  const warn = pct > 80;
-  return (
-    <div style={{ marginBottom:14 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, marginBottom:5 }}>
-        <span style={{ color:'var(--color-text-secondary)' }}>{label}</span>
-        <span style={{ fontWeight:500, color: warn ? '#993C1D' : 'var(--color-text-primary)' }}>
-          {used.toLocaleString()} / {limit < 0 ? '∞' : limit.toLocaleString()}
-        </span>
-      </div>
-      <div style={{ height:5, background:'var(--color-background-secondary)', borderRadius:3, overflow:'hidden' }}>
-        <div style={{ height:'100%', width:`${pct}%`, background: warn ? '#E24B4A' : '#5DCAA5', borderRadius:3, transition:'width 0.3s' }} />
-      </div>
-    </div>
-  );
-}
-
 export default function BillingPage() {
+  const { org } = useAuth();
   const toast = useToast();
-  const [billing, setBilling] = useState(USAGE_MOCK);
-  const [upgrading, setUpgrading] = useState(false);
-  const currentPlan = PLANS.find(p => p.key === billing.plan);
+  const [sub, setSub]         = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy]       = useState('');
 
-  async function handleUpgrade(planKey) {
-    if (planKey === billing.plan) return;
-    setUpgrading(true);
-    await new Promise(r => setTimeout(r, 800));
-    setUpgrading(false);
-    toast.success(`Redirecting to checkout for ${PLANS.find(p=>p.key===planKey)?.name} plan…`);
-    // In production: fetch('/api/billing/orgs/:orgId/checkout', { method:'POST', body:{plan:planKey} })
-    // then redirect to the Stripe Checkout URL
+  async function loadSub() {
+    if (!org?.id) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/billing/subscription?orgId=${org.id}`);
+      const data = await res.json();
+      setSub(data.data || null);
+    } catch {
+      setSub(null);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  async function handleManage() {
-    toast.info('Opening billing portal…');
+  useEffect(() => { loadSub(); /* eslint-disable-next-line */ }, [org?.id]);
+
+  async function startCheckout(plan) {
+    setBusy(plan);
+    try {
+      const res = await fetch(`${API}/billing/checkout`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgId: org.id, plan }),
+      });
+      const data = await res.json();
+      if (data.success && data.url) window.location.href = data.url;
+      else { toast.error(data.message || 'Could not start checkout.'); setBusy(''); }
+    } catch { toast.error('Network error. Please try again.'); setBusy(''); }
   }
+
+  async function openPortal() {
+    setBusy('portal');
+    try {
+      const res = await fetch(`${API}/billing/portal`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgId: org.id }),
+      });
+      const data = await res.json();
+      if (data.success && data.url) window.location.href = data.url;
+      else { toast.error(data.message || 'Billing portal is not available yet.'); setBusy(''); }
+    } catch { toast.error('Network error. Please try again.'); setBusy(''); }
+  }
+
+  if (loading) {
+    return <div className="page"><div style={{ color: 'var(--color-text-secondary)', fontSize: 14 }}>Loading your subscription…</div></div>;
+  }
+
+  const active      = !!sub?.active;
+  const planKey     = sub?.plan;
+  const planStatus  = sub?.planStatus;
+  const currentPlan = PLANS.find(p => p.key === planKey);
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
-      {/* Current plan summary */}
-      <div style={{ background:'var(--color-background-secondary)', borderRadius:10, padding:'16px 18px', marginBottom:20, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      {/* Current plan */}
+      <div style={{ background: 'var(--color-background-secondary)', borderRadius: 10, padding: '16px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontSize:12, color:'var(--color-text-secondary)', marginBottom:3 }}>Current plan</div>
-          <div style={{ fontSize:16, fontWeight:500 }}>{currentPlan?.name ?? 'Starter'}</div>
-          <div style={{ fontSize:12, color:'var(--color-text-secondary)', marginTop:2 }}>
-            {billing.planStatus === 'active' ? `$${currentPlan?.price}/month · renews automatically` : billing.planStatus}
+          <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 3 }}>Current plan</div>
+          <div style={{ fontSize: 16, fontWeight: 500 }}>
+            {active && currentPlan ? currentPlan.name : 'No active plan'}
+            {active && currentPlan ? <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400 }}> · ${currentPlan.price}/mo</span> : null}
+          </div>
+          <div style={{ fontSize: 12, color: active ? '#0F6E56' : 'var(--color-text-secondary)', marginTop: 2 }}>
+            {STATUS_LABEL[planStatus] || (active ? 'Active' : 'No active subscription')}
           </div>
         </div>
-        <button className="btn-secondary" onClick={handleManage}>
-          <i className="ti ti-external-link" /> Manage billing
-        </button>
+        {sub?.hasCustomer && (
+          <button className="btn-secondary" disabled={busy === 'portal'} onClick={openPortal}>
+            {busy === 'portal' ? 'Opening…' : 'Manage billing'}
+          </button>
+        )}
       </div>
 
-      {/* Usage */}
-      <div className="card" style={{ marginBottom:20 }}>
-        <div className="card-title" style={{ marginBottom:14 }}>This month's usage</div>
-        <UsageBar used={billing.usage.invoicesThisMonth.used} limit={billing.usage.invoicesThisMonth.limit} label="Invoices" />
-        <UsageBar used={billing.usage.users.used}             limit={billing.usage.users.limit}             label="Team members" />
-        <UsageBar used={billing.usage.bankAccounts.used}      limit={billing.usage.bankAccounts.limit}      label="Bank accounts" />
-      </div>
+      {active ? (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+            You're subscribed to <strong style={{ color: 'var(--color-text-primary)' }}>{currentPlan?.name}</strong>.
+            To switch plans, update your card, or cancel, use <strong>Manage billing</strong> above — it opens Stripe's
+            secure billing portal.
+          </div>
+        </div>
+      ) : (
+        <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Choose a plan — first month free</div>
+      )}
 
-      {/* Plan comparison */}
-      <div style={{ fontSize:13, fontWeight:500, marginBottom:12 }}>Change plan</div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:12 }}>
+      {/* Plans */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
         {PLANS.map(plan => {
-          const isCurrent = plan.key === billing.plan;
+          const isCurrent = active && plan.key === planKey;
           return (
             <div key={plan.key} style={{
               background: 'var(--color-background-primary)',
               border: isCurrent ? '2px solid #2D4A35' : plan.popular ? '2px solid var(--color-border-info)' : '0.5px solid var(--color-border-tertiary)',
-              borderRadius: 12, padding: '18px 16px',
-              position: 'relative',
+              borderRadius: 12, padding: '18px 16px', position: 'relative',
             }}>
               {plan.popular && !isCurrent && (
-                <div style={{ position:'absolute', top:-10, left:'50%', transform:'translateX(-50%)', background:'#185FA5', color:'#fff', fontSize:11, fontWeight:600, padding:'3px 12px', borderRadius:20, whiteSpace:'nowrap' }}>
-                  Most popular
-                </div>
+                <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: '#185FA5', color: '#fff', fontSize: 11, fontWeight: 600, padding: '3px 12px', borderRadius: 20, whiteSpace: 'nowrap' }}>Most popular</div>
               )}
               {isCurrent && (
-                <div style={{ position:'absolute', top:-10, left:'50%', transform:'translateX(-50%)', background:'var(--brand-primary,#2D4A35)', color:'#fff', fontSize:11, fontWeight:600, padding:'3px 12px', borderRadius:20, whiteSpace:'nowrap' }}>
-                  Current plan
-                </div>
+                <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: '#2D4A35', color: '#fff', fontSize: 11, fontWeight: 600, padding: '3px 12px', borderRadius: 20, whiteSpace: 'nowrap' }}>Current plan</div>
               )}
-              <div style={{ fontSize:15, fontWeight:500, marginBottom:3 }}>{plan.name}</div>
-              <div style={{ fontSize:12, color:'var(--color-text-secondary)', marginBottom:12 }}>{plan.description}</div>
-              <div style={{ fontSize:24, fontWeight:500, letterSpacing:'-.02em', marginBottom:14 }}>
-                ${plan.price}<span style={{ fontSize:13, fontWeight:400, color:'var(--color-text-secondary)' }}>/mo</span>
+              <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 3 }}>{plan.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 12 }}>{plan.description}</div>
+              <div style={{ fontSize: 24, fontWeight: 500, letterSpacing: '-.02em', marginBottom: 4 }}>
+                ${plan.price}<span style={{ fontSize: 13, fontWeight: 400, color: 'var(--color-text-secondary)' }}>/mo</span>
               </div>
-              <ul style={{ listStyle:'none', marginBottom:16, display:'flex', flexDirection:'column', gap:6 }}>
-                {plan.features.slice(0,5).map(f => (
-                  <li key={f} style={{ fontSize:12, color:'var(--color-text-secondary)', display:'flex', alignItems:'flex-start', gap:6 }}>
-                    <i className="ti ti-check" style={{ fontSize:13, color:'#0F6E56', flexShrink:0, marginTop:1 }} />
-                    {f}
+              <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 14 }}>Free first month, then ${plan.price}.</div>
+              <ul style={{ listStyle: 'none', marginBottom: 16, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {plan.features.map(f => (
+                  <li key={f} style={{ fontSize: 12, color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                    <i className="ti ti-check" style={{ fontSize: 13, color: '#0F6E56', flexShrink: 0, marginTop: 1 }} /> {f}
                   </li>
                 ))}
               </ul>
-              <button
-                className={isCurrent ? 'btn-secondary' : 'btn-primary'}
-                style={{ width:'100%', justifyContent:'center', opacity: isCurrent ? 0.5 : 1 }}
-                disabled={isCurrent || upgrading}
-                onClick={() => handleUpgrade(plan.key)}
-              >
-                {isCurrent ? 'Current plan' : plan.price > (currentPlan?.price ?? 0) ? 'Upgrade' : 'Downgrade'}
-              </button>
+              {isCurrent ? (
+                <button className="btn-secondary" style={{ width: '100%', justifyContent: 'center', opacity: 0.6 }} disabled>Current plan</button>
+              ) : active ? (
+                <button className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }} disabled={busy === 'portal'} onClick={openPortal}>
+                  {busy === 'portal' ? 'Opening…' : 'Switch via Manage billing'}
+                </button>
+              ) : (
+                <button className="btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={!!busy} onClick={() => startCheckout(plan.key)}>
+                  {busy === plan.key ? 'Opening checkout…' : `Start free with ${plan.name}`}
+                </button>
+              )}
             </div>
           );
         })}
+      </div>
+
+      <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 16 }}>
+        Payments are handled securely by Stripe. Card required; cancel anytime before your first month ends and you won't be charged.
       </div>
     </div>
   );
