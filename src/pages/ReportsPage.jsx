@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { api } from '../lib/api';
 
-const TABS = ['P&L', 'Balance Sheet', 'Cash Flow'];
+const TABS = ['P&L', 'Balance Sheet', 'Cash Flow', 'Aged A/R'];
 const PERIODS = [
   { key: 'full', label: 'Full year' },
   { key: 'q1',   label: 'Q1' },
@@ -51,7 +51,9 @@ export default function ReportsPage() {
       try {
         const { from, to } = computeRange(year, period);
         let path;
-        if (tab === 'Balance Sheet') {
+        if (tab === 'Aged A/R') {
+          path = `/orgs/${org.id}/reports/aged-ar`;
+        } else if (tab === 'Balance Sheet') {
           // As of end of the selected period, or today for the current year.
           const asOf = (year === now.getFullYear()) ? safeISO(now) : to;
           path = `/orgs/${org.id}/reports/balance-sheet?asOf=${asOf}`;
@@ -108,15 +110,18 @@ export default function ReportsPage() {
 
       {/* Controls: year dropdown + period + basis */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap', alignItems: 'center' }}>
-        <select value={year} onChange={e => setYear(Number(e.target.value))} style={{
-          padding: '6px 10px', borderRadius: 8, border: '1px solid #D4DDCC', background: '#fff',
-          color: GREEN, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-        }}>
-          {years.map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
-        {PERIODS.map(p => (
+        {tab !== 'Aged A/R' && (
+          <select value={year} onChange={e => setYear(Number(e.target.value))} style={{
+            padding: '6px 10px', borderRadius: 8, border: '1px solid #D4DDCC', background: '#fff',
+            color: GREEN, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          }}>
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+        )}
+        {(tab === 'P&L' || tab === 'Cash Flow') && PERIODS.map(p => (
           <button key={p.key} onClick={() => setPeriod(p.key)} style={ctrlBtn(period === p.key)}>{p.label}</button>
         ))}
+        {tab === 'Aged A/R' && <span style={{ fontSize: 12.5, color: '#7A9A7A' }}>As of today · what customers owe you</span>}
         {tab === 'P&L' && (
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
             <span style={{ fontSize: 12, color: '#999' }}>Basis:</span>
@@ -134,7 +139,7 @@ export default function ReportsPage() {
       ) : !data ? (
         <div style={{ textAlign: 'center', padding: 40, color: '#7A9A7A' }}>No data for this period yet.</div>
       ) : (
-        <div className="card" style={{ padding: 24, maxWidth: 640 }}>
+        <div className="card" style={{ padding: 24, maxWidth: tab === 'Aged A/R' ? 920 : 640 }}>
 
           {tab === 'P&L' && (
             <>
@@ -190,6 +195,55 @@ export default function ReportsPage() {
               <div style={{ borderTop: '2px solid ' + GREEN, marginTop: 10, paddingTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 16, fontWeight: 700 }}>Net cash flow</span>
                 <span style={{ fontSize: 20, fontWeight: 700, color: Number(data.netCashFlow) >= 0 ? GREEN : RED }}>{fmt(data.netCashFlow)}</span>
+              </div>
+            </>
+          )}
+
+          {tab === 'Aged A/R' && data.totals && (
+            <>
+              <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4, color: GREEN }}>Aged Accounts Receivable</h2>
+              <div style={{ fontSize: 12, color: '#999', marginBottom: 14 }}>As of {safeISO(data.asOf)}</div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 640 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #D4DDCC' }}>
+                      <th style={{ textAlign: 'left',  padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Customer</th>
+                      <th style={{ textAlign: 'right', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Current</th>
+                      <th style={{ textAlign: 'right', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>1–30</th>
+                      <th style={{ textAlign: 'right', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>31–60</th>
+                      <th style={{ textAlign: 'right', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>61–90</th>
+                      <th style={{ textAlign: 'right', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>90+</th>
+                      <th style={{ textAlign: 'right', padding: '8px 6px', color: '#222',    fontWeight: 700 }}>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.customers.length === 0 && (
+                      <tr><td colSpan={7} style={{ padding: '16px 6px', color: '#7A9A7A' }}>No outstanding receivables — everyone's paid up. 🎉</td></tr>
+                    )}
+                    {data.customers.map(c => (
+                      <tr key={c.customer} style={{ borderBottom: '0.5px solid #EBF2E8' }}>
+                        <td style={{ padding: '9px 6px', fontWeight: 500 }}>{c.customer}</td>
+                        <td style={{ padding: '9px 6px', textAlign: 'right' }}>{fmt(c.current)}</td>
+                        <td style={{ padding: '9px 6px', textAlign: 'right' }}>{fmt(c.d1_30)}</td>
+                        <td style={{ padding: '9px 6px', textAlign: 'right' }}>{fmt(c.d31_60)}</td>
+                        <td style={{ padding: '9px 6px', textAlign: 'right', color: c.d61_90 > 0 ? '#d4682a' : '#333' }}>{fmt(c.d61_90)}</td>
+                        <td style={{ padding: '9px 6px', textAlign: 'right', color: c.d90_plus > 0 ? RED : '#333' }}>{fmt(c.d90_plus)}</td>
+                        <td style={{ padding: '9px 6px', textAlign: 'right', fontWeight: 700 }}>{fmt(c.total)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ borderTop: '2px solid ' + GREEN }}>
+                      <td style={{ padding: '10px 6px', fontWeight: 700 }}>Total</td>
+                      <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 700 }}>{fmt(data.totals.current)}</td>
+                      <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 700 }}>{fmt(data.totals.d1_30)}</td>
+                      <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 700 }}>{fmt(data.totals.d31_60)}</td>
+                      <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 700 }}>{fmt(data.totals.d61_90)}</td>
+                      <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 700, color: data.totals.d90_plus > 0 ? RED : '#333' }}>{fmt(data.totals.d90_plus)}</td>
+                      <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 700, color: GREEN }}>{fmt(data.totals.total)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
             </>
           )}
