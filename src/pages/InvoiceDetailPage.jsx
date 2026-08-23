@@ -8,6 +8,12 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
   const { org } = useAuth();
   const [sending, setSending] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [showPay, setShowPay]     = useState(false);
+  const [payAmount, setPayAmount] = useState('');
+  const [payMethod, setPayMethod] = useState('bank_transfer');
+  const [payDate, setPayDate]     = useState(() => new Date().toISOString().slice(0, 10));
+  const [payBusy, setPayBusy]     = useState(false);
+  const [payErr, setPayErr]       = useState('');
 
   if (!invoice) return null;
 
@@ -24,6 +30,8 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
   const lines    = invoice.lines ?? invoice.lineItems ?? invoice.items ?? [];
   const canSend  = ['draft','sent','partial'].includes(invoice.status);
   const canPay   = ['sent','partial','overdue'].includes(invoice.status);
+  const paid     = Number(invoice.amountPaid ?? 0);
+  const balance  = Math.max(0, total - paid);
 
   async function handleSend() {
     if (!org) return;
@@ -61,6 +69,24 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
     } catch(e) { alert('Error updating invoice'); }
   }
 
+  function openPay() { setPayAmount(String(balance || total)); setPayErr(''); setShowPay(true); }
+
+  async function handleRecordPayment(e) {
+    e.preventDefault();
+    setPayBusy(true); setPayErr('');
+    try {
+      const r = await fetch(`${import.meta.env.VITE_API_URL}/orgs/${org.id}/invoices/${invoice.id}/payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` },
+        body: JSON.stringify({ amount: Number(payAmount), method: payMethod, date: payDate }),
+      });
+      const j = await r.json();
+      if (j.success) { setShowPay(false); onRefresh?.(); onBack?.(); }
+      else setPayErr(j.message || 'Could not record payment.');
+    } catch { setPayErr('Network error. Please try again.'); }
+    finally { setPayBusy(false); }
+  }
+
   async function handlePayNow() {
     try {
       const r = await fetch(`${import.meta.env.VITE_API_URL}/orgs/${org.id}/stripe/invoices/${invoice.id}/payment-link`, {
@@ -87,14 +113,19 @@ function downloadPDF() {
           <StatusBadge status={invoice.status} />
         </div>
         <div className="page-actions">
-          {canPay && (
-            <button className="btn-primary" onClick={handlePayNow}>
-              <i className="ti ti-credit-card" /> Pay Now
+          {invoice.status === 'draft' && (
+            <button className="btn-primary" onClick={handleSend} disabled={sending}>
+              <i className="ti ti-send" /> {sending ? 'Sending…' : 'Send'}
             </button>
           )}
           {canPay && (
-            <button className="btn-secondary" onClick={handleMarkPaid}>
-              <i className="ti ti-check" /> Mark as paid
+            <button className="btn-primary" onClick={openPay}>
+              <i className="ti ti-cash" /> Record payment
+            </button>
+          )}
+          {canPay && (
+            <button className="btn-secondary" onClick={handlePayNow}>
+              <i className="ti ti-credit-card" /> Payment link
             </button>
           )}
           <button className="btn-secondary" onClick={() => onEdit?.(invoice)}>
@@ -193,12 +224,55 @@ function downloadPDF() {
           <span style={{ fontSize:16, fontWeight:700 }}>Total</span>
           <span style={{ fontSize:16, fontWeight:700, color:'#2D4A35' }}>{fmt(total)}</span>
         </div>
+        {paid > 0 && (
+          <>
+            <div style={{ display:'flex', justifyContent:'space-between', marginTop:10 }}>
+              <span style={{ color:'#7A9A7A', fontSize:14 }}>Paid</span>
+              <span style={{ fontSize:14, color:'#2D7A4A' }}>{fmt(paid)}</span>
+            </div>
+            <div style={{ display:'flex', justifyContent:'space-between', marginTop:6 }}>
+              <span style={{ fontSize:14, fontWeight:600 }}>Balance due</span>
+              <span style={{ fontSize:14, fontWeight:700, color: balance > 0 ? '#d4682a' : '#2D7A4A' }}>{fmt(balance)}</span>
+            </div>
+          </>
+        )}
       </div>
 
       {invoice.notes && (
         <div className="card" style={{ padding:20 }}>
           <div style={{ fontSize:11, color:'#7A9A7A', marginBottom:8 }}>NOTES</div>
           <p style={{ fontSize:14, color:'#555', margin:0 }}>{invoice.notes}</p>
+        </div>
+      )}
+
+      {showPay && (
+        <div onClick={() => !payBusy && setShowPay(false)}
+          style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }}>
+          <form onClick={e => e.stopPropagation()} onSubmit={handleRecordPayment}
+            style={{ background:'#fff', borderRadius:14, padding:24, width:'100%', maxWidth:380, boxShadow:'0 10px 40px rgba(0,0,0,0.25)' }}>
+            <h3 style={{ margin:'0 0 4px', fontSize:18, color:'#2D4A35' }}>Record payment</h3>
+            <div style={{ fontSize:13, color:'#7A9A7A', marginBottom:16 }}>{id} · Balance due {fmt(balance)}</div>
+            {payErr && <div style={{ background:'#FDE8E8', color:'#c0392b', borderRadius:8, padding:'8px 12px', fontSize:13, marginBottom:12 }}>{payErr}</div>}
+            <label style={{ display:'block', fontSize:12, color:'#7A9A7A', marginBottom:4 }}>Amount</label>
+            <input type="number" step="0.01" min="0" value={payAmount} autoFocus onChange={e => setPayAmount(e.target.value)}
+              style={{ width:'100%', padding:'10px 12px', borderRadius:8, border:'1px solid #D4DDCC', fontSize:15, boxSizing:'border-box', marginBottom:12 }} />
+            <label style={{ display:'block', fontSize:12, color:'#7A9A7A', marginBottom:4 }}>Method</label>
+            <select value={payMethod} onChange={e => setPayMethod(e.target.value)}
+              style={{ width:'100%', padding:'10px 12px', borderRadius:8, border:'1px solid #D4DDCC', fontSize:15, boxSizing:'border-box', marginBottom:12 }}>
+              <option value="bank_transfer">Bank transfer</option>
+              <option value="cash">Cash</option>
+              <option value="check">Check</option>
+              <option value="card">Card</option>
+              <option value="other">Other</option>
+            </select>
+            <label style={{ display:'block', fontSize:12, color:'#7A9A7A', marginBottom:4 }}>Date</label>
+            <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)}
+              style={{ width:'100%', padding:'10px 12px', borderRadius:8, border:'1px solid #D4DDCC', fontSize:15, boxSizing:'border-box', marginBottom:20 }} />
+            <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
+              <button type="button" className="btn-secondary" disabled={payBusy} onClick={() => setShowPay(false)}>Cancel</button>
+              <button type="submit" className="btn-primary" disabled={payBusy}>{payBusy ? 'Saving…' : 'Record payment'}</button>
+            </div>
+          </form>
         </div>
       )}
     </div>
