@@ -25,8 +25,9 @@ export default function TopBar({ onLogout, onAI }) {
       </div>
 
       <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-        {/* AI button */}
-        {onAI && (
+        {/* AI assistant button hidden until AI features are built for real and
+            cleared for QuickBooks data handling. Flip `false` to re-enable. */}
+        {false && onAI && (
           <button className="icon-btn" onClick={onAI} aria-label="AI assistant" title="AI financial assistant">
             <i className="ti ti-sparkles" />
           </button>

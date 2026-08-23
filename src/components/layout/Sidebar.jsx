@@ -31,9 +31,9 @@ const ALL_NAV = [
   { id:'budgets',       icon:'trending-up',   label:'Budgets',        level:1, section:'Reports' },
   { id:'coa',           icon:'list',          label:'Chart of accounts',level:2, section:'Advanced' },
   { id:'journal',       icon:'book',          label:'Journal entries', level:2, section:'Advanced' },
-  { id:'ai-categorize', icon:'sparkles',      label:'AI categorize',  level:2, section:'Advanced' },
-  { id:'ai-anomalies',  icon:'shield-check',  label:'Anomaly scan',   level:2, section:'Advanced' },
-  { id:'ai-forecast',   icon:'chart-line',    label:'Cash forecast',  level:2, section:'Advanced' },
+  // AI features (AI categorize / Anomaly scan / Cash forecast) are hidden until
+  // they're built for real and cleared for QuickBooks data handling. Re-add here
+  // to bring them back.
   { id:'documents',     icon:'files',         label:'Documents',      level:2, section:'More' },
   { id:'currencies',    icon:'currency',      label:'Currencies',     level:2, section:'More' },
   { id:'companies',     icon:'building',      label:'My companies',   level:2, section:'More' },
