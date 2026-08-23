@@ -61,7 +61,8 @@ export default function ReportsPage() {
           path = `/orgs/${org.id}/reports/${base}?from=${from}&to=${to}${extra}`;
         }
         const res = await api.get(path);
-        const payload = res.data?.data ?? null;
+        // api.get returns the response body { success, data }, so the payload is res.data.
+        const payload = res?.data ?? null;
         // Guard: the real engine returns an object; the old stub returned []. Treat
         // a non-object (or array) as "no data" rather than crashing.
         if (!cancelled) setData((payload && !Array.isArray(payload)) ? payload : null);
