@@ -45,6 +45,7 @@ export default function InvoicesPage({ onView, onNew }) {
             <thead>
               <tr style={{borderBottom:'1px solid #D4DDCC'}}>
                 <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Invoice #</th>
+                <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Company</th>
                 <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Client</th>
                 <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Due Date</th>
                 <th style={{padding:'10px 16px',textAlign:'right',fontWeight:500,color:'#7A9A7A'}}>Amount</th>
@@ -57,7 +58,8 @@ export default function InvoicesPage({ onView, onNew }) {
                   onMouseEnter={e=>e.currentTarget.style.background='#f8fbf8'}
                   onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                   <td style={{padding:'12px 16px',fontFamily:'monospace',color:'#7A9A7A'}}>{inv.invoiceNumber}</td>
-                  <td style={{padding:'12px 16px',fontWeight:500}}>{inv.contact?.name||'-'}</td>
+                  <td style={{padding:'12px 16px',fontWeight:500}}>{inv.contact?.company||'-'}</td>
+                  <td style={{padding:'12px 16px',color:'#555'}}>{inv.contact?.name||'-'}</td>
                   <td style={{padding:'12px 16px',color:'#7A9A7A'}}>{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : '-'}</td>
                   <td style={{padding:'12px 16px',textAlign:'right',fontWeight:500}}>{fmt(inv.total)}</td>
                   <td style={{padding:'12px 16px'}}>
