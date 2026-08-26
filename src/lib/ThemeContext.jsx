@@ -177,7 +177,7 @@ export const THEMES = {
 // ── Apply theme vars to :root ─────────────────────────────────────────────────
 
 function applyTheme(themeId) {
-  const theme = THEMES[themeId] ?? THEMES.original;
+  const theme = THEMES[themeId] ?? THEMES.evergreen;
   const root  = document.documentElement;
 
   // Apply all brand variables
@@ -196,7 +196,7 @@ const ThemeContext = createContext(null);
 export function ThemeProvider({ children }) {
   const [themeId, setThemeId] = useState(() => {
     const saved = localStorage.getItem('ledger-theme');
-    return (saved && THEMES[saved]) ? saved : 'original';
+    return (saved && THEMES[saved]) ? saved : 'evergreen';
   });
 
   // Apply on mount and whenever theme changes
