@@ -63,6 +63,19 @@ export default function ChartOfAccountsPage() {
     setSaving(false);
   }
 
+  async function del() {
+    if (!editingId) return;
+    if (!window.confirm('Delete this account? This cannot be undone.')) return;
+    setSaving(true); setMsg('');
+    try {
+      const r = await fetch(`${API}/orgs/${orgId}/accounts/${editingId}`, { method: 'DELETE', headers });
+      const j = await r.json();
+      if (j.success) { setShowForm(false); await load(); }
+      else setMsg(j.message || 'Could not delete the account.');
+    } catch (e) { setMsg('Could not delete the account.'); }
+    setSaving(false);
+  }
+
   const normalBalanceFor = (type) => (type === 'Asset' || type === 'Expense') ? 'Dr' : 'Cr';
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -179,9 +192,19 @@ export default function ChartOfAccountsPage() {
                 <input style={input} value={form.subtype} onChange={set('subtype')} placeholder="Expense" />
               </Field>
               {msg && <div style={{ fontSize:12, color:'#B4472D' }}>{msg}</div>}
-              <div style={{ display:'flex', justifyContent:'flex-end', gap:10, marginTop:4 }}>
-                <button onClick={() => setShowForm(false)} style={btnGhost}>Cancel</button>
-                <button className="btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save account'}</button>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:4 }}>
+                <div>
+                  {editingId && (
+                    <button onClick={del} disabled={saving}
+                      style={{ background:'none', border:'none', color:'#B4472D', cursor:'pointer', fontSize:13 }}>
+                      Delete account
+                    </button>
+                  )}
+                </div>
+                <div style={{ display:'flex', gap:10 }}>
+                  <button onClick={() => setShowForm(false)} style={btnGhost}>Cancel</button>
+                  <button className="btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save account'}</button>
+                </div>
               </div>
             </div>
           </div>
