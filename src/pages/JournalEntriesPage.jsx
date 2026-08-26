@@ -182,47 +182,31 @@ export default function JournalEntriesPage() {
               </div>
             </div>
 
-            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
-              <thead>
-                <tr>
-                  <th style={{ ...lbl, textAlign:'left', padding:'0 0 6px' }}>Account</th>
-                  <th style={{ ...lbl, textAlign:'right', padding:'0 8px 6px', width:120 }}>Debit</th>
-                  <th style={{ ...lbl, textAlign:'right', padding:'0 8px 6px', width:120 }}>Credit</th>
-                  <th style={{ width:28 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((l, i) => (
-                  <tr key={i}>
-                    <td style={{ padding:'3px 0' }}>
-                      <select style={input} value={l.accountId} onChange={e => setLine(i, 'accountId', e.target.value)}>
-                        <option value="">Select account…</option>
-                        {accounts.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
-                      </select>
-                    </td>
-                    <td style={{ padding:'3px 8px' }}>
-                      <input type="number" step="0.01" min="0" style={{ ...input, textAlign:'right' }} value={l.debit} onChange={e => setLine(i, 'debit', e.target.value)} placeholder="0.00" />
-                    </td>
-                    <td style={{ padding:'3px 8px' }}>
-                      <input type="number" step="0.01" min="0" style={{ ...input, textAlign:'right' }} value={l.credit} onChange={e => setLine(i, 'credit', e.target.value)} placeholder="0.00" />
-                    </td>
-                    <td style={{ textAlign:'center' }}>
-                      {lines.length > 2 && (
-                        <button onClick={() => removeLine(i)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--color-text-tertiary, #aaa)', fontSize:16 }}>×</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                <tr>
-                  <td style={{ padding:'6px 0' }}>
-                    <button onClick={addLine} style={{ background:'none', border:'none', color:'var(--brand-primary)', cursor:'pointer', fontSize:13 }}>+ Add line</button>
-                  </td>
-                  <td style={{ padding:'8px', textAlign:'right', fontWeight:600, borderTop:'1px solid var(--color-border-secondary, #D4DDCC)' }}>${fmt(totalDebit)}</td>
-                  <td style={{ padding:'8px', textAlign:'right', fontWeight:600, borderTop:'1px solid var(--color-border-secondary, #D4DDCC)' }}>${fmt(totalCredit)}</td>
-                  <td style={{ borderTop:'1px solid var(--color-border-secondary, #D4DDCC)' }}></td>
-                </tr>
-              </tbody>
-            </table>
+            <div style={{ ...gridRow, marginBottom:2 }}>
+              <div style={{ ...lbl, marginBottom:0 }}>Account</div>
+              <div style={{ ...lbl, marginBottom:0, textAlign:'right' }}>Debit</div>
+              <div style={{ ...lbl, marginBottom:0, textAlign:'right' }}>Credit</div>
+              <div />
+            </div>
+            {lines.map((l, i) => (
+              <div key={i} style={{ ...gridRow, marginBottom:6 }}>
+                <select style={input} value={l.accountId} onChange={e => setLine(i, 'accountId', e.target.value)}>
+                  <option value="">Select account…</option>
+                  {accounts.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
+                </select>
+                <input type="number" step="0.01" min="0" style={{ ...input, textAlign:'right' }} value={l.debit} onChange={e => setLine(i, 'debit', e.target.value)} placeholder="0.00" />
+                <input type="number" step="0.01" min="0" style={{ ...input, textAlign:'right' }} value={l.credit} onChange={e => setLine(i, 'credit', e.target.value)} placeholder="0.00" />
+                {lines.length > 2
+                  ? <button onClick={() => removeLine(i)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--color-text-tertiary, #aaa)', fontSize:18, lineHeight:1 }}>×</button>
+                  : <span />}
+              </div>
+            ))}
+            <div style={{ ...gridRow, marginTop:8, paddingTop:8, borderTop:'1px solid var(--color-border-secondary, #D4DDCC)' }}>
+              <button onClick={addLine} style={{ background:'none', border:'none', color:'var(--brand-primary)', cursor:'pointer', fontSize:13, textAlign:'left', padding:0 }}>+ Add line</button>
+              <div style={{ textAlign:'right', fontWeight:600 }}>${fmt(totalDebit)}</div>
+              <div style={{ textAlign:'right', fontWeight:600 }}>${fmt(totalCredit)}</div>
+              <div />
+            </div>
 
             <div style={{ marginTop:10, fontSize:13, fontWeight:600, color: balanced ? '#2D7A4A' : '#B4472D' }}>
               {balanced ? '✓ Balanced' : (totalDebit === 0 && totalCredit === 0 ? 'Enter debits and credits' : `Out of balance by $${fmt(Math.abs(diff))}`)}
@@ -242,6 +226,7 @@ export default function JournalEntriesPage() {
 }
 
 const lbl     = { fontSize:12, color:'var(--color-text-secondary)', display:'block', marginBottom:4, fontWeight:500 };
+const gridRow = { display:'grid', gridTemplateColumns:'1fr 110px 110px 24px', gap:8, alignItems:'center' };
 const overlay = { position:'fixed', inset:0, background:'rgba(0,0,0,0.35)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 };
 const modal   = { background:'var(--color-background-primary, #fff)', borderRadius:14, padding:24, width:640, maxWidth:'94vw', maxHeight:'92vh', overflowY:'auto', boxShadow:'0 12px 40px rgba(0,0,0,0.18)' };
 const input   = { width:'100%', boxSizing:'border-box', padding:'8px 10px', borderRadius:8, border:'1px solid var(--color-border-secondary, #D4DDCC)', fontSize:13, background:'var(--color-background-primary, #fff)', color:'var(--color-text-primary)' };
