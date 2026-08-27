@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth }  from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
+import { api }      from '../lib/api';
 import ThemePicker   from '../components/ui/ThemePicker';
 import BillingPage   from './BillingPage';
 
@@ -430,6 +431,24 @@ function TwoFactorRow() {
 
 function SecuritySettings() {
   const toast = useToast();
+  const { logout } = useAuth();
+  const [deleting, setDeleting] = useState(false);
+
+  const deleteAccount = async () => {
+    if (!window.confirm('Permanently delete this account and ALL of its data (invoices, accounts, journal entries)? This cannot be undone.')) return;
+    if (!window.confirm('Last chance — really delete this account for good?')) return;
+    setDeleting(true);
+    try {
+      await api.delete('/auth/account');
+      // Clear this browser's stored session so it can't auto-restore the deleted user.
+      await logout();
+      window.location.href = '/login';
+    } catch (e) {
+      toast.error(e.message || 'Could not delete the account.');
+      setDeleting(false);
+    }
+  };
+
   const items = [
     { title:'Change password', sub:'Use "Forgot password" on the sign-in screen', action:'Reset', icon:'lock' },
     { title:'Active sessions', sub:'1 active session', action:'View', icon:'device-laptop' },
@@ -450,7 +469,7 @@ function SecuritySettings() {
       <div style={{ background:'#FCEBEB', border:'0.5px solid #F09595', borderRadius:10, padding:'14px 16px' }}>
         <div style={{ fontSize:13, fontWeight:500, color:'#A32D2D', marginBottom:4 }}>Danger zone</div>
         <div style={{ fontSize:12, color:'#791F1F', marginBottom:10 }}>Deleting your account is permanent and cannot be undone.</div>
-        <button style={{ fontSize:12, padding:'6px 14px', borderRadius:8, background:'transparent', border:'1px solid #A32D2D', color:'#A32D2D', cursor:'pointer' }} onClick={() => toast.error('Contact support to delete your account.')}>Delete account</button>
+        <button disabled={deleting} style={{ fontSize:12, padding:'6px 14px', borderRadius:8, background:'transparent', border:'1px solid #A32D2D', color:'#A32D2D', cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.6 : 1 }} onClick={deleteAccount}>{deleting ? 'Deleting…' : 'Delete account'}</button>
       </div>
     </div>
   );
