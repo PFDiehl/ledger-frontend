@@ -34,11 +34,14 @@ const ALL_NAV = [
   // AI features (AI categorize / Anomaly scan / Cash forecast) are hidden until
   // they're built for real and cleared for QuickBooks data handling. Re-add here
   // to bring them back.
-  { id:'documents',     icon:'files',         label:'Documents',      level:2, section:'More' },
-  // Currencies (multi-currency invoicing) hidden until a customer needs it —
-  // re-add this line to bring it back to the sidebar.
+  // Hidden until built for real (each currently shows placeholder/mock data and
+  // has no backend). Re-add the relevant line to bring a feature back:
+  //   Documents      — needs real file storage + OCR (upload currently non-persistent)
+  //   Currencies     — multi-currency invoicing (build when a customer needs it)
+  //   My companies   — multi-entity consolidated view (needs per-org financials)
+  // { id:'documents',     icon:'files',         label:'Documents',      level:2, section:'More' },
   // { id:'currencies',    icon:'currency',      label:'Currencies',     level:2, section:'More' },
-  { id:'companies',     icon:'building',      label:'My companies',   level:2, section:'More' },
+  // { id:'companies',     icon:'building',      label:'My companies',   level:2, section:'More' },
   { id:'billing',       icon:'credit-card',   label:'Billing',        level:2, section:'More' },
 ];
 
