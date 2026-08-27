@@ -15,47 +15,13 @@ function addDays(dateStr, days) {
 
 const today = new Date().toISOString().slice(0, 10);
 
-const seedSchedules = [
-  {
-    id: 'rec-1', status: 'active', frequency: 'monthly',
-    nextInvoiceAt: '2026-07-01', autoSend: true, invoicesCreated: 6,
-    contact: { name: 'Globex Corp', email: 'billing@globex.com' },
-    templateData: {
-      currency: 'USD', notes: 'Monthly retainer',
-      lineItems: [{ description: 'Web dev retainer', quantity: 1, unitPrice: 4200 }],
-    },
-  },
-  {
-    id: 'rec-2', status: 'active', frequency: 'monthly',
-    nextInvoiceAt: '2026-07-01', autoSend: false, invoicesCreated: 3,
-    contact: { name: 'Initech', email: 'ap@initech.com' },
-    templateData: {
-      currency: 'USD', notes: '',
-      lineItems: [{ description: 'SaaS platform access', quantity: 1, unitPrice: 1500 }],
-    },
-  },
-  {
-    id: 'rec-3', status: 'paused', frequency: 'quarterly',
-    nextInvoiceAt: '2026-09-01', autoSend: false, invoicesCreated: 2,
-    contact: { name: 'Wayne Enterprises', email: 'accounts@wayne.com' },
-    templateData: {
-      currency: 'USD', notes: 'Quarterly security review',
-      lineItems: [{ description: 'Security audit — Q3', quantity: 1, unitPrice: 3580 }],
-    },
-  },
-  {
-    id: 'rec-4', status: 'completed', frequency: 'annual',
-    nextInvoiceAt: '2027-01-01', autoSend: true, invoicesCreated: 1,
-    endDate: '2026-12-31',
-    contact: { name: 'Acme Partners', email: 'billing@acmepartners.com' },
-    templateData: {
-      currency: 'USD', notes: 'Annual licence',
-      lineItems: [{ description: 'Platform licence', quantity: 1, unitPrice: 9600 }],
-    },
-  },
-];
+// No demo/placeholder data. Recurring schedules are not yet persisted to a
+// backend, so this page shows a live empty state until the feature is built for
+// real (a schedules table + a scheduler that generates the invoices on cadence).
+const seedSchedules = [];
 
-const clients = ['Globex Corp', 'Initech', 'Umbrella Ltd', 'Wayne Enterprises', 'Stark Industries', 'Acme Partners'];
+// Client options for the New schedule modal — empty until wired to real customers.
+const clients = [];
 
 function ScheduleFormModal({ schedule, onClose, onSave }) {
   const isEdit = Boolean(schedule?.id);
@@ -323,6 +289,14 @@ export default function RecurringInvoicesPage() {
           <div className="inv-summary-value">{paused.length}</div>
         </div>
       </div>
+
+      {schedules.length === 0 && (
+        <div className="card" style={{ padding:40, textAlign:'center' }}>
+          <div style={{ fontSize:40, marginBottom:12 }}>🔁</div>
+          <p style={{ fontSize:15, fontWeight:500, marginBottom:6 }}>No recurring schedules yet</p>
+          <p style={{ fontSize:13, color:'var(--color-text-secondary)' }}>Set up a schedule to automatically bill a customer on a repeating cadence.</p>
+        </div>
+      )}
 
       {active.length > 0 && (
         <>
