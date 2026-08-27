@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { api } from '../lib/api';
 
-const TABS = ['P&L', 'Balance Sheet', 'Cash Flow', 'Aged A/R'];
+const TABS = ['P&L', 'Balance Sheet', 'Cash Flow', 'Aged A/R', 'Trial Balance', 'General Ledger'];
 const PERIODS = [
   { key: 'full', label: 'Full year' },
   { key: 'q1',   label: 'Q1' },
@@ -39,9 +39,16 @@ export default function ReportsPage() {
   const [data, setData]     = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]   = useState('');
+  const [accounts, setAccounts]       = useState([]);
+  const [glAccountId, setGlAccountId] = useState('');
 
   const years = [];
   for (let y = now.getFullYear(); y >= now.getFullYear() - 6; y--) years.push(y);
+
+  useEffect(() => {
+    if (!org) return;
+    api.get(`/orgs/${org.id}/accounts`).then(r => setAccounts(r?.data || [])).catch(() => {});
+  }, [org]);
 
   useEffect(() => {
     if (!org) return;
@@ -57,6 +64,12 @@ export default function ReportsPage() {
           // As of end of the selected period, or today for the current year.
           const asOf = (year === now.getFullYear()) ? safeISO(now) : to;
           path = `/orgs/${org.id}/reports/balance-sheet?asOf=${asOf}`;
+        } else if (tab === 'Trial Balance') {
+          const asOf = (year === now.getFullYear()) ? safeISO(now) : to;
+          path = `/orgs/${org.id}/reports/trial-balance?asOf=${asOf}`;
+        } else if (tab === 'General Ledger') {
+          if (!glAccountId) { if (!cancelled) setData(null); return; }
+          path = `/orgs/${org.id}/reports/ledger?accountId=${glAccountId}&from=${from}&to=${to}`;
         } else {
           const base  = tab === 'Cash Flow' ? 'cash-flow' : 'pl';
           const extra = tab === 'P&L' ? `&basis=${basis}` : '';
@@ -76,7 +89,7 @@ export default function ReportsPage() {
     }
     load();
     return () => { cancelled = true; };
-  }, [org, tab, year, period, basis]);
+  }, [org, tab, year, period, basis, glAccountId]);
 
   const line = (label, value, opts = {}) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: '1px solid #f0f0f0' }}>
@@ -118,6 +131,15 @@ export default function ReportsPage() {
             {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
         )}
+        {tab === 'General Ledger' && (
+          <select value={glAccountId} onChange={e => setGlAccountId(e.target.value)} style={{
+            padding: '6px 10px', borderRadius: 8, border: '1px solid #D4DDCC', background: '#fff',
+            color: GREEN, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          }}>
+            <option value="">Select account…</option>
+            {accounts.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
+          </select>
+        )}
         {(tab === 'P&L' || tab === 'Cash Flow') && PERIODS.map(p => (
           <button key={p.key} onClick={() => setPeriod(p.key)} style={ctrlBtn(period === p.key)}>{p.label}</button>
         ))}
@@ -137,9 +159,11 @@ export default function ReportsPage() {
       ) : error ? (
         <div style={{ textAlign: 'center', padding: 40, color: RED }}>{error}</div>
       ) : !data ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#7A9A7A' }}>No data for this period yet.</div>
+        <div style={{ textAlign: 'center', padding: 40, color: '#7A9A7A' }}>
+          {tab === 'General Ledger' && !glAccountId ? 'Select an account above to view its ledger.' : 'No data for this period yet.'}
+        </div>
       ) : (
-        <div className="card" style={{ padding: 24, maxWidth: tab === 'Aged A/R' ? 920 : 640 }}>
+        <div className="card" style={{ padding: 24, maxWidth: ['Aged A/R', 'Trial Balance', 'General Ledger'].includes(tab) ? 920 : 640 }}>
 
           {tab === 'P&L' && (
             <>
@@ -241,6 +265,94 @@ export default function ReportsPage() {
                       <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 700 }}>{fmt(data.totals.d61_90)}</td>
                       <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 700, color: data.totals.d90_plus > 0 ? RED : '#333' }}>{fmt(data.totals.d90_plus)}</td>
                       <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 700, color: GREEN }}>{fmt(data.totals.total)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </>
+          )}
+
+          {tab === 'Trial Balance' && data.rows && (
+            <>
+              <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4, color: GREEN }}>Trial Balance</h2>
+              <div style={{ fontSize: 12, color: '#999', marginBottom: 14 }}>As of {safeISO(data.asOf)}</div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 520 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #D4DDCC' }}>
+                      <th style={{ textAlign: 'left',  padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Account</th>
+                      <th style={{ textAlign: 'right', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Debit</th>
+                      <th style={{ textAlign: 'right', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Credit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.rows.length === 0 && (
+                      <tr><td colSpan={3} style={{ padding: '16px 6px', color: '#7A9A7A' }}>No posted journal entries yet.</td></tr>
+                    )}
+                    {data.rows.map(r => (
+                      <tr key={r.id} style={{ borderBottom: '0.5px solid #EBF2E8' }}>
+                        <td style={{ padding: '9px 6px' }}><span style={{ fontFamily: 'monospace', color: '#7A9A7A', marginRight: 8 }}>{r.code}</span>{r.name}</td>
+                        <td style={{ padding: '9px 6px', textAlign: 'right' }}>{r.debit ? fmt(r.debit) : ''}</td>
+                        <td style={{ padding: '9px 6px', textAlign: 'right' }}>{r.credit ? fmt(r.credit) : ''}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ borderTop: '2px solid ' + GREEN }}>
+                      <td style={{ padding: '10px 6px', fontWeight: 700 }}>Total</td>
+                      <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 700 }}>{fmt(data.totalDebit)}</td>
+                      <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 700 }}>{fmt(data.totalCredit)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <div style={{ marginTop: 12, fontSize: 12.5, fontWeight: 600, color: data.balanced ? GREEN : RED }}>
+                {data.balanced ? '✓ In balance — total debits equal total credits' : 'Out of balance — check your entries'}
+              </div>
+            </>
+          )}
+
+          {tab === 'General Ledger' && data.rows && (
+            <>
+              <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4, color: GREEN }}>General Ledger</h2>
+              <div style={{ fontSize: 12, color: '#999', marginBottom: 12 }}>
+                {data.account?.code} {data.account?.name} · {safeISO(data.from)} → {safeISO(data.to)}
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 620 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #D4DDCC' }}>
+                      <th style={{ textAlign: 'left',  padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Date</th>
+                      <th style={{ textAlign: 'left',  padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Ref</th>
+                      <th style={{ textAlign: 'left',  padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Memo</th>
+                      <th style={{ textAlign: 'right', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Debit</th>
+                      <th style={{ textAlign: 'right', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Credit</th>
+                      <th style={{ textAlign: 'right', padding: '8px 6px', color: '#222',    fontWeight: 700 }}>Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style={{ borderBottom: '0.5px solid #EBF2E8' }}>
+                      <td colSpan={5} style={{ padding: '9px 6px', color: '#7A9A7A', fontStyle: 'italic' }}>Opening balance</td>
+                      <td style={{ padding: '9px 6px', textAlign: 'right', fontWeight: 600 }}>{fmt(data.opening)}</td>
+                    </tr>
+                    {data.rows.map((r, i) => (
+                      <tr key={i} style={{ borderBottom: '0.5px solid #EBF2E8' }}>
+                        <td style={{ padding: '9px 6px' }}>{safeISO(r.date)}</td>
+                        <td style={{ padding: '9px 6px', fontFamily: 'monospace', color: '#7A9A7A' }}>{r.reference || ''}</td>
+                        <td style={{ padding: '9px 6px' }}>{r.memo || ''}</td>
+                        <td style={{ padding: '9px 6px', textAlign: 'right' }}>{r.debit ? fmt(r.debit) : ''}</td>
+                        <td style={{ padding: '9px 6px', textAlign: 'right' }}>{r.credit ? fmt(r.credit) : ''}</td>
+                        <td style={{ padding: '9px 6px', textAlign: 'right', fontWeight: 600 }}>{fmt(r.balance)}</td>
+                      </tr>
+                    ))}
+                    {data.rows.length === 0 && (
+                      <tr><td colSpan={6} style={{ padding: '16px 6px', color: '#7A9A7A' }}>No activity in this period.</td></tr>
+                    )}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ borderTop: '2px solid ' + GREEN }}>
+                      <td colSpan={5} style={{ padding: '10px 6px', fontWeight: 700 }}>Closing balance</td>
+                      <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 700, color: GREEN }}>{fmt(data.closing)}</td>
                     </tr>
                   </tfoot>
                 </table>
