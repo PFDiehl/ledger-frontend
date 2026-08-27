@@ -42,7 +42,8 @@ export default function BillsPage({ presetVendor } = {}) {
     setSaving(true);
     try {
       const r = await api.post(`/orgs/${org.id}/bills`, form);
-      if (r.data?.data) setBills(prev => [r.data.data, ...prev]);
+      const created = r.data?.data || r.data;   // api returns the body; payload is r.data
+      if (created) setBills(prev => [created, ...prev]);
       setShowForm(false);
       setForm({ vendor:'', amount:'', dueDate:'', description:'', category:'Other' });
     } catch(e) { alert('Error saving bill'); }
@@ -61,10 +62,9 @@ export default function BillsPage({ presetVendor } = {}) {
   async function markPaid(id) {
     try {
       const r = await api.patch(`/orgs/${org.id}/bills/${id}`, { status: 'paid' });
-      if (r.data?.data) {
-        setBills(prev => prev.map(b => b.id === id ? r.data.data : b));
-        setSelected(null);
-      }
+      const updated = r.data?.data || r.data;   // api returns the body; payload is r.data
+      if (updated) setBills(prev => prev.map(b => b.id === id ? updated : b));
+      setSelected(null);
     } catch(e) { alert('Error updating bill'); }
   }
 
