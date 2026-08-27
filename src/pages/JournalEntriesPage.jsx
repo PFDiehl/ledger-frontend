@@ -149,7 +149,7 @@ export default function JournalEntriesPage() {
             const t = round2(en.lines.reduce((s, l) => s + Number(l.debit || 0), 0));
             return (
               <div key={en.id} className="card" style={{ padding:0, overflow:'hidden' }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 16px', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'9px 16px', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}>
                   <div>
                     <span style={{ fontWeight:600, fontSize:13 }}>{new Date(en.date).toLocaleDateString('en-US')}</span>
                     {en.reference && <span style={{ marginLeft:10, fontSize:12, color:'var(--color-text-secondary)', fontFamily:'monospace' }}>{en.reference}</span>}
@@ -161,15 +161,22 @@ export default function JournalEntriesPage() {
                   </div>
                 </div>
                 <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ padding:'4px 16px 2px', width:'55%' }}></th>
+                      <th style={{ padding:'4px 16px 2px', textAlign:'right', fontSize:10, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--color-text-tertiary, #9AA)' }}>Debit</th>
+                      <th style={{ padding:'4px 16px 2px', textAlign:'right', fontSize:10, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--color-text-tertiary, #9AA)' }}>Credit</th>
+                    </tr>
+                  </thead>
                   <tbody>
                     {en.lines.map(l => (
                       <tr key={l.id} style={{ borderBottom:'0.5px solid var(--color-border-tertiary, #F2F5EF)' }}>
-                        <td style={{ padding:'8px 16px', width:'55%' }}>
+                        <td style={{ padding:'5px 16px', width:'55%' }}>
                           <span style={{ fontFamily:'monospace', color:'var(--color-text-secondary)', marginRight:8 }}>{l.account?.code}</span>
                           {l.account?.name}
                         </td>
-                        <td style={{ padding:'8px 16px', textAlign:'right', color:'var(--color-text-secondary)' }}>{Number(l.debit) > 0 ? `$${fmt(l.debit)}` : ''}</td>
-                        <td style={{ padding:'8px 16px', textAlign:'right', color:'var(--color-text-secondary)' }}>{Number(l.credit) > 0 ? `$${fmt(l.credit)}` : ''}</td>
+                        <td style={{ padding:'5px 16px', textAlign:'right', color:'var(--color-text-secondary)' }}>{Number(l.debit) > 0 ? `$${fmt(l.debit)}` : ''}</td>
+                        <td style={{ padding:'5px 16px', textAlign:'right', color:'var(--color-text-secondary)' }}>{Number(l.credit) > 0 ? `$${fmt(l.credit)}` : ''}</td>
                       </tr>
                     ))}
                   </tbody>
