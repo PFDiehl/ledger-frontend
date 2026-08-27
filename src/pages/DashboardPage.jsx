@@ -48,33 +48,42 @@ export default function DashboardPage() {
         <div style={{textAlign:'center',padding:'40px',color:'#7A9A7A'}}>Loading...</div>
       ) : (
         <>
-          {/* KPI Cards */}
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:16,marginBottom:24}}>
-            <div className="card" style={{padding:20}}>
-              <div style={{fontSize:11,color:'var(--color-text-secondary)',marginBottom:4,textTransform:'uppercase',letterSpacing:1}}>Total Invoiced</div>
-              <div style={{fontSize:28,fontWeight:700,color:'var(--brand-primary)'}}>{fmt(totalInvoiced)}</div>
-              <div style={{fontSize:12,color:'var(--color-text-secondary)',marginTop:4}}>{invoices.length} invoices</div>
+          {/* Hero — themed by the active palette (navy in Deep Harbor) */}
+          <div style={{
+            background:'var(--brand-kpi-hero-bg)', borderRadius:16, padding:'24px 26px', marginBottom:16,
+            display:'flex', justifyContent:'space-between', alignItems:'flex-end', flexWrap:'wrap', gap:20,
+          }}>
+            <div>
+              <div style={{fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--brand-kpi-hero-label)', marginBottom:8}}>Net income · paid revenue − expenses</div>
+              <div style={{fontSize:38, fontWeight:700, lineHeight:1, color:'var(--brand-kpi-hero-val)'}}>{fmt(netIncome)}</div>
+              <div style={{fontSize:12.5, color:'var(--brand-kpi-hero-label)', marginTop:9}}>{fmt(totalPaid)} revenue · {fmt(totalExpenses)} expenses</div>
             </div>
-            <div className="card" style={{padding:20}}>
-              <div style={{fontSize:11,color:'var(--color-text-secondary)',marginBottom:4,textTransform:'uppercase',letterSpacing:1}}>Revenue (Paid)</div>
-              <div style={{fontSize:28,fontWeight:700,color:'#2D7A4A'}}>{fmt(totalPaid)}</div>
-              <div style={{fontSize:12,color:'var(--color-text-secondary)',marginTop:4}}>{invoices.filter(i=>i.status==='paid').length} paid invoices</div>
+            <div style={{display:'flex', gap:26}}>
+              <div>
+                <div style={{fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--brand-kpi-hero-label)', marginBottom:5}}>Outstanding A/R</div>
+                <div style={{fontSize:19, fontWeight:600, color:'var(--brand-kpi-hero-val)'}}>{fmt(totalOutstanding)}</div>
+              </div>
+              <div>
+                <div style={{fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--brand-kpi-hero-label)', marginBottom:5}}>Unpaid bills</div>
+                <div style={{fontSize:19, fontWeight:600, color:'var(--brand-kpi-hero-val)'}}>{fmt(totalBills)}</div>
+              </div>
             </div>
-            <div className="card" style={{padding:20}}>
-              <div style={{fontSize:11,color:'var(--color-text-secondary)',marginBottom:4,textTransform:'uppercase',letterSpacing:1}}>Outstanding</div>
-              <div style={{fontSize:28,fontWeight:700,color:'#d4682a'}}>{fmt(totalOutstanding)}</div>
-              <div style={{fontSize:12,color:'var(--color-text-secondary)',marginTop:4}}>{invoices.filter(i=>i.status!=='paid').length} unpaid invoices</div>
-            </div>
-            <div className="card" style={{padding:20}}>
-              <div style={{fontSize:11,color:'var(--color-text-secondary)',marginBottom:4,textTransform:'uppercase',letterSpacing:1}}>Total Expenses</div>
-              <div style={{fontSize:28,fontWeight:700,color:'#c0392b'}}>{fmt(totalExpenses)}</div>
-              <div style={{fontSize:12,color:'var(--color-text-secondary)',marginTop:4}}>{expenses.length} expenses</div>
-            </div>
-            <div className="card" style={{padding:20}}>
-              <div style={{fontSize:11,color:'var(--color-text-secondary)',marginBottom:4,textTransform:'uppercase',letterSpacing:1}}>Net Income</div>
-              <div style={{fontSize:28,fontWeight:700,color: netIncome >= 0 ? '#2D7A4A' : '#c0392b'}}>{fmt(netIncome)}</div>
-              <div style={{fontSize:12,color:'var(--color-text-secondary)',marginTop:4}}>Revenue minus expenses</div>
-            </div>
+          </div>
+
+          {/* Themed stat tiles */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12,marginBottom:22}}>
+            {[
+              ['Total Invoiced', fmt(totalInvoiced), 'var(--brand-primary)', `${invoices.length} invoices`],
+              ['Revenue (Paid)', fmt(totalPaid), '#2D7A4A', `${invoices.filter(i=>i.status==='paid').length} paid`],
+              ['Outstanding', fmt(totalOutstanding), '#C0703A', `${invoices.filter(i=>i.status!=='paid').length} unpaid`],
+              ['Total Expenses', fmt(totalExpenses), '#B4472D', `${expenses.length} expenses`],
+            ].map(([label, val, color, sub]) => (
+              <div key={label} style={{background:'var(--brand-kpi-tint-bg)', border:'1px solid var(--brand-kpi-tint-border)', borderRadius:12, padding:'15px 16px'}}>
+                <div style={{fontSize:11,color:'var(--color-text-secondary)',marginBottom:6,textTransform:'uppercase',letterSpacing:1}}>{label}</div>
+                <div style={{fontSize:24,fontWeight:700,color}}>{val}</div>
+                <div style={{fontSize:11.5,color:'var(--color-text-secondary)',marginTop:4}}>{sub}</div>
+              </div>
+            ))}
           </div>
 
           {/* Recent Activity */}
@@ -82,7 +91,7 @@ export default function DashboardPage() {
 
             {/* Recent Invoices */}
             <div className="card" style={{padding:20}}>
-              <h2 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'var(--color-text-primary)'}}>Recent Invoices</h2>
+              <h2 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'var(--brand-primary)'}}>Recent Invoices</h2>
               {invoices.slice(0,5).map(inv => (
                 <div key={inv.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid var(--color-border)'}}>
                   <div>
@@ -100,7 +109,7 @@ export default function DashboardPage() {
 
             {/* Recent Expenses */}
             <div className="card" style={{padding:20}}>
-              <h2 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'var(--color-text-primary)'}}>Recent Expenses</h2>
+              <h2 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'var(--brand-primary)'}}>Recent Expenses</h2>
               {expenses.slice(0,5).map(exp => (
                 <div key={exp.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid var(--color-border)'}}>
                   <div>
@@ -115,7 +124,7 @@ export default function DashboardPage() {
 
             {/* Recent Bills */}
             <div className="card" style={{padding:20}}>
-              <h2 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'var(--color-text-primary)'}}>Recent Bills</h2>
+              <h2 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'var(--brand-primary)'}}>Recent Bills</h2>
               {bills.slice(0,5).map(bill => (
                 <div key={bill.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid var(--color-border)'}}>
                   <div>
@@ -130,7 +139,7 @@ export default function DashboardPage() {
 
             {/* Quick Summary */}
             <div className="card" style={{padding:20}}>
-              <h2 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'var(--color-text-primary)'}}>Financial Summary</h2>
+              <h2 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'var(--brand-primary)'}}>Financial Summary</h2>
               <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--color-border)'}}>
                 <span style={{fontSize:13,color:'var(--color-text-secondary)'}}>Total Revenue</span>
                 <span style={{fontSize:13,fontWeight:600,color:'#2D7A4A'}}>{fmt(totalPaid)}</span>
