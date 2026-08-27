@@ -173,7 +173,7 @@ export const THEMES = {
     },
   },
 
-  deepHarbor: {
+  'deep-harbor': {
     id:          'deep-harbor',
     name:        'Deep Harbor',
     description: 'Deep navy & gold — private-bank premium',
@@ -219,7 +219,7 @@ export const THEMES = {
 // ── Apply theme vars to :root ─────────────────────────────────────────────────
 
 function applyTheme(themeId) {
-  const theme = THEMES[themeId] ?? THEMES.deepHarbor;
+  const theme = THEMES[themeId] ?? THEMES['deep-harbor'];
   const root  = document.documentElement;
 
   // Apply all brand variables
