@@ -154,23 +154,21 @@ export default function JournalEntriesPage() {
             const t = round2(en.lines.reduce((s, l) => s + Number(l.debit || 0), 0));
             return (
               <div key={en.id} className="card" style={{ padding:0, overflow:'hidden' }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 16px 2px' }}>
-                  <div>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', padding:'9px 16px 5px' }}>
+                  <div style={{ display:'flex', alignItems:'baseline', gap:10, flexWrap:'wrap' }}>
                     <span style={{ fontWeight:600, fontSize:13 }}>{new Date(en.date).toLocaleDateString('en-US')}</span>
-                    {en.reference && <span style={{ marginLeft:10, fontSize:12, color:'var(--color-text-secondary)', fontFamily:'monospace' }}>{en.reference}</span>}
-                    {en.memo && <span style={{ marginLeft:10, fontSize:13, color:'var(--color-text-secondary)' }}>{en.memo}</span>}
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+                    {en.reference && <span style={{ fontSize:12, color:'var(--color-text-secondary)', fontFamily:'monospace' }}>{en.reference}</span>}
+                    {en.memo && <span style={{ fontSize:13, color:'var(--color-text-secondary)' }}>{en.memo}</span>}
                     <span style={{ fontSize:13, fontWeight:600 }}>${fmt(t)}</span>
-                    <button onClick={() => del(en.id)} style={{ background:'none', border:'none', color:'var(--color-text-tertiary, #999)', cursor:'pointer', fontSize:12 }}>Delete</button>
                   </div>
+                  <button onClick={() => del(en.id)} style={{ background:'none', border:'none', color:'var(--color-text-tertiary, #999)', cursor:'pointer', fontSize:12 }}>Delete</button>
                 </div>
                 <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
                   <thead>
                     <tr>
-                      <th style={{ padding:'0 16px 4px', width:'55%', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}></th>
-                      <th style={{ padding:'0 16px 4px', textAlign:'right', fontSize:10, fontWeight:700, letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--color-text-secondary, #6B7280)', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}>Debit</th>
-                      <th style={{ padding:'0 16px 4px', textAlign:'right', fontSize:10, fontWeight:700, letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--color-text-secondary, #6B7280)', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}>Credit</th>
+                      <th style={{ padding:'0 16px 3px', width:'55%', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}></th>
+                      <th style={{ padding:'0 16px 3px', textAlign:'right', fontSize:10, fontWeight:700, letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--color-text-tertiary, #9AA5A0)', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}>Debit</th>
+                      <th style={{ padding:'0 16px 3px', textAlign:'right', fontSize:10, fontWeight:700, letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--color-text-tertiary, #9AA5A0)', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}>Credit</th>
                     </tr>
                   </thead>
                   <tbody>
