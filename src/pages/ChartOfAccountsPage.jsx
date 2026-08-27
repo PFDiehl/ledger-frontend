@@ -123,8 +123,8 @@ export default function ChartOfAccountsPage() {
       ) : (
         // Accounts grouped by type.
         TYPES.filter(type => accounts.some(a => a.type === type)).map(type => (
-          <div key={type} style={{ marginTop:20 }}>
-            <h2 style={{ fontSize:12, fontWeight:600, color:'var(--color-text-secondary)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>
+          <div key={type} style={{ marginTop:14 }}>
+            <h2 style={{ fontSize:12, fontWeight:600, color:'var(--color-text-secondary)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>
               {type}
             </h2>
             <div className="card" style={{ overflow:'hidden' }}>
@@ -223,8 +223,8 @@ function Field({ label, children }) {
   );
 }
 
-const thStyle = { padding:'10px 16px', textAlign:'left', fontWeight:500, color:'var(--color-text-secondary)', fontSize:12 };
-const tdStyle = { padding:'10px 16px' };
+const thStyle = { padding:'8px 16px 6px', textAlign:'left', fontWeight:500, color:'var(--color-text-secondary)', fontSize:12 };
+const tdStyle = { padding:'6px 16px' };
 const badge   = { marginLeft:8, fontSize:10, padding:'1px 6px', borderRadius:6, background:'var(--brand-accent-light, #EBF2E8)', color:'var(--color-text-secondary)', textTransform:'uppercase', letterSpacing:'0.04em' };
 const overlay = { position:'fixed', inset:0, background:'rgba(0,0,0,0.35)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 };
 const modal   = { background:'var(--color-background-primary, #fff)', borderRadius:14, padding:24, width:480, maxWidth:'92vw', maxHeight:'90vh', overflowY:'auto', boxShadow:'0 12px 40px rgba(0,0,0,0.18)' };

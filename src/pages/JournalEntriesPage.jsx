@@ -167,8 +167,8 @@ export default function JournalEntriesPage() {
                   <thead>
                     <tr>
                       <th style={{ padding:'0 16px 3px', width:'55%', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}></th>
-                      <th style={{ padding:'0 16px 3px', textAlign:'right', fontSize:10, fontWeight:700, letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--color-text-tertiary, #9AA5A0)', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}>Debit</th>
-                      <th style={{ padding:'0 16px 3px', textAlign:'right', fontSize:10, fontWeight:700, letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--color-text-tertiary, #9AA5A0)', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}>Credit</th>
+                      <th style={{ padding:'0 16px 3px', textAlign:'right', fontSize:10, fontWeight:700, letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--color-text-secondary, #5E6B62)', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}>Debit</th>
+                      <th style={{ padding:'0 16px 3px', textAlign:'right', fontSize:10, fontWeight:700, letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--color-text-secondary, #5E6B62)', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}>Credit</th>
                     </tr>
                   </thead>
                   <tbody>
