@@ -149,7 +149,7 @@ export default function JournalEntriesPage() {
             const t = round2(en.lines.reduce((s, l) => s + Number(l.debit || 0), 0));
             return (
               <div key={en.id} className="card" style={{ padding:0, overflow:'hidden' }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'9px 16px', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 16px 2px' }}>
                   <div>
                     <span style={{ fontWeight:600, fontSize:13 }}>{new Date(en.date).toLocaleDateString('en-US')}</span>
                     {en.reference && <span style={{ marginLeft:10, fontSize:12, color:'var(--color-text-secondary)', fontFamily:'monospace' }}>{en.reference}</span>}
@@ -163,9 +163,9 @@ export default function JournalEntriesPage() {
                 <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
                   <thead>
                     <tr>
-                      <th style={{ padding:'4px 16px 2px', width:'55%' }}></th>
-                      <th style={{ padding:'4px 16px 2px', textAlign:'right', fontSize:10, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--color-text-tertiary, #9AA)' }}>Debit</th>
-                      <th style={{ padding:'4px 16px 2px', textAlign:'right', fontSize:10, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--color-text-tertiary, #9AA)' }}>Credit</th>
+                      <th style={{ padding:'0 16px 4px', width:'55%', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}></th>
+                      <th style={{ padding:'0 16px 4px', textAlign:'right', fontSize:10, fontWeight:700, letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--color-text-secondary, #6B7280)', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}>Debit</th>
+                      <th style={{ padding:'0 16px 4px', textAlign:'right', fontSize:10, fontWeight:700, letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--color-text-secondary, #6B7280)', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}>Credit</th>
                     </tr>
                   </thead>
                   <tbody>
