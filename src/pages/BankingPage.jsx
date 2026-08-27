@@ -55,6 +55,10 @@ export default function BankingPage() {
   const [importing, setImporting]   = useState(false);
   const fileRef = useRef(null);
 
+  const [matchFor, setMatchFor]       = useState(null);  // txn being reconciled
+  const [matchCands, setMatchCands]   = useState([]);
+  const [matchLoading, setMatchLoading] = useState(false);
+
   async function loadAccounts() {
     setLoading(true);
     try {
@@ -177,12 +181,36 @@ export default function BankingPage() {
     } catch (e) { setMsg('Could not delete transaction.'); }
   }
 
+  async function openMatch(txn) {
+    setMatchFor(txn); setMatchCands([]); setMatchLoading(true);
+    try {
+      const r = await fetch(`${API}/orgs/${orgId}/banking/accounts/${activeId}/transactions/${txn.id}/matches`, { headers }).then(r => r.json());
+      setMatchCands(r.data || []);
+    } catch (e) { setMatchCands([]); }
+    setMatchLoading(false);
+  }
+  async function doMatch(cand) {
+    try {
+      const r = await fetch(`${API}/orgs/${orgId}/banking/accounts/${activeId}/transactions/${matchFor.id}/match`, {
+        method: 'PATCH', headers, body: JSON.stringify({ matchType: cand.type, matchId: cand.id }),
+      }).then(r => r.json());
+      if (r.success) setTxns(prev => prev.map(t => t.id === matchFor.id ? r.data : t));
+      setMatchFor(null); setMatchCands([]);
+    } catch (e) { setMsg('Could not match.'); }
+  }
+  async function unmatch(txnId) {
+    try {
+      const r = await fetch(`${API}/orgs/${orgId}/banking/accounts/${activeId}/transactions/${txnId}/unmatch`, { method: 'PATCH', headers }).then(r => r.json());
+      if (r.success) setTxns(prev => prev.map(t => t.id === txnId ? r.data : t));
+    } catch (e) { setMsg('Could not unmatch.'); }
+  }
+
   const sortedChart = [...chart]
     .filter(a => a.code !== '1000')   // don't categorize cash into cash
     .sort((a, b) => (TYPE_ORDER[a.type] || 9) - (TYPE_ORDER[b.type] || 9) || String(a.code).localeCompare(String(b.code)));
 
   const activeAcct = accounts.find(a => a.id === activeId);
-  const uncategorized = txns.filter(t => t.status !== 'categorized').length;
+  const uncategorized = txns.filter(t => t.status !== 'categorized' && t.status !== 'matched').length;
 
   return (
     <div className="page">
@@ -274,11 +302,24 @@ export default function BankingPage() {
                           {inflow ? '+' : '−'}${fmtMoney(Math.abs(Number(t.amount)))}
                         </td>
                         <td style={{ padding: '6px 16px' }}>
-                          <select value={t.category || ''} onChange={e => categorize(t.id, e.target.value)}
-                            style={{ ...inputStyle, padding: '6px 8px', borderColor: t.category ? '#D4DDCC' : '#F0C36D', background: t.category ? '#fff' : '#FFFBF2' }}>
-                            <option value="">Uncategorized…</option>
-                            {sortedChart.map(a => <option key={a.id} value={a.name}>{a.code} · {a.name}</option>)}
-                          </select>
+                          {t.status === 'matched' ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: '#0F6E56', background: '#E1F5EE', padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+                                ✓ Matched{t.matchedType ? ` · ${t.matchedType}` : ''}
+                              </span>
+                              <button onClick={() => unmatch(t.id)} style={{ background: 'none', border: 'none', color: '#7A9A7A', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>undo</button>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <select value={t.category || ''} onChange={e => categorize(t.id, e.target.value)}
+                                style={{ ...inputStyle, padding: '6px 8px', borderColor: t.category ? '#D4DDCC' : '#F0C36D', background: t.category ? '#fff' : '#FFFBF2' }}>
+                                <option value="">Uncategorized…</option>
+                                {sortedChart.map(a => <option key={a.id} value={a.name}>{a.code} · {a.name}</option>)}
+                              </select>
+                              <button onClick={() => openMatch(t)} title="Match to an invoice, bill, or expense you already entered"
+                                style={{ background: 'none', border: '1px solid #D4DDCC', borderRadius: 6, color: 'var(--brand-primary, #2D4A35)', fontSize: 11, padding: '6px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Match</button>
+                            </div>
+                          )}
                         </td>
                         <td style={{ padding: '9px 8px', textAlign: 'center' }}>
                           <button onClick={() => deleteTxn(t.id)} title="Delete" style={{ background: 'none', border: 'none', color: 'var(--color-text-tertiary, #999)', cursor: 'pointer', fontSize: 14 }}>×</button>
@@ -312,6 +353,47 @@ export default function BankingPage() {
                 <button onClick={() => setShowAddAcct(false)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #D4DDCC', background: '#fff', cursor: 'pointer', fontSize: 14 }}>Cancel</button>
                 <button onClick={addAccount} style={{ flex: 2, padding: '10px', borderRadius: 8, border: 'none', background: '#2D4A35', color: '#A8D4A8', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>Add account</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Match / reconcile modal */}
+      {matchFor && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: 520, maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 600 }}>Match transaction</h2>
+              <button onClick={() => { setMatchFor(null); setMatchCands([]); }} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer' }}>×</button>
+            </div>
+            <div style={{ fontSize: 13, color: '#333', marginBottom: 2 }}>{matchFor.description}</div>
+            <div style={{ fontSize: 13, color: '#7A9A7A', marginBottom: 14 }}>
+              {new Date(matchFor.date).toLocaleDateString('en-US')} · {Number(matchFor.amount) > 0 ? '+' : '−'}${fmtMoney(Math.abs(Number(matchFor.amount)))}
+            </div>
+            <p style={{ fontSize: 12, color: '#7A9A7A', marginBottom: 12, lineHeight: 1.5 }}>
+              Matching links this bank line to a record you already entered, so it won't post to the ledger twice. Nothing here? Close and categorize it instead.
+            </p>
+            {matchLoading ? (
+              <div style={{ padding: 20, textAlign: 'center', color: '#7A9A7A' }}>Finding matches…</div>
+            ) : matchCands.length === 0 ? (
+              <div style={{ padding: '18px 12px', textAlign: 'center', color: '#A32D2D', fontSize: 13 }}>No records with a matching amount were found.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {matchCands.map(c => (
+                  <button key={`${c.type}:${c.id}`} onClick={() => doMatch(c)}
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 8, border: '1px solid #D4DDCC', background: '#fff', cursor: 'pointer', textAlign: 'left' }}>
+                    <span>
+                      <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: '#7A9A7A', marginRight: 8 }}>{c.type}</span>
+                      <span style={{ fontSize: 13, fontWeight: 500 }}>{c.label}</span>
+                      <span style={{ fontSize: 12, color: '#999', marginLeft: 8 }}>{new Date(c.date).toLocaleDateString('en-US')}</span>
+                    </span>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>${fmtMoney(c.amount)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <div style={{ marginTop: 18, textAlign: 'right' }}>
+              <button onClick={() => { setMatchFor(null); setMatchCands([]); }} style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid #D4DDCC', background: '#fff', cursor: 'pointer', fontSize: 13 }}>Close</button>
             </div>
           </div>
         </div>
