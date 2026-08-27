@@ -22,6 +22,7 @@ export default function JournalEntriesPage() {
   const [loading, setLoading]   = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving]     = useState(false);
+  const [syncing, setSyncing]   = useState(false);
   const [msg, setMsg]           = useState('');
 
   const [head, setHead]   = useState({ date: today, reference: '', memo: '' });
@@ -40,6 +41,17 @@ export default function JournalEntriesPage() {
     setLoading(false);
   }
   useEffect(() => { if (orgId) load(); }, [orgId]);
+
+  async function syncInvoices() {
+    setSyncing(true); setMsg('');
+    try {
+      const r = await fetch(`${API}/orgs/${orgId}/journal/sync-invoices`, { method: 'POST', headers });
+      const j = await r.json();
+      if (j.success) { await load(); setMsg(`Posted ${j.data.synced} invoice${j.data.synced === 1 ? '' : 's'} to the ledger.`); }
+      else setMsg(j.message || 'Could not post invoices.');
+    } catch (e) { setMsg('Could not post invoices.'); }
+    setSyncing(false);
+  }
 
   function openNew() {
     setHead({ date: today, reference: '', memo: '' });
@@ -99,10 +111,20 @@ export default function JournalEntriesPage() {
             Manual double-entry postings — every entry must balance (debits = credits).
           </p>
         </div>
-        <button className="btn-primary" style={{ display:'flex', alignItems:'center', gap:6 }} onClick={openNew}>
-          <span>+</span> New entry
-        </button>
+        <div style={{ display:'flex', gap:8 }}>
+          <button onClick={syncInvoices} disabled={syncing}
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 14px', borderRadius:8, border:'1px solid var(--color-border-secondary, #D4DDCC)', background:'transparent', color:'var(--color-text-primary)', fontSize:13, cursor:'pointer' }}>
+            {syncing ? 'Posting…' : 'Post invoices to ledger'}
+          </button>
+          <button className="btn-primary" style={{ display:'flex', alignItems:'center', gap:6 }} onClick={openNew}>
+            <span>+</span> New entry
+          </button>
+        </div>
       </div>
+
+      {msg && !showForm && (
+        <div style={{ margin:'10px 0', fontSize:13, color:'var(--brand-primary)' }}>{msg}</div>
+      )}
 
       {loading ? (
         <div style={{ textAlign:'center', padding:40, color:'var(--color-text-secondary)' }}>Loading…</div>
