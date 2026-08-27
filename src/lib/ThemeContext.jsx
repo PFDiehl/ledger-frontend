@@ -172,12 +172,54 @@ export const THEMES = {
       '--brand-alert-bar':      '#C05A3A',
     },
   },
+
+  deepHarbor: {
+    id:          'deep-harbor',
+    name:        'Deep Harbor',
+    description: 'Deep navy & gold — private-bank premium',
+    preview:     ['#0C2A44', '#2A84B8', '#7EC4E8', '#E0B154'],
+
+    vars: {
+      '--brand-sidebar':        '#0C2A44',
+      '--brand-sidebar-mid':    '#123A5C',
+      '--brand-sidebar-icon':   '#5E86A6',
+      '--brand-nav-active-bg':  '#164A70',
+      '--brand-nav-active-icon':'#ffffff',
+      '--brand-nav-active-border':'#164A70',
+      '--brand-topbar':         '#0C2A44',
+      '--brand-logo':           '#E6EFF7',
+      '--brand-topbar-sub':     '#5E86A6',
+      '--brand-primary':        '#0C2A44',
+      '--brand-primary-hover':  '#123A5C',
+      '--brand-primary-text':   '#ffffff',
+      '--brand-btn-primary-bg': '#2A84B8',
+      '--brand-btn-primary-text':'#ffffff',
+      '--brand-kpi-hero-bg':    '#0C2A44',
+      '--brand-kpi-hero-label': '#7EC4E8',
+      '--brand-kpi-hero-val':   '#ffffff',
+      '--brand-kpi-tint-bg':    '#E7F1F9',
+      '--brand-kpi-tint-border':'#CFE0EC',
+      '--brand-page-bg':        '#EEF3F8',
+      '--brand-card-border':    '#D6E2EC',
+      '--brand-section-label':  '#5F7183',
+      '--brand-inv-header':     '#0C2A44',
+      '--brand-inv-header-logo':'#E0B154',
+      '--brand-inv-header-sub': '#7EA7C4',
+      '--brand-inv-total':      '#0C2A44',
+      '--brand-pay-btn-bg':     '#2A84B8',
+      '--brand-pay-btn-text':   '#ffffff',
+      '--brand-mobile-bar':     '#0C2A44',
+      '--brand-mobile-active':  '#7EC4E8',
+      '--brand-accent-light':   '#E7F1F9',
+      '--brand-alert-bar':      '#C0703A',
+    },
+  },
 };
 
 // ── Apply theme vars to :root ─────────────────────────────────────────────────
 
 function applyTheme(themeId) {
-  const theme = THEMES[themeId] ?? THEMES.evergreen;
+  const theme = THEMES[themeId] ?? THEMES.deepHarbor;
   const root  = document.documentElement;
 
   // Apply all brand variables
@@ -196,7 +238,7 @@ const ThemeContext = createContext(null);
 export function ThemeProvider({ children }) {
   const [themeId, setThemeId] = useState(() => {
     const saved = localStorage.getItem('ledger-theme');
-    return (saved && THEMES[saved]) ? saved : 'evergreen';
+    return (saved && THEMES[saved]) ? saved : 'deep-harbor';
   });
 
   // Apply on mount and whenever theme changes
