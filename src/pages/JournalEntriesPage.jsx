@@ -45,11 +45,16 @@ export default function JournalEntriesPage() {
   async function syncInvoices() {
     setSyncing(true); setMsg('');
     try {
-      const r = await fetch(`${API}/orgs/${orgId}/journal/sync-invoices`, { method: 'POST', headers });
-      const j = await r.json();
-      if (j.success) { await load(); setMsg(`Posted ${j.data.synced} invoice${j.data.synced === 1 ? '' : 's'} to the ledger.`); }
-      else setMsg(j.message || 'Could not post invoices.');
-    } catch (e) { setMsg('Could not post invoices.'); }
+      // Backfill every source document into the ledger: invoices, expenses, bills.
+      let total = 0;
+      for (const kind of ['invoices', 'expenses', 'bills']) {
+        const r = await fetch(`${API}/orgs/${orgId}/journal/sync-${kind}`, { method: 'POST', headers });
+        const j = await r.json();
+        if (j.success) total += (j.data?.synced || 0);
+      }
+      await load();
+      setMsg(`Posted ${total} source document${total === 1 ? '' : 's'} (invoices, expenses, bills) to the ledger.`);
+    } catch (e) { setMsg('Could not post to the ledger.'); }
     setSyncing(false);
   }
 
@@ -114,7 +119,7 @@ export default function JournalEntriesPage() {
         <div style={{ display:'flex', gap:8 }}>
           <button onClick={syncInvoices} disabled={syncing}
             style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 14px', borderRadius:8, border:'1px solid var(--color-border-secondary, #D4DDCC)', background:'transparent', color:'var(--color-text-primary)', fontSize:13, cursor:'pointer' }}>
-            {syncing ? 'Posting…' : 'Post invoices to ledger'}
+            {syncing ? 'Posting…' : 'Post to ledger'}
           </button>
           <button className="btn-primary" style={{ display:'flex', alignItems:'center', gap:6 }} onClick={openNew}>
             <span>+</span> New entry
