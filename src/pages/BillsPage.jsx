@@ -12,10 +12,11 @@ export default function BillsPage({ presetVendor } = {}) {
   const { org } = useAuth();
   const [bills, setBills] = useState([]);
   const [vendors, setVendors] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ vendor:'', amount:'', dueDate:'', description:'', category:'Other' });
+  const [form, setForm] = useState({ vendor:'', amount:'', dueDate:'', description:'', category:'' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -27,12 +28,15 @@ export default function BillsPage({ presetVendor } = {}) {
     api.get(`/orgs/${org.id}/contacts`, { type: 'Vendor' })
       .then(r => setVendors(r.data?.data || r.data || []))
       .catch(() => {});
+    api.get(`/orgs/${org.id}/accounts`)
+      .then(r => setAccounts(r.data?.data || r.data || []))
+      .catch(() => {});
   }, [org?.id]);
 
   // "New Bill" from a vendor opens the form pre-filled for them.
   useEffect(() => {
     if (presetVendor) {
-      setForm({ vendor: presetVendor.company || presetVendor.name || '', amount:'', dueDate:'', description:'', category:'Other' });
+      setForm({ vendor: presetVendor.company || presetVendor.name || '', amount:'', dueDate:'', description:'', category:'' });
       setShowForm(true);
     }
   }, [presetVendor]);
@@ -45,7 +49,7 @@ export default function BillsPage({ presetVendor } = {}) {
       const created = r.data?.data || r.data;   // api returns the body; payload is r.data
       if (created) setBills(prev => [created, ...prev]);
       setShowForm(false);
-      setForm({ vendor:'', amount:'', dueDate:'', description:'', category:'Other' });
+      setForm({ vendor:'', amount:'', dueDate:'', description:'', category:'' });
     } catch(e) { alert('Error saving bill'); }
     finally { setSaving(false); }
   }
@@ -75,6 +79,11 @@ export default function BillsPage({ presetVendor } = {}) {
     if (s === 'overdue') return { background:'#FDE8E8', color:'#c0392b' };
     return { background:'#FAEEDA', color:'#854F0B' };
   };
+
+  // Categories come from the Chart of Accounts (expense accounts), sorted by code.
+  const expenseAccounts = accounts
+    .filter(a => a.type === 'Expense')
+    .sort((a, b) => String(a.code || '').localeCompare(String(b.code || '')));
 
   return (
     <div className="page">
@@ -165,7 +174,11 @@ export default function BillsPage({ presetVendor } = {}) {
               <div>
                 <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>CATEGORY</label>
                 <select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}}>
-                  {BILL_CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                  <option value="">Select category…</option>
+                  {expenseAccounts.length
+                    ? expenseAccounts.map(a => <option key={a.id} value={a.name}>{a.code} · {a.name}</option>)
+                    : BILL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  {form.category && !expenseAccounts.some(a => a.name === form.category) && !BILL_CATEGORIES.includes(form.category) && <option value={form.category}>{form.category}</option>}
                 </select>
               </div>
               <div>

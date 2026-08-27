@@ -14,8 +14,9 @@ const PAYMENT_METHODS = ['Cash','Check','Credit Card','Debit Card','ACH / Bank T
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ vendor:'', category:'Other', amount:'', date:today, description:'', receiptNumber:'', paymentMethod:'' });
+  const [form, setForm] = useState({ vendor:'', category:'', amount:'', date:today, description:'', receiptNumber:'', paymentMethod:'' });
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -31,6 +32,8 @@ export default function ExpensesPage() {
     if (!orgId || !token) return;
     fetch(API+'/orgs/'+orgId+'/expenses', { headers: { Authorization: 'Bearer '+token } })
       .then(r => r.json()).then(j => { if(j.success) setExpenses(j.data); }).catch(()=>{});
+    fetch(API+'/orgs/'+orgId+'/accounts', { headers: { Authorization: 'Bearer '+token } })
+      .then(r => r.json()).then(j => { if(j.success) setAccounts(j.data); }).catch(()=>{});
   }, [orgId]);
 
   async function save() {
@@ -39,7 +42,7 @@ export default function ExpensesPage() {
     try {
       const r = await fetch(API+'/orgs/'+orgId+'/expenses', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+token }, body: JSON.stringify(form) });
       const j = await r.json();
-      if (j.success) { setExpenses(prev => [j.data, ...prev]); setShowForm(false); setForm({ vendor:'', category:'Other', amount:'', date:today, description:'', receiptNumber:'', paymentMethod:'' }); }
+      if (j.success) { setExpenses(prev => [j.data, ...prev]); setShowForm(false); setForm({ vendor:'', category:'', amount:'', date:today, description:'', receiptNumber:'', paymentMethod:'' }); }
       else alert(j.message);
     } catch(e) { alert('Error saving expense'); } finally { setLoading(false); }
   }
@@ -93,7 +96,7 @@ export default function ExpensesPage() {
             vendor:   info.vendor || f.vendor,
             amount:   (info.amount != null && info.amount !== '') ? String(info.amount) : f.amount,
             date:     safeDate,
-            category: (info.category && CATEGORIES.includes(info.category)) ? info.category : f.category,
+            category: (info.category && (categoryNames.includes(info.category) || CATEGORIES.includes(info.category))) ? info.category : f.category,
           }));
         } catch { alert('Could not read that receipt. You can still enter it by hand.'); }
         finally { setScanning(false); }
@@ -141,12 +144,27 @@ export default function ExpensesPage() {
 
   function fmt(n) { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n); }
 
+  // Categories are driven by the org's Chart of Accounts (expense accounts only),
+  // sorted by code. The stored value is the account NAME so ledger posting matches.
+  const expenseAccounts = accounts
+    .filter(a => a.type === 'Expense')
+    .sort((a, b) => String(a.code || '').localeCompare(String(b.code || '')));
+  const categoryNames = expenseAccounts.map(a => a.name);
+  function categoryOpts(current) {
+    const base = expenseAccounts.length
+      ? expenseAccounts.map(a => ({ value: a.name, label: `${a.code} · ${a.name}` }))
+      : CATEGORIES.map(c => ({ value: c, label: c }));   // fallback until the chart is seeded
+    const opts = [{ value: '', label: 'Select category…' }, ...base];
+    if (current && !opts.some(o => o.value === current)) opts.push({ value: current, label: current });
+    return opts;
+  }
+
   const F = (label, field, el='input', props={}) => (
     <div key={field}>
       <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>{label}</label>
       {el === 'select' ? (
         <select value={form[field]} onChange={e=>setForm(f=>({...f,[field]:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13}} {...props}>
-          {props.options?.map(o => <option key={o}>{o}</option>)}
+          {props.options?.map(o => { const v = typeof o === 'object' ? o.value : o; const l = typeof o === 'object' ? o.label : o; return <option key={v} value={v}>{l}</option>; })}
         </select>
       ) : (
         <input value={form[field]} onChange={e=>setForm(f=>({...f,[field]:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13}} {...props} />
@@ -159,7 +177,7 @@ export default function ExpensesPage() {
       <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>{label}</label>
       {el === 'select' ? (
         <select value={editForm[field]||''} onChange={e=>setEditForm(f=>({...f,[field]:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13}} {...props}>
-          {props.options?.map(o => <option key={o}>{o}</option>)}
+          {props.options?.map(o => { const v = typeof o === 'object' ? o.value : o; const l = typeof o === 'object' ? o.label : o; return <option key={v} value={v}>{l}</option>; })}
         </select>
       ) : (
         <input value={editForm[field]||''} onChange={e=>setEditForm(f=>({...f,[field]:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13}} {...props} />
@@ -229,7 +247,7 @@ export default function ExpensesPage() {
                 <div style={{fontSize:11,color:'#7A9A7A',marginTop:6,textAlign:'center'}}>Upload a JPG or PNG photo — we'll read the vendor, amount, and date.</div>
               </div>
               {F('VENDOR', 'vendor', 'input', {placeholder:'Amazon'})}
-              {F('CATEGORY', 'category', 'select', {options: CATEGORIES})}
+              {F('CATEGORY', 'category', 'select', {options: categoryOpts(form.category)})}
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
                 {F('AMOUNT ($)', 'amount', 'input', {type:'number', placeholder:'0.00'})}
                 {F('DATE', 'date', 'input', {type:'date'})}
@@ -258,7 +276,7 @@ export default function ExpensesPage() {
             {editing ? (
               <div style={{display:'flex',flexDirection:'column',gap:14}}>
                 {EF('VENDOR', 'vendor', 'input', {placeholder:'Amazon'})}
-                {EF('CATEGORY', 'category', 'select', {options: CATEGORIES})}
+                {EF('CATEGORY', 'category', 'select', {options: categoryOpts(editForm.category)})}
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
                   {EF('AMOUNT ($)', 'amount', 'input', {type:'number', placeholder:'0.00'})}
                   {EF('DATE', 'date', 'input', {type:'date'})}
