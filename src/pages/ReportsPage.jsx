@@ -187,21 +187,26 @@ export default function ReportsPage() {
           {tab === 'Balance Sheet' && data.assets && (
             <>
               <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4, color: GREEN }}>Balance Sheet</h2>
-              <div style={{ fontSize: 12, color: '#999', marginBottom: 12 }}>As of {safeISO(data.asOf)}</div>
+              <div style={{ fontSize: 12, color: '#999', marginBottom: 12 }}>As of {safeISO(data.asOf)} · from the general ledger</div>
               {sectionHead('Assets')}
-              {line('Cash (bank accounts)', data.assets.cash, { indent: true })}
-              {line('Accounts receivable', data.assets.accountsReceivable, { indent: true })}
+              {(data.assets.lines || []).map(l => line(`${l.code} · ${l.name}`, l.amount, { indent: true }))}
+              {(data.assets.lines || []).length === 0 && line('—', 0, { indent: true, color: '#999' })}
               {line('Total assets', data.assets.total, { strong: true, color: GREEN })}
               {sectionHead('Liabilities')}
-              {line('Accounts payable', data.liabilities.accountsPayable, { indent: true, color: RED })}
+              {(data.liabilities.lines || []).map(l => line(`${l.code} · ${l.name}`, l.amount, { indent: true, color: RED }))}
+              {(data.liabilities.lines || []).length === 0 && line('—', 0, { indent: true, color: '#999' })}
               {line('Total liabilities', data.liabilities.total, { strong: true, color: RED })}
               {sectionHead('Equity')}
-              {line('Retained earnings', data.equity.retainedEarnings, { indent: true })}
+              {(data.equity.lines || []).map(l => line(`${l.code} · ${l.name}`, l.amount, { indent: true }))}
+              {line('Net income (current earnings)', data.equity.netIncome, { indent: true })}
               {line('Total equity', data.equity.total, { strong: true })}
               <div style={{ borderTop: '2px solid ' + GREEN, marginTop: 10, paddingTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 14, fontWeight: 700 }}>Liabilities + Equity</span>
-                <span style={{ fontSize: 16, fontWeight: 700 }}>{fmt(data.liabilities.total + data.equity.total)}</span>
+                <span style={{ fontSize: 16, fontWeight: 700 }}>{fmt(data.liabilitiesAndEquity ?? (data.liabilities.total + data.equity.total))}</span>
               </div>
+              {data.balanced === false && (
+                <div style={{ marginTop: 8, fontSize: 12, color: RED }}>⚠ Assets don't equal Liabilities + Equity — check the ledger.</div>
+              )}
             </>
           )}
 
@@ -363,9 +368,9 @@ export default function ReportsPage() {
       )}
 
       <div style={{ fontSize: 11.5, color: '#aaa', marginTop: 16, maxWidth: 640, lineHeight: 1.6 }}>
-        Reports are derived from your invoices, expenses, bills, and bank balances. Balance Sheet and Cash Flow are
-        practical estimates for a small business, not full double-entry statements. Cash-basis figures approximate
-        payment timing until per-payment dates are tracked.
+        The P&amp;L (accrual), Balance Sheet, Trial Balance, and General Ledger are computed directly from your
+        general ledger — real double-entry statements. Cash Flow and cash-basis figures are practical estimates
+        that approximate payment timing until per-payment dates are tracked.
       </div>
     </div>
   );
