@@ -18,6 +18,8 @@ export default function BillsPage({ presetVendor } = {}) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ vendor:'', amount:'', dueDate:'', description:'', category:'' });
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({});
 
   useEffect(() => {
     if (!org) return;
@@ -72,6 +74,32 @@ export default function BillsPage({ presetVendor } = {}) {
     } catch(e) { alert('Error updating bill'); }
   }
 
+  function startEdit() {
+    setEditForm({
+      vendor:      selected.vendor || '',
+      category:    selected.category || '',
+      amount:      selected.amount ?? '',
+      dueDate:     selected.dueDate ? String(selected.dueDate).slice(0, 10) : '',
+      description: selected.description || '',
+    });
+    setEditing(true);
+  }
+
+  async function saveEdit() {
+    if (!editForm.vendor || !editForm.amount) return alert('Please fill in vendor and amount');
+    setSaving(true);
+    try {
+      const r = await api.patch(`/orgs/${org.id}/bills/${selected.id}`, editForm);
+      const updated = r.data?.data || r.data;
+      if (updated) {
+        setBills(prev => prev.map(b => b.id === selected.id ? updated : b));
+        setSelected(updated);
+      }
+      setEditing(false);
+    } catch(e) { alert('Error updating bill'); }
+    finally { setSaving(false); }
+  }
+
   function fmt(n) { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2}).format(n||0); }
 
   const statusColor = (s) => {
@@ -84,6 +112,9 @@ export default function BillsPage({ presetVendor } = {}) {
   const expenseAccounts = accounts
     .filter(a => a.type === 'Expense')
     .sort((a, b) => String(a.code || '').localeCompare(String(b.code || '')));
+
+  const labelStyle = { fontSize:12, fontWeight:500, color:'#7A9A7A', display:'block', marginBottom:4 };
+  const inputStyle = { width:'100%', padding:'9px 12px', borderRadius:8, border:'1px solid #D4DDCC', fontSize:13, boxSizing:'border-box' };
 
   return (
     <div className="page">
@@ -139,21 +170,62 @@ export default function BillsPage({ presetVendor } = {}) {
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center'}}>
           <div style={{background:'#fff',borderRadius:14,padding:28,width:480,maxWidth:'90vw'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
-              <h2 style={{fontSize:18,fontWeight:600}}>{selected.vendor}</h2>
-              <button onClick={()=>setSelected(null)} style={{background:'none',border:'none',fontSize:22,cursor:'pointer'}}>×</button>
+              <h2 style={{fontSize:18,fontWeight:600}}>{editing ? 'Edit Bill' : selected.vendor}</h2>
+              <button onClick={()=>{setSelected(null);setEditing(false);}} style={{background:'none',border:'none',fontSize:22,cursor:'pointer'}}>×</button>
             </div>
-            <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Category: </span><span style={{fontSize:13}}>{selected.category||'-'}</span></div>
-            <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Amount: </span><span style={{fontSize:18,fontWeight:700,color:'#c0392b'}}>{fmt(selected.amount)}</span></div>
-            <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Status: </span><span style={{fontSize:13,textTransform:'capitalize'}}>{selected.status}</span></div>
-            {selected.dueDate && <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Due: </span><span style={{fontSize:13}}>{new Date(selected.dueDate).toLocaleDateString()}</span></div>}
-            {selected.description && <div style={{marginBottom:20}}><span style={{color:'#7A9A7A',fontSize:13}}>Description: </span><span style={{fontSize:13}}>{selected.description}</span></div>}
-            <div style={{display:'flex',gap:10,marginTop:20}}>
-              {selected.status !== 'paid' && (
-                <button onClick={()=>markPaid(selected.id)} style={{flex:1,padding:'10px',borderRadius:8,border:'none',background:'#2D4A35',color:'#A8D4A8',cursor:'pointer',fontSize:14,fontWeight:600}}>Mark as Paid</button>
-              )}
-              <button onClick={()=>deleteBill(selected.id)} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #c0392b',background:'#fff',color:'#c0392b',cursor:'pointer',fontSize:14,fontWeight:600}}>Delete</button>
-              <button onClick={()=>setSelected(null)} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #D4DDCC',background:'#fff',cursor:'pointer',fontSize:14}}>Close</button>
-            </div>
+
+            {editing ? (
+              <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                <div>
+                  <label style={labelStyle}>VENDOR</label>
+                  <input value={editForm.vendor} onChange={e=>setEditForm(f=>({...f,vendor:e.target.value}))} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>CATEGORY</label>
+                  <select value={editForm.category} onChange={e=>setEditForm(f=>({...f,category:e.target.value}))} style={inputStyle}>
+                    <option value="">Select category…</option>
+                    {expenseAccounts.length
+                      ? expenseAccounts.map(a => <option key={a.id} value={a.name}>{a.code} · {a.name}</option>)
+                      : BILL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {editForm.category && !expenseAccounts.some(a => a.name === editForm.category) && !BILL_CATEGORIES.includes(editForm.category) && <option value={editForm.category}>{editForm.category}</option>}
+                  </select>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                  <div>
+                    <label style={labelStyle}>AMOUNT ($)</label>
+                    <input type="number" value={editForm.amount} onChange={e=>setEditForm(f=>({...f,amount:e.target.value}))} style={inputStyle} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>DUE DATE</label>
+                    <input type="date" value={editForm.dueDate} onChange={e=>setEditForm(f=>({...f,dueDate:e.target.value}))} style={inputStyle} />
+                  </div>
+                </div>
+                <div>
+                  <label style={labelStyle}>DESCRIPTION</label>
+                  <input value={editForm.description} onChange={e=>setEditForm(f=>({...f,description:e.target.value}))} style={inputStyle} />
+                </div>
+                <div style={{display:'flex',gap:10,marginTop:4}}>
+                  <button onClick={()=>setEditing(false)} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #D4DDCC',background:'#fff',cursor:'pointer',fontSize:14}}>Cancel</button>
+                  <button onClick={saveEdit} disabled={saving} style={{flex:2,padding:'10px',borderRadius:8,border:'none',background:'#2D4A35',color:'#A8D4A8',cursor:'pointer',fontSize:14,fontWeight:600}}>{saving?'Saving…':'Save changes'}</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Category: </span><span style={{fontSize:13}}>{selected.category||'-'}</span></div>
+                <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Amount: </span><span style={{fontSize:18,fontWeight:700,color:'#c0392b'}}>{fmt(selected.amount)}</span></div>
+                <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Status: </span><span style={{fontSize:13,textTransform:'capitalize'}}>{selected.status}</span></div>
+                {selected.dueDate && <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Due: </span><span style={{fontSize:13}}>{new Date(selected.dueDate).toLocaleDateString()}</span></div>}
+                {selected.description && <div style={{marginBottom:20}}><span style={{color:'#7A9A7A',fontSize:13}}>Description: </span><span style={{fontSize:13}}>{selected.description}</span></div>}
+                <div style={{display:'flex',gap:8,marginTop:20}}>
+                  {selected.status !== 'paid' && (
+                    <button onClick={()=>markPaid(selected.id)} style={{flex:1,padding:'10px',borderRadius:8,border:'none',background:'#2D4A35',color:'#A8D4A8',cursor:'pointer',fontSize:14,fontWeight:600}}>Mark as Paid</button>
+                  )}
+                  <button onClick={startEdit} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #2D4A35',background:'#fff',color:'#2D4A35',cursor:'pointer',fontSize:14,fontWeight:600}}>Edit</button>
+                  <button onClick={()=>deleteBill(selected.id)} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #c0392b',background:'#fff',color:'#c0392b',cursor:'pointer',fontSize:14,fontWeight:600}}>Delete</button>
+                  <button onClick={()=>setSelected(null)} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #D4DDCC',background:'#fff',cursor:'pointer',fontSize:14}}>Close</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
