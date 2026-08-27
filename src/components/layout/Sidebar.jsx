@@ -35,7 +35,9 @@ const ALL_NAV = [
   // they're built for real and cleared for QuickBooks data handling. Re-add here
   // to bring them back.
   { id:'documents',     icon:'files',         label:'Documents',      level:2, section:'More' },
-  { id:'currencies',    icon:'currency',      label:'Currencies',     level:2, section:'More' },
+  // Currencies (multi-currency invoicing) hidden until a customer needs it —
+  // re-add this line to bring it back to the sidebar.
+  // { id:'currencies',    icon:'currency',      label:'Currencies',     level:2, section:'More' },
   { id:'companies',     icon:'building',      label:'My companies',   level:2, section:'More' },
   { id:'billing',       icon:'credit-card',   label:'Billing',        level:2, section:'More' },
 ];
