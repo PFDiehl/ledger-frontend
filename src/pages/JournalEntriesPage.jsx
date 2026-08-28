@@ -154,32 +154,34 @@ export default function JournalEntriesPage() {
             const t = round2(en.lines.reduce((s, l) => s + Number(l.debit || 0), 0));
             return (
               <div key={en.id} className="card" style={{ padding:0, overflow:'hidden' }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', padding:'9px 16px 5px' }}>
-                  <div style={{ display:'flex', alignItems:'baseline', gap:10, flexWrap:'wrap' }}>
-                    <span style={{ fontWeight:600, fontSize:13 }}>{new Date(en.date).toLocaleDateString('en-US')}</span>
-                    {en.reference && <span style={{ fontSize:12, color:'var(--color-text-secondary)', fontFamily:'monospace' }}>{en.reference}</span>}
-                    {en.memo && <span style={{ fontSize:13, color:'var(--color-text-secondary)' }}>{en.memo}</span>}
-                    <span style={{ fontSize:13, fontWeight:600 }}>${fmt(t)}</span>
-                  </div>
-                  <button onClick={() => del(en.id)} style={{ background:'none', border:'none', color:'var(--color-text-tertiary, #999)', cursor:'pointer', fontSize:12 }}>Delete</button>
-                </div>
                 <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
                   <thead>
-                    <tr>
-                      <th style={{ padding:'0 16px 3px', width:'55%', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}></th>
-                      <th style={{ padding:'0 16px 3px', textAlign:'right', fontSize:10, fontWeight:700, letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--color-text-secondary, #5E6B62)', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}>Debit</th>
-                      <th style={{ padding:'0 16px 3px', textAlign:'right', fontSize:10, fontWeight:700, letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--color-text-secondary, #5E6B62)', borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}>Credit</th>
+                    <tr style={{ borderBottom:'1px solid var(--color-border-tertiary, #EBF2E8)' }}>
+                      <th style={{ padding:'8px 16px 7px', textAlign:'left', fontWeight:400 }}>
+                        <div style={{ display:'flex', alignItems:'baseline', gap:10, flexWrap:'wrap' }}>
+                          <span style={{ fontWeight:600, fontSize:13 }}>{new Date(en.date).toLocaleDateString('en-US')}</span>
+                          {en.reference && <span style={{ fontSize:12, color:'var(--color-text-secondary)', fontFamily:'monospace' }}>{en.reference}</span>}
+                          {en.memo && <span style={{ fontSize:13, color:'var(--color-text-secondary)' }}>{en.memo}</span>}
+                          <span style={{ fontSize:13, fontWeight:600 }}>${fmt(t)}</span>
+                        </div>
+                      </th>
+                      <th style={{ padding:'8px 16px 7px', textAlign:'right', width:110, fontSize:10, fontWeight:700, letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--color-text-secondary, #5E6B62)' }}>Debit</th>
+                      <th style={{ padding:'8px 16px 7px', textAlign:'right', width:110, fontSize:10, fontWeight:700, letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--color-text-secondary, #5E6B62)' }}>Credit</th>
+                      <th style={{ padding:'8px 12px 7px', textAlign:'right', width:58 }}>
+                        <button onClick={() => del(en.id)} style={{ background:'none', border:'none', color:'var(--color-text-tertiary, #999)', cursor:'pointer', fontSize:12 }}>Delete</button>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {en.lines.map(l => (
                       <tr key={l.id} style={{ borderBottom:'0.5px solid var(--color-border-tertiary, #F2F5EF)' }}>
-                        <td style={{ padding:'5px 16px', width:'55%' }}>
+                        <td style={{ padding:'5px 16px' }}>
                           <span style={{ fontFamily:'monospace', color:'var(--color-text-secondary)', marginRight:8 }}>{l.account?.code}</span>
                           {l.account?.name}
                         </td>
                         <td style={{ padding:'5px 16px', textAlign:'right', color:'var(--color-text-secondary)' }}>{Number(l.debit) > 0 ? `$${fmt(l.debit)}` : ''}</td>
                         <td style={{ padding:'5px 16px', textAlign:'right', color:'var(--color-text-secondary)' }}>{Number(l.credit) > 0 ? `$${fmt(l.credit)}` : ''}</td>
+                        <td style={{ padding:'5px 12px', width:58 }}></td>
                       </tr>
                     ))}
                   </tbody>
