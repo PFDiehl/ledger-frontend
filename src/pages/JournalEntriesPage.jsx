@@ -101,6 +101,7 @@ export default function JournalEntriesPage() {
   }
 
   async function del(id) {
+    if (!window.confirm('Delete this journal entry? This cannot be undone.')) return;
     try {
       await fetch(`${API}/orgs/${orgId}/journal/${id}`, { method: 'DELETE', headers });
       await load();
