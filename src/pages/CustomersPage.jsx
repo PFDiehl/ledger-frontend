@@ -5,11 +5,12 @@ const fmt = (n) => Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,
 const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('accessToken')}`, 'Content-Type': 'application/json' });
 
 function Avatar({ name }) {
+  const safe = name || '?';
   const colors = ['#2D6A4F','#1B4332','#40916C','#52B788','#1E6091','#184E77','#6B2D8B','#9B2226'];
-  const color = colors[name.charCodeAt(0) % colors.length];
+  const color = colors[safe.charCodeAt(0) % colors.length];
   return (
     <div style={{width:38,height:38,borderRadius:'50%',background:color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:700,color:'#fff',flexShrink:0}}>
-      {name.charAt(0).toUpperCase()}
+      {safe.charAt(0).toUpperCase()}
     </div>
   );
 }
@@ -70,7 +71,7 @@ export default function CustomersPage({ org, onNewInvoice }) {
 
   const filtered = customers.filter(c => {
     const q = search.toLowerCase();
-    return c.name.toLowerCase().includes(q) || (c.company||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q);
+    return (c.name||'').toLowerCase().includes(q) || (c.company||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q);
   });
   const allVisibleChecked = filtered.length > 0 && filtered.every(c => checkedIds.has(c.id));
   function toggleAllVisible() {

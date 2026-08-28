@@ -21,11 +21,11 @@ export default function CustomerForm({ org, editing, onSave, onCancel }) {
   async function save() {
     if (!form.name.trim()) return alert('Name is required');
     try {
-      if (editing?.id) {
-        await fetch(`${API}/orgs/${org.id}/contacts/${editing.id}`, { method:'PATCH', headers: authHeaders(), body: JSON.stringify({ ...form, type:'customer' }) });
-      } else {
-        await fetch(`${API}/orgs/${org.id}/contacts`, { method:'POST', headers: authHeaders(), body: JSON.stringify({ ...form, type:'customer' }) });
-      }
+      const url = editing?.id ? `${API}/orgs/${org.id}/contacts/${editing.id}` : `${API}/orgs/${org.id}/contacts`;
+      const method = editing?.id ? 'PATCH' : 'POST';
+      const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify({ ...form, type:'customer' }) });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || j.success === false) { alert(j.message || 'Could not save the customer.'); return; }
       onSave();
     } catch(e) { alert('Error saving customer'); }
   }

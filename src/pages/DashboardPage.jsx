@@ -30,11 +30,11 @@ export default function DashboardPage() {
 
   function fmt(n) { return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }); }
 
-  const totalInvoiced = invoices.reduce((s, i) => s + Number(i.total), 0);
-  const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.total), 0);
-  const totalOutstanding = invoices.filter(i => i.status !== 'paid').reduce((s, i) => s + Number(i.total), 0);
-  const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount), 0);
-  const totalBills = bills.reduce((s, b) => s + Number(b.amount), 0);
+  const totalInvoiced = invoices.reduce((s, i) => s + Number(i.total || 0), 0);
+  const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.total || 0), 0);
+  const totalOutstanding = invoices.filter(i => i.status !== 'paid').reduce((s, i) => s + Number(i.total || 0), 0);
+  const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const totalBills = bills.reduce((s, b) => s + Number(b.amount || 0), 0);
   const netIncome = totalPaid - totalExpenses;
 
   return (

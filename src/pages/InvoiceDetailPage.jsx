@@ -14,6 +14,7 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
   const [payDate, setPayDate]     = useState(() => new Date().toISOString().slice(0, 10));
   const [payBusy, setPayBusy]     = useState(false);
   const [payErr, setPayErr]       = useState('');
+  const [statusOverride, setStatusOverride] = useState(null);
 
   if (!invoice) return null;
 
@@ -28,8 +29,9 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
   const discount = Number(invoice.discount ?? 0);
   const total    = Number(invoice.total ?? subtotal + tax);
   const lines    = invoice.lines ?? invoice.lineItems ?? invoice.items ?? [];
-  const canSend  = ['draft','sent','partial'].includes(invoice.status);
-  const canPay   = ['sent','partial','overdue'].includes(invoice.status);
+  const status   = statusOverride ?? invoice.status;
+  const canSend  = ['draft','sent','partial'].includes(status);
+  const canPay   = ['sent','partial','overdue'].includes(status);
   const paid     = Number(invoice.amountPaid ?? 0);
   const balance  = Math.max(0, total - paid);
 
@@ -37,10 +39,16 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
     if (!org) return;
     setSending(true); setMsg(null);
     try {
-      await fetch(`${import.meta.env.VITE_API_URL}/orgs/${org.id}/invoices/${invoice.id}/send`, {
+      const r = await fetch(`${import.meta.env.VITE_API_URL}/orgs/${org.id}/invoices/${invoice.id}/send`, {
         method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` },
       });
-      setMsg({ type: 'success', text: `Invoice sent to ${email}` });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || j.success === false) {
+        setMsg({ type: 'error', text: j.message || 'Could not send invoice.' });
+        return;
+      }
+      setStatusOverride('sent');
+      setMsg({ type: 'success', text: email ? `Invoice sent to ${email}` : 'Invoice sent.' });
       onRefresh?.();
     } catch(e) {
       setMsg({ type: 'error', text: 'Could not send invoice.' });
@@ -93,9 +101,10 @@ export default function InvoiceDetailPage({ invoice, onBack, onEdit, onRefresh }
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` }
       });
-      const j = await r.json();
-      if (j.success) window.open(j.url, '_blank');
-      else alert(j.message);
+      const j = await r.json().catch(() => ({}));
+      const url = j?.data?.url || j?.url;
+      if (j.success && url) window.open(url, '_blank');
+      else alert(j.message || 'Could not generate a payment link.');
     } catch(e) { alert('Error generating payment link'); }
   }
 function downloadPDF() {
@@ -110,10 +119,10 @@ function downloadPDF() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button className="back-btn" onClick={onBack} aria-label="Back"><i className="ti ti-arrow-left" /></button>
           <h1 className="page-title">{id}</h1>
-          <StatusBadge status={invoice.status} />
+          <StatusBadge status={status} />
         </div>
         <div className="page-actions">
-          {invoice.status === 'draft' && (
+          {status === 'draft' && (
             <button className="btn-primary" onClick={handleSend} disabled={sending}>
               <i className="ti ti-send" /> {sending ? 'Sending…' : 'Send'}
             </button>

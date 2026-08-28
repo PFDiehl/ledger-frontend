@@ -31,9 +31,9 @@ export default function ExpensesPage() {
   useEffect(() => {
     if (!orgId || !token) return;
     fetch(API+'/orgs/'+orgId+'/expenses', { headers: { Authorization: 'Bearer '+token } })
-      .then(r => r.json()).then(j => { if(j.success) setExpenses(j.data); }).catch(()=>{});
+      .then(r => r.json()).then(j => { if(j.success) setExpenses(j.data || []); }).catch(()=>{});
     fetch(API+'/orgs/'+orgId+'/accounts', { headers: { Authorization: 'Bearer '+token } })
-      .then(r => r.json()).then(j => { if(j.success) setAccounts(j.data); }).catch(()=>{});
+      .then(r => r.json()).then(j => { if(j.success) setAccounts(j.data || []); }).catch(()=>{});
   }, [orgId]);
 
   async function save() {
@@ -142,7 +142,7 @@ export default function ExpensesPage() {
     } catch(e) { alert('Error removing receipt'); }
   }
 
-  function fmt(n) { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n); }
+  function fmt(n) { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n) || 0); }
 
   // Categories are driven by the org's Chart of Accounts (expense accounts only),
   // sorted by code. The stored value is the account NAME so ledger posting matches.

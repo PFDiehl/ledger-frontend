@@ -84,7 +84,8 @@ export default function JournalEntriesPage() {
   const totalDebit  = round2(lines.reduce((s, l) => s + (Number(l.debit)  || 0), 0));
   const totalCredit = round2(lines.reduce((s, l) => s + (Number(l.credit) || 0), 0));
   const diff        = round2(totalDebit - totalCredit);
-  const balanced    = diff === 0 && totalDebit > 0;
+  const hasAmountNoAccount = lines.some(l => (Number(l.debit) || Number(l.credit)) && !l.accountId);
+  const balanced    = diff === 0 && totalDebit > 0 && !hasAmountNoAccount;
 
   async function save() {
     if (!balanced) { setMsg('Debits must equal credits, and the total must be more than zero.'); return; }
@@ -257,7 +258,9 @@ export default function JournalEntriesPage() {
             </div>
 
             <div style={{ marginTop:10, fontSize:13, fontWeight:600, color: balanced ? '#2D7A4A' : '#B4472D' }}>
-              {balanced ? '✓ Balanced' : (totalDebit === 0 && totalCredit === 0 ? 'Enter debits and credits' : `Out of balance by $${fmt(Math.abs(diff))}`)}
+              {balanced ? '✓ Balanced'
+                : hasAmountNoAccount ? 'Pick an account for every line that has an amount'
+                : (totalDebit === 0 && totalCredit === 0 ? 'Enter debits and credits' : `Out of balance by $${fmt(Math.abs(diff))}`)}
             </div>
 
             {msg && <div style={{ fontSize:12, color:'#B4472D', marginTop:8 }}>{msg}</div>}

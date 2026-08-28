@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { fmt } from '../lib/utils';
 
-const API = 'https://ledger-accounting-production.up.railway.app/api';
+const API = import.meta.env.VITE_API_URL || 'https://ledger-accounting-production.up.railway.app/api';
 const today = new Date().toISOString().slice(0, 10);
 const thirtyDays = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
 const emptyLine = () => ({ description: '', qty: '1', rate: '', amount: 0, service: '', taxable: true });
