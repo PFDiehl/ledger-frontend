@@ -13,6 +13,10 @@ const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const blankLine = () => ({ accountId: '', debit: '', credit: '' });
 
+// Journal entries auto-created from a source document (an expense, invoice, or
+// bill) are managed by that document — not deleted on their own here.
+const SOURCE_LABEL = { invoice:'Invoice', invoice_payment:'Invoice', expense:'Expense', bill:'Bill', bill_payment:'Bill', bank_txn:'Bank' };
+
 export default function JournalEntriesPage() {
   const { orgId, token } = getAuth();
   const headers = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
@@ -103,9 +107,11 @@ export default function JournalEntriesPage() {
   async function del(id) {
     if (!window.confirm('Delete this journal entry? This cannot be undone.')) return;
     try {
-      await fetch(`${API}/orgs/${orgId}/journal/${id}`, { method: 'DELETE', headers });
+      const r = await fetch(`${API}/orgs/${orgId}/journal/${id}`, { method: 'DELETE', headers });
+      const j = await r.json();
+      if (!j.success) { setMsg(j.message || 'Could not delete the entry.'); return; }
       await load();
-    } catch (err) { /* ignore */ }
+    } catch (err) { setMsg('Could not delete the entry.'); }
   }
 
   return (
@@ -164,12 +170,19 @@ export default function JournalEntriesPage() {
                           {en.reference && <span style={{ fontSize:12, color:'var(--color-text-secondary)', fontFamily:'monospace' }}>{en.reference}</span>}
                           {en.memo && <span style={{ fontSize:13, color:'var(--color-text-secondary)' }}>{en.memo}</span>}
                           <span style={{ fontSize:13, fontWeight:600 }}>${fmt(t)}</span>
+                          {en.sourceType && (
+                            <span style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--color-text-secondary)', background:'var(--brand-accent-light, #EBF2E8)', padding:'1px 7px', borderRadius:6 }}>
+                              Auto · {SOURCE_LABEL[en.sourceType] || 'posted'}
+                            </span>
+                          )}
                         </div>
                       </th>
                       <th style={{ padding:'8px 16px 7px', textAlign:'right', width:110, fontSize:10, fontWeight:700, letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--color-text-secondary, #5E6B62)' }}>Debit</th>
                       <th style={{ padding:'8px 16px 7px', textAlign:'right', width:110, fontSize:10, fontWeight:700, letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--color-text-secondary, #5E6B62)' }}>Credit</th>
                       <th style={{ padding:'8px 12px 7px', textAlign:'right', width:58 }}>
-                        <button onClick={() => del(en.id)} style={{ background:'none', border:'none', color:'var(--color-text-tertiary, #999)', cursor:'pointer', fontSize:12 }}>Delete</button>
+                        {!en.sourceType && (
+                          <button onClick={() => del(en.id)} style={{ background:'none', border:'none', color:'var(--color-text-tertiary, #999)', cursor:'pointer', fontSize:12 }}>Delete</button>
+                        )}
                       </th>
                     </tr>
                   </thead>
