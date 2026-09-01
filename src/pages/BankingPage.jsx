@@ -12,8 +12,9 @@ const TYPE_ORDER = { Asset: 1, Liability: 2, Equity: 3, Revenue: 4, Expense: 5 }
 const fmtMoney = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const toAmount = (s) => { const n = Number(String(s ?? '').replace(/[^0-9.\-]/g, '')); return Number.isFinite(n) ? n : 0; };
 
-// Minimal CSV parser — handles quoted fields and embedded commas/newlines.
-function parseCSV(text) {
+// Minimal delimited-text parser — handles quoted fields and embedded
+// delimiters/newlines. Delimiter defaults to comma but can be tab, pipe, etc.
+function parseCSV(text, delim = ',') {
   const rows = []; let cur = [], field = '', inQ = false;
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
@@ -22,7 +23,7 @@ function parseCSV(text) {
       else if (c === '"') inQ = false;
       else field += c;
     } else if (c === '"') inQ = true;
-    else if (c === ',') { cur.push(field); field = ''; }
+    else if (c === delim) { cur.push(field); field = ''; }
     else if (c === '\n' || c === '\r') {
       if (c === '\r' && text[i + 1] === '\n') i++;
       cur.push(field); field = '';
@@ -32,6 +33,46 @@ function parseCSV(text) {
   }
   if (field !== '' || cur.length) { cur.push(field); if (cur.some(x => x !== '')) rows.push(cur); }
   return rows;
+}
+
+// Guess the delimiter from the first non-empty line: banks export comma, tab,
+// pipe, or semicolon "spreadsheet" files — whichever appears most (outside
+// quotes) wins, defaulting to comma.
+function detectDelimiter(text) {
+  const line = (text.split(/\r?\n/).find(l => l.trim() !== '') || '');
+  const counts = { ',': 0, '\t': 0, '|': 0, ';': 0 };
+  let inQ = false;
+  for (const c of line) {
+    if (c === '"') inQ = !inQ;
+    else if (!inQ && counts[c] !== undefined) counts[c]++;
+  }
+  let best = ',', n = 0;
+  for (const d of Object.keys(counts)) if (counts[d] > n) { n = counts[d]; best = d; }
+  return best;
+}
+
+// Is this a Quicken/QuickBooks WEB Connect (OFX) file, i.e. .qbo/.qfx/.ofx?
+function isOFX(text) { return /<OFX>|OFXHEADER|<STMTTRN>/i.test(text); }
+
+// Parse an OFX (.qbo/.qfx) file into { date, description, amount } rows.
+// Handles both OFX 1.x (SGML, unclosed leaf tags) and 2.x (XML). Amount sign
+// already matches our convention: positive = money in, negative = money out.
+function parseOFX(text) {
+  const blocks = text.match(/<STMTTRN>[\s\S]*?<\/STMTTRN>/gi) || [];
+  const tag = (b, name) => { const m = b.match(new RegExp('<' + name + '>([^<\\r\\n]*)', 'i')); return m ? m[1].trim() : ''; };
+  const out = [];
+  for (const b of blocks) {
+    const raw = tag(b, 'DTPOSTED');
+    const amtStr = tag(b, 'TRNAMT');
+    if (!raw || amtStr === '') continue;
+    const y = raw.slice(0, 4), mo = raw.slice(4, 6), d = raw.slice(6, 8);
+    if (y.length !== 4 || !mo || !d) continue;
+    const amount = toAmount(amtStr);
+    if (amount === 0) continue;
+    const description = [tag(b, 'NAME'), tag(b, 'MEMO')].filter(Boolean).join(' ').trim() || '(no description)';
+    out.push({ date: `${y}-${mo}-${d}`, description, amount });
+  }
+  return out;
 }
 
 const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #D4DDCC', fontSize: 13, boxSizing: 'border-box' };
@@ -197,7 +238,15 @@ export default function BankingPage() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const rows = parseCSV(String(reader.result || ''));
+      const text = String(reader.result || '');
+      // Bank file (.qbo/.qfx/.ofx): fixed fields, no column mapping needed.
+      if (isOFX(text)) {
+        const parsed = parseOFX(text).filter(r => r.date && !isNaN(new Date(r.date)) && r.amount !== 0);
+        if (!parsed.length) { setMsg('Could not read any transactions from that .qbo/.qfx file.'); return; }
+        setImportData({ preParsed: true, parsedRows: parsed });
+        return;
+      }
+      const rows = parseCSV(text, detectDelimiter(text));
       if (rows.length < 2) { setMsg('That file has no data rows.'); return; }
       const headerRow = rows[0].map(h => h.trim());
       const find = (re) => { const i = headerRow.findIndex(h => re.test(h)); return i >= 0 ? i : ''; };
@@ -219,6 +268,7 @@ export default function BankingPage() {
   }
 
   function mappedRows(data) {
+    if (data.preParsed) return data.parsedRows.filter(r => r.date && !isNaN(new Date(r.date)) && r.amount !== 0);
     const { rows, map } = data;
     return rows.map(cols => {
       const date = map.date !== '' ? cols[map.date] : '';
@@ -354,13 +404,13 @@ export default function BankingPage() {
         <div>
           <h1 className="page-title">Banking</h1>
           <p style={{ color: 'var(--color-text-secondary)', fontSize: 13, marginTop: 2 }}>
-            Import your bank &amp; credit-card activity from CSV, categorize it, and it posts to your ledger.
+            Import your bank &amp; credit-card activity from a CSV or .qbo/.qfx file, categorize it, and it posts to your ledger.
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {accounts.length > 0 && (
             <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={() => fileRef.current?.click()} disabled={!activeId}>
-              ⬆ Import CSV
+              ⬆ Import statement
             </button>
           )}
           <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={() => setShowRules(true)}>
@@ -369,7 +419,7 @@ export default function BankingPage() {
           <button className="btn-primary" style={{ fontSize: 13 }} onClick={() => setShowAddAcct(true)}>+ Add account</button>
         </div>
       </div>
-      <input ref={fileRef} type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={onFile} />
+      <input ref={fileRef} type="file" accept=".csv,.qbo,.qfx,.ofx,text/csv" style={{ display: 'none' }} onChange={onFile} />
 
       {msg && <div style={{ margin: '10px 0', fontSize: 13, color: 'var(--brand-primary)' }}>{msg}</div>}
 
@@ -380,7 +430,7 @@ export default function BankingPage() {
           <div style={{ fontSize: 40, marginBottom: 16 }}>🏦</div>
           <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 8 }}>Add a bank or credit-card account</p>
           <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 20 }}>
-            Add an account, then import a CSV statement to bring in your transactions.
+            Add an account, then import a statement (CSV or .qbo/.qfx) to bring in your transactions.
           </p>
           <button className="btn-primary" onClick={() => setShowAddAcct(true)}>Add account</button>
         </div>
@@ -415,8 +465,8 @@ export default function BankingPage() {
             <div className="card" style={{ padding: 40, textAlign: 'center' }}>
               <div style={{ fontSize: 34, marginBottom: 12 }}>📄</div>
               <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>No transactions yet</p>
-              <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 18 }}>Import a CSV statement to bring in this account's activity.</p>
-              <button className="btn-primary" onClick={() => fileRef.current?.click()}>⬆ Import CSV</button>
+              <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 18 }}>Import a statement (CSV or .qbo/.qfx) to bring in this account's activity.</p>
+              <button className="btn-primary" onClick={() => fileRef.current?.click()}>⬆ Import statement</button>
             </div>
           ) : (
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -612,8 +662,9 @@ export default function BankingPage() {
 
       {/* CSV import / column-mapping modal */}
       {importData && (() => {
-        const { headerRow } = importData;
-        const map = importData.map;
+        const preParsed = importData.preParsed;
+        const headerRow = importData.headerRow || [];
+        const map = importData.map || {};
         const colOpts = [<option key="none" value="">— none —</option>, ...headerRow.map((h, i) => <option key={i} value={i}>{h || `Column ${i + 1}`}</option>)];
         const setMap = (patch) => setImportData(d => ({ ...d, map: { ...d.map, ...patch } }));
         const allValid = mappedRows(importData);
@@ -626,37 +677,45 @@ export default function BankingPage() {
                 <h2 style={{ fontSize: 18, fontWeight: 600 }}>Import transactions</h2>
                 <button onClick={() => setImportData(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer' }}>×</button>
               </div>
-              <p style={{ fontSize: 12, color: '#7A9A7A', marginBottom: 16 }}>Match your file's columns. We guessed from the headers — adjust if needed.</p>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-                <div><label style={labelStyle}>DATE COLUMN</label>
-                  <select value={map.date} onChange={e => setMap({ date: e.target.value })} style={inputStyle}>{colOpts}</select></div>
-                <div><label style={labelStyle}>DESCRIPTION COLUMN</label>
-                  <select value={map.desc} onChange={e => setMap({ desc: e.target.value })} style={inputStyle}>{colOpts}</select></div>
-              </div>
-
-              <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>AMOUNT FORMAT</label>
-                <div style={{ display: 'flex', gap: 14, fontSize: 13, marginBottom: 8 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                    <input type="radio" checked={map.mode === 'single'} onChange={() => setMap({ mode: 'single' })} /> One signed amount column
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                    <input type="radio" checked={map.mode === 'split'} onChange={() => setMap({ mode: 'split' })} /> Separate debit / credit
-                  </label>
+              {preParsed ? (
+                <div style={{ background: '#F1F6EE', border: '1px solid #DCEAD4', borderRadius: 8, padding: '12px 14px', marginBottom: 16, fontSize: 13, color: '#2D4A35' }}>
+                  Read <strong>{validCount}</strong> transaction{validCount === 1 ? '' : 's'} from your bank file (.qbo/.qfx). No column mapping needed — review below and import.
                 </div>
-                {map.mode === 'single' ? (
-                  <div><label style={labelStyle}>AMOUNT COLUMN <span style={{ fontWeight: 400, textTransform: 'none' }}>(negative = money out)</span></label>
-                    <select value={map.amount} onChange={e => setMap({ amount: e.target.value })} style={inputStyle}>{colOpts}</select></div>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <div><label style={labelStyle}>DEBIT (money out)</label>
-                      <select value={map.debit} onChange={e => setMap({ debit: e.target.value })} style={inputStyle}>{colOpts}</select></div>
-                    <div><label style={labelStyle}>CREDIT (money in)</label>
-                      <select value={map.credit} onChange={e => setMap({ credit: e.target.value })} style={inputStyle}>{colOpts}</select></div>
+              ) : (
+                <>
+                  <p style={{ fontSize: 12, color: '#7A9A7A', marginBottom: 16 }}>Match your file's columns. We guessed from the headers — adjust if needed.</p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                    <div><label style={labelStyle}>DATE COLUMN</label>
+                      <select value={map.date} onChange={e => setMap({ date: e.target.value })} style={inputStyle}>{colOpts}</select></div>
+                    <div><label style={labelStyle}>DESCRIPTION COLUMN</label>
+                      <select value={map.desc} onChange={e => setMap({ desc: e.target.value })} style={inputStyle}>{colOpts}</select></div>
                   </div>
-                )}
-              </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={labelStyle}>AMOUNT FORMAT</label>
+                    <div style={{ display: 'flex', gap: 14, fontSize: 13, marginBottom: 8 }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                        <input type="radio" checked={map.mode === 'single'} onChange={() => setMap({ mode: 'single' })} /> One signed amount column
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                        <input type="radio" checked={map.mode === 'split'} onChange={() => setMap({ mode: 'split' })} /> Separate debit / credit
+                      </label>
+                    </div>
+                    {map.mode === 'single' ? (
+                      <div><label style={labelStyle}>AMOUNT COLUMN <span style={{ fontWeight: 400, textTransform: 'none' }}>(negative = money out)</span></label>
+                        <select value={map.amount} onChange={e => setMap({ amount: e.target.value })} style={inputStyle}>{colOpts}</select></div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div><label style={labelStyle}>DEBIT (money out)</label>
+                          <select value={map.debit} onChange={e => setMap({ debit: e.target.value })} style={inputStyle}>{colOpts}</select></div>
+                        <div><label style={labelStyle}>CREDIT (money in)</label>
+                          <select value={map.credit} onChange={e => setMap({ credit: e.target.value })} style={inputStyle}>{colOpts}</select></div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
 
               <div style={{ fontSize: 12, color: '#7A9A7A', marginBottom: 6 }}>Preview ({validCount} valid row{validCount === 1 ? '' : 's'})</div>
               <div style={{ border: '1px solid #EBF2E8', borderRadius: 8, overflow: 'hidden', marginBottom: 18 }}>
