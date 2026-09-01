@@ -37,6 +37,79 @@ function parseCSV(text) {
 const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #D4DDCC', fontSize: 13, boxSizing: 'border-box' };
 const labelStyle = { fontSize: 12, fontWeight: 500, color: '#7A9A7A', display: 'block', marginBottom: 4 };
 
+// A sensible default rule keyword from a transaction description: the first
+// real word (e.g. "WAWA 123 PHILADELPHIA PA" → "WAWA"), capped for readability.
+function defaultMatch(desc) {
+  const s = String(desc || '').trim();
+  const tok = s.split(/\s+/).find(w => w.replace(/[^A-Za-z0-9]/g, '').length >= 2);
+  return (tok ? tok.replace(/[^A-Za-z0-9&]/g, '') : s).slice(0, 40);
+}
+
+// Searchable category picker: click to open, type to filter (so "T" jumps to
+// Travel), arrow keys + Enter to choose. Value is the chart-account NAME.
+function CategoryPicker({ value, options, onPick }) {
+  const [open, setOpen]     = useState(false);
+  const [q, setQ]           = useState('');
+  const [active, setActive] = useState(0);
+  const boxRef   = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => { if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+  useEffect(() => { if (open) { setQ(''); setActive(0); setTimeout(() => inputRef.current?.focus(), 0); } }, [open]);
+
+  const ql = q.trim().toLowerCase();
+  const filtered = ql
+    ? options.filter(a => a.name.toLowerCase().includes(ql) || String(a.code).toLowerCase().includes(ql))
+    : options;
+  const pick = (name) => { onPick(name); setOpen(false); };
+  function onKey(e) {
+    if (e.key === 'ArrowDown')      { e.preventDefault(); setActive(i => Math.min(i + 1, filtered.length - 1)); }
+    else if (e.key === 'ArrowUp')   { e.preventDefault(); setActive(i => Math.max(i - 1, 0)); }
+    else if (e.key === 'Enter')     { e.preventDefault(); const a = filtered[active]; if (a) pick(a.name); }
+    else if (e.key === 'Escape')    { e.preventDefault(); setOpen(false); }
+  }
+  const hasValue = !!value;
+
+  return (
+    <div ref={boxRef} style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+      <button type="button" onClick={() => setOpen(o => !o)}
+        style={{ ...inputStyle, padding: '6px 8px', textAlign: 'left', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6,
+          borderColor: hasValue ? '#D4DDCC' : '#F0C36D', background: hasValue ? '#fff' : '#FFFBF2',
+          color: hasValue ? 'var(--color-text-primary)' : '#854F0B', overflow: 'hidden' }}>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || 'Uncategorized…'}</span>
+        <span style={{ color: '#9BB39B', fontSize: 10 }}>▼</span>
+      </button>
+      {open && (
+        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 50, width: 270, background: '#fff', border: '1px solid #D4DDCC', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.14)', overflow: 'hidden' }}>
+          <input ref={inputRef} value={q} onChange={e => { setQ(e.target.value); setActive(0); }} onKeyDown={onKey}
+            placeholder="Type to filter… (T → Travel)"
+            style={{ width: '100%', border: 'none', borderBottom: '1px solid #EBF2E8', padding: '9px 12px', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+          <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+            {hasValue && (
+              <div onMouseDown={e => e.preventDefault()} onClick={() => pick('')}
+                style={{ padding: '7px 12px', fontSize: 12.5, color: '#A32D2D', cursor: 'pointer' }}>Clear category</div>
+            )}
+            {filtered.length === 0 ? (
+              <div style={{ padding: '10px 12px', fontSize: 12.5, color: '#7A9A7A' }}>No matching category</div>
+            ) : filtered.map((a, i) => (
+              <div key={a.id} onMouseDown={e => e.preventDefault()} onClick={() => pick(a.name)} onMouseEnter={() => setActive(i)}
+                style={{ padding: '7px 12px', fontSize: 13, cursor: 'pointer', background: i === active ? '#F1F6EE' : '#fff', display: 'flex', gap: 8 }}>
+                <span style={{ color: '#9BB39B', fontVariantNumeric: 'tabular-nums' }}>{a.code}</span>
+                <span>{a.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function BankingPage() {
   const { orgId, token } = getAuth();
   const headers = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
@@ -58,6 +131,11 @@ export default function BankingPage() {
   const [matchFor, setMatchFor]       = useState(null);  // txn being reconciled
   const [matchCands, setMatchCands]   = useState([]);
   const [matchLoading, setMatchLoading] = useState(false);
+
+  const [rules, setRules]         = useState([]);
+  const [showRules, setShowRules] = useState(false);
+  const [rulePrompt, setRulePrompt] = useState(null);        // { match, category, description }
+  const [newRule, setNewRule]     = useState({ match: '', category: '' });
 
   async function loadAccounts() {
     setLoading(true);
@@ -83,6 +161,14 @@ export default function BankingPage() {
     } catch (e) { setTxns([]); }
   }
   useEffect(() => { if (activeId) loadTxns(activeId); else setTxns([]); }, [activeId]);
+
+  async function loadRules() {
+    try {
+      const r = await fetch(`${API}/orgs/${orgId}/banking/rules`, { headers }).then(r => r.json());
+      setRules(r.data || []);
+    } catch (e) { /* ignore */ }
+  }
+  useEffect(() => { if (orgId) loadRules(); }, [orgId]);
 
   async function addAccount() {
     if (!acctForm.name) return;
@@ -158,20 +244,70 @@ export default function BankingPage() {
       }).then(r => r.json());
       if (r.success) {
         setImportData(null);
-        setMsg(`Imported ${r.data.imported} transaction${r.data.imported === 1 ? '' : 's'}${r.data.skipped ? ` (${r.data.skipped} duplicate${r.data.skipped === 1 ? '' : 's'} skipped)` : ''}.`);
+        const auto = r.data.autoCategorized || 0;
+        setMsg(`Imported ${r.data.imported} transaction${r.data.imported === 1 ? '' : 's'}${r.data.skipped ? ` (${r.data.skipped} duplicate${r.data.skipped === 1 ? '' : 's'} skipped)` : ''}${auto ? ` · ${auto} auto-categorized by rules` : ''}.`);
         await loadTxns(activeId);
       } else setMsg(r.message || 'Import failed.');
     } catch (e) { setMsg('Import failed.'); }
     setImporting(false);
   }
 
-  async function categorize(txnId, category) {
+  async function categorize(txnId, category, txn) {
     try {
       const r = await fetch(`${API}/orgs/${orgId}/banking/accounts/${activeId}/transactions/${txnId}`, {
         method: 'PATCH', headers, body: JSON.stringify({ category }),
       }).then(r => r.json());
-      if (r.success) setTxns(prev => prev.map(t => t.id === txnId ? r.data : t));
+      if (r.success) {
+        setTxns(prev => prev.map(t => t.id === txnId ? r.data : t));
+        // When a previously-uncategorized line gets a category, offer to save a rule.
+        if (category && txn && txn.status !== 'categorized') {
+          setRulePrompt({ match: defaultMatch(txn.description), category, description: txn.description });
+        }
+      }
     } catch (e) { setMsg('Could not categorize.'); }
+  }
+
+  async function createRule() {
+    if (!rulePrompt) return;
+    const match = rulePrompt.match.trim();
+    const category = rulePrompt.category;
+    if (!match) { setRulePrompt(null); return; }
+    try {
+      const r = await fetch(`${API}/orgs/${orgId}/banking/rules`, {
+        method: 'POST', headers, body: JSON.stringify({ match, category }),
+      }).then(r => r.json());
+      if (r.success) {
+        const applied = r.data?.applied || 0;
+        setMsg(`Rule saved — anything containing "${match}" is now categorized as ${category}${applied ? `. Applied to ${applied} existing transaction${applied === 1 ? '' : 's'}.` : '.'}`);
+        await loadRules();
+        await loadTxns(activeId);
+      } else setMsg(r.message || 'Could not save the rule.');
+    } catch (e) { setMsg('Could not save the rule.'); }
+    setRulePrompt(null);
+  }
+
+  async function addRuleFromModal() {
+    const match = newRule.match.trim();
+    if (!match || !newRule.category) return;
+    try {
+      const r = await fetch(`${API}/orgs/${orgId}/banking/rules`, {
+        method: 'POST', headers, body: JSON.stringify({ match, category: newRule.category }),
+      }).then(r => r.json());
+      if (r.success) {
+        setNewRule({ match: '', category: '' });
+        await loadRules();
+        await loadTxns(activeId);
+        const applied = r.data?.applied || 0;
+        if (applied) setMsg(`Rule applied to ${applied} existing transaction${applied === 1 ? '' : 's'}.`);
+      } else alert(r.message || 'Could not save the rule.');
+    } catch (e) { alert('Could not save the rule.'); }
+  }
+
+  async function deleteRule(id) {
+    try {
+      await fetch(`${API}/orgs/${orgId}/banking/rules/${id}`, { method: 'DELETE', headers });
+      setRules(prev => prev.filter(r => r.id !== id));
+    } catch (e) { /* ignore */ }
   }
 
   async function deleteTxn(txnId) {
@@ -227,6 +363,9 @@ export default function BankingPage() {
               ⬆ Import CSV
             </button>
           )}
+          <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={() => setShowRules(true)}>
+            ⚙ Rules{rules.length ? ` (${rules.length})` : ''}
+          </button>
           <button className="btn-primary" style={{ fontSize: 13 }} onClick={() => setShowAddAcct(true)}>+ Add account</button>
         </div>
       </div>
@@ -311,11 +450,8 @@ export default function BankingPage() {
                             </div>
                           ) : (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <select value={t.category || ''} onChange={e => categorize(t.id, e.target.value)}
-                                style={{ ...inputStyle, padding: '6px 8px', borderColor: t.category ? '#D4DDCC' : '#F0C36D', background: t.category ? '#fff' : '#FFFBF2' }}>
-                                <option value="">Uncategorized…</option>
-                                {sortedChart.map(a => <option key={a.id} value={a.name}>{a.code} · {a.name}</option>)}
-                              </select>
+                              <CategoryPicker value={t.category || ''} options={sortedChart}
+                                onPick={(name) => categorize(t.id, name, t)} />
                               <button onClick={() => openMatch(t)} title="Match to an invoice, bill, or expense you already entered"
                                 style={{ background: 'none', border: '1px solid #D4DDCC', borderRadius: 6, color: 'var(--brand-primary, #2D4A35)', fontSize: 11, padding: '6px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Match</button>
                             </div>
@@ -394,6 +530,81 @@ export default function BankingPage() {
             )}
             <div style={{ marginTop: 18, textAlign: 'right' }}>
               <button onClick={() => { setMatchFor(null); setMatchCands([]); }} style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid #D4DDCC', background: '#fff', cursor: 'pointer', fontSize: 13 }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create-rule prompt (after categorizing an uncategorized line) */}
+      {rulePrompt && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:110, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+          <div style={{ background:'#fff', borderRadius:14, padding:26, width:440, maxWidth:'92vw' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+              <h2 style={{ fontSize:18, fontWeight:600 }}>Create a rule?</h2>
+              <button onClick={() => setRulePrompt(null)} style={{ background:'none', border:'none', fontSize:22, cursor:'pointer' }}>×</button>
+            </div>
+            <p style={{ fontSize:13, color:'#5E6B62', lineHeight:1.5, marginBottom:16 }}>
+              Automatically categorize any transaction whose description contains this text as <strong>{rulePrompt.category}</strong> — now and on future imports.
+            </p>
+            <label style={labelStyle}>WHEN DESCRIPTION CONTAINS</label>
+            <input value={rulePrompt.match} onChange={e => setRulePrompt(p => ({ ...p, match: e.target.value }))} style={{ ...inputStyle, marginBottom:6 }} autoFocus />
+            <div style={{ fontSize:12, color:'#7A9A7A', marginBottom:18 }}>e.g. “WAWA” → every Wawa transaction becomes {rulePrompt.category}.</div>
+            <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
+              <button onClick={() => setRulePrompt(null)} style={{ padding:'9px 16px', borderRadius:8, border:'1px solid #D4DDCC', background:'#fff', cursor:'pointer', fontSize:13 }}>No thanks</button>
+              <button onClick={createRule} style={{ padding:'9px 18px', borderRadius:8, border:'none', background:'#2D4A35', color:'#A8D4A8', cursor:'pointer', fontSize:13, fontWeight:600 }}>Create rule</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rules manager */}
+      {showRules && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:110, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+          <div style={{ background:'#fff', borderRadius:14, padding:26, width:560, maxWidth:'95vw', maxHeight:'90vh', overflowY:'auto' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+              <h2 style={{ fontSize:18, fontWeight:600 }}>Categorization rules</h2>
+              <button onClick={() => setShowRules(false)} style={{ background:'none', border:'none', fontSize:22, cursor:'pointer' }}>×</button>
+            </div>
+            <p style={{ fontSize:12.5, color:'#7A9A7A', marginBottom:16, lineHeight:1.5 }}>
+              When an imported transaction's description contains the text on the left, it's automatically categorized on the right — on import and when you add the rule.
+            </p>
+
+            <div style={{ display:'flex', gap:8, alignItems:'flex-end', marginBottom:16, flexWrap:'wrap' }}>
+              <div style={{ flex:'1 1 150px' }}>
+                <label style={labelStyle}>CONTAINS</label>
+                <input value={newRule.match} onChange={e => setNewRule(n => ({ ...n, match: e.target.value }))} placeholder="WAWA" style={inputStyle} />
+              </div>
+              <div style={{ flex:'1 1 180px' }}>
+                <label style={labelStyle}>CATEGORY</label>
+                <select value={newRule.category} onChange={e => setNewRule(n => ({ ...n, category: e.target.value }))} style={inputStyle}>
+                  <option value="">Select…</option>
+                  {sortedChart.map(a => <option key={a.id} value={a.name}>{a.code} · {a.name}</option>)}
+                </select>
+              </div>
+              <button onClick={addRuleFromModal} disabled={!newRule.match.trim() || !newRule.category}
+                style={{ padding:'9px 16px', borderRadius:8, border:'none', background:(newRule.match.trim() && newRule.category)?'#2D4A35':'#9BB39B', color:'#A8D4A8', cursor:(newRule.match.trim() && newRule.category)?'pointer':'default', fontSize:13, fontWeight:600 }}>Add</button>
+            </div>
+
+            {rules.length === 0 ? (
+              <div style={{ padding:'24px 12px', textAlign:'center', color:'#7A9A7A', fontSize:13, border:'1px dashed #D4DDCC', borderRadius:8 }}>
+                No rules yet. Add one above, or create one while categorizing a transaction.
+              </div>
+            ) : (
+              <div style={{ border:'1px solid #EBF2E8', borderRadius:8, overflow:'hidden' }}>
+                {rules.map(r => (
+                  <div key={r.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderBottom:'0.5px solid #EBF2E8' }}>
+                    <span style={{ fontSize:13, color:'#5E6B62' }}>contains</span>
+                    <span style={{ fontSize:13, fontWeight:600 }}>“{r.match}”</span>
+                    <span style={{ color:'#9BB39B' }}>→</span>
+                    <span style={{ fontSize:13, fontWeight:600, color:'var(--brand-primary, #2D4A35)' }}>{r.category}</span>
+                    <button onClick={() => deleteRule(r.id)} style={{ marginLeft:'auto', background:'none', border:'none', color:'#A32D2D', fontSize:12, cursor:'pointer' }}>Remove</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{ marginTop:18, textAlign:'right' }}>
+              <button onClick={() => setShowRules(false)} style={{ padding:'9px 16px', borderRadius:8, border:'1px solid #D4DDCC', background:'#fff', cursor:'pointer', fontSize:13 }}>Done</button>
             </div>
           </div>
         </div>
