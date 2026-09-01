@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
 
 // ── Theme definitions ─────────────────────────────────────────────────────────
 // Palettes mirror the Mountain Top Ledger mobile app: Original, Evergreen, Slate.
@@ -231,6 +232,34 @@ function applyTheme(themeId) {
   root.setAttribute('data-theme', theme.id);
 }
 
+// ── Per-organization brand overrides (white-label) ────────────────────────────
+// Layered ON TOP of the selected theme: an org's custom primary/accent colors
+// override the chrome and accent tokens. Text-on-color tokens flip to white or
+// dark automatically for legibility. No custom colors → the named theme shows.
+function applyBrand(org) {
+  const root = document.documentElement;
+  const readable = (hex) => {
+    const c = String(hex || '').replace('#', '');
+    if (c.length < 6) return null;
+    const r = parseInt(c.slice(0, 2), 16), g = parseInt(c.slice(2, 4), 16), b = parseInt(c.slice(4, 6), 16);
+    if ([r, g, b].some(Number.isNaN)) return null;
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.6 ? '#ffffff' : '#0C2A44';
+  };
+  const p = org?.brandPrimary, a = org?.brandAccent;
+  if (p) {
+    ['--brand-sidebar', '--brand-topbar', '--brand-primary', '--brand-primary-hover', '--brand-kpi-hero-bg', '--brand-inv-header', '--brand-inv-total', '--brand-mobile-bar']
+      .forEach(k => root.style.setProperty(k, p));
+    const t = readable(p);
+    if (t) ['--brand-logo', '--brand-kpi-hero-val', '--brand-primary-text'].forEach(k => root.style.setProperty(k, t));
+  }
+  if (a) {
+    ['--brand-btn-primary-bg', '--brand-pay-btn-bg', '--brand-nav-active-bg', '--brand-nav-active-border', '--brand-inv-header-logo', '--brand-mobile-active']
+      .forEach(k => root.style.setProperty(k, a));
+    const t = readable(a);
+    if (t) ['--brand-btn-primary-text', '--brand-pay-btn-text', '--brand-nav-active-icon'].forEach(k => root.style.setProperty(k, t));
+  }
+}
+
 // ── Context ───────────────────────────────────────────────────────────────────
 
 const ThemeContext = createContext(null);
@@ -241,10 +270,15 @@ export function ThemeProvider({ children }) {
     return (saved && THEMES[saved]) ? saved : 'deep-harbor';
   });
 
-  // Apply on mount and whenever theme changes
+  const { org } = useAuth();
+
+  // Apply on mount and whenever the theme OR the org's brand colors change.
+  // applyTheme resets to the named palette first, then applyBrand layers any
+  // custom colors on top (so switching to an unbranded org cleanly reverts).
   useEffect(() => {
     applyTheme(themeId);
-  }, [themeId]);
+    applyBrand(org);
+  }, [themeId, org?.brandPrimary, org?.brandAccent]);
 
   // When user data is available (from AuthContext), use their saved theme
   useEffect(() => {

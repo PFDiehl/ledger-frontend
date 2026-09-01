@@ -35,6 +35,17 @@ export function AuthProvider({ children }) {
     localStorage.setItem('ledger_org', JSON.stringify(o));
   }
 
+  // Merge changed org fields (e.g. branding) into state + storage without a reload.
+  function applyOrgUpdate(updated) {
+    if (!updated?.id) return;
+    setOrgs(prev => prev.map(o => o.id === updated.id ? { ...o, ...updated } : o));
+    setOrgState(prev => (prev && prev.id === updated.id) ? { ...prev, ...updated } : prev);
+    try {
+      const cur = JSON.parse(localStorage.getItem('ledger_org'));
+      if (cur && cur.id === updated.id) localStorage.setItem('ledger_org', JSON.stringify({ ...cur, ...updated }));
+    } catch { /* ignore */ }
+  }
+
   // Keep the access token fresh. Access tokens are short-lived now, and several
   // pages read the token straight from localStorage (no auto-retry), so we
   // proactively refresh well before expiry — on an interval and when the tab
@@ -96,7 +107,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, orgs, org, loading, login, verify2FA, register, logout, selectOrg }}>
+    <AuthContext.Provider value={{ user, orgs, org, loading, login, verify2FA, register, logout, selectOrg, applyOrgUpdate }}>
       {children}
     </AuthContext.Provider>
   );

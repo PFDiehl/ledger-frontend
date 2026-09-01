@@ -13,9 +13,13 @@ export default function TopBar({ onLogout, onAI }) {
   return (
     <header className="topbar">
       <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-        <div className="app-logo" style={{ fontSize:16, fontWeight:600, letterSpacing:'-.03em', color:'var(--brand-logo)' }}>
-          Mountain Top Ledger
-        </div>
+        {org?.logoUrl ? (
+          <img src={org.logoUrl} alt={org.brandName || 'Logo'} style={{ height:26, maxWidth:170, objectFit:'contain', display:'block' }} />
+        ) : (
+          <div className="app-logo" style={{ fontSize:16, fontWeight:600, letterSpacing:'-.03em', color:'var(--brand-logo)' }}>
+            {org?.brandName || 'Mountain Top Ledger'}
+          </div>
+        )}
         {org && (
           <div className="org-pill">
             {org.name}

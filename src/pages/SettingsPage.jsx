@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth }  from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { api }      from '../lib/api';
@@ -7,6 +7,7 @@ import BillingPage   from './BillingPage';
 
 const TABS = [
   { id:'appearance',   icon:'palette',     label:'Appearance'    },
+  { id:'brand',        icon:'photo',       label:'Branding'      },
   { id:'company',      icon:'building',    label:'Company'       },
   { id:'team',         icon:'users',       label:'Team'          },
   { id:'billing',      icon:'credit-card', label:'Billing'       },
@@ -846,12 +847,150 @@ function IntegrationsSettings() {
   );
 }
 
+function BrandingSettings() {
+  const toast = useToast();
+  const { org, applyOrgUpdate } = useAuth();
+  const [brandName, setBrandName] = useState(org?.brandName || '');
+  const [primary, setPrimary]     = useState(org?.brandPrimary || '#0C2A44');
+  const [accent, setAccent]       = useState(org?.brandAccent || '#E0B154');
+  const [logoUrl, setLogoUrl]     = useState(org?.logoUrl || '');
+  const [busy, setBusy]           = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
+  const hasCustom = !!(org?.brandPrimary || org?.brandAccent);
+
+  useEffect(() => {
+    setBrandName(org?.brandName || '');
+    setPrimary(org?.brandPrimary || '#0C2A44');
+    setAccent(org?.brandAccent || '#E0B154');
+    setLogoUrl(org?.logoUrl || '');
+  }, [org?.id]);
+
+  const readable = (hex) => {
+    const c = String(hex || '').replace('#', ''); if (c.length < 6) return '#fff';
+    const r = parseInt(c.slice(0,2),16), g = parseInt(c.slice(2,4),16), b = parseInt(c.slice(4,6),16);
+    return (0.299*r + 0.587*g + 0.114*b) / 255 < 0.6 ? '#ffffff' : '#0C2A44';
+  };
+
+  async function uploadLogo(file) {
+    if (!file) return;
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const imageBase64 = String(e.target.result).split(',')[1];
+        const r = await fetch(`${SEC_API}/orgs/${org.id}/settings/logo`, { method:'POST', headers: secHeaders(), body: JSON.stringify({ imageBase64, mediaType: file.type || 'image/png' }) });
+        const j = await r.json();
+        const url = j.logoUrl || j.data?.logoUrl;
+        if (j.success && url) { setLogoUrl(url); applyOrgUpdate({ id: org.id, logoUrl: url }); toast.success('Logo uploaded'); }
+        else toast.error(j.message || 'Upload failed');
+      } catch { toast.error('Upload failed'); }
+      finally { setUploading(false); }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function removeLogo() {
+    try {
+      const r = await fetch(`${SEC_API}/orgs/${org.id}/settings/logo`, { method:'DELETE', headers: secHeaders() });
+      const j = await r.json();
+      if (j.success) { setLogoUrl(''); applyOrgUpdate({ id: org.id, logoUrl: null }); toast.success('Logo removed'); }
+    } catch { toast.error('Could not remove logo'); }
+  }
+
+  async function save() {
+    setBusy(true);
+    try {
+      const r = await fetch(`${SEC_API}/orgs/${org.id}/settings`, { method:'PATCH', headers: secHeaders(), body: JSON.stringify({ brandName, brandPrimary: primary, brandAccent: accent }) });
+      const j = await r.json();
+      if (j.success) { applyOrgUpdate({ id: org.id, brandName, brandPrimary: primary, brandAccent: accent }); toast.success('Branding saved'); }
+      else toast.error(j.message || 'Could not save');
+    } catch { toast.error('Cannot connect'); }
+    finally { setBusy(false); }
+  }
+
+  async function useThemeColors() {
+    setBusy(true);
+    try {
+      const r = await fetch(`${SEC_API}/orgs/${org.id}/settings`, { method:'PATCH', headers: secHeaders(), body: JSON.stringify({ brandPrimary:'', brandAccent:'' }) });
+      const j = await r.json();
+      if (j.success) { applyOrgUpdate({ id: org.id, brandPrimary: null, brandAccent: null }); toast.success('Reverted to theme colors'); }
+    } catch { toast.error('Cannot connect'); }
+    finally { setBusy(false); }
+  }
+
+  const box = { width:'100%', padding:'9px 12px', borderRadius:8, border:'0.5px solid var(--color-border-secondary)', fontSize:13, boxSizing:'border-box', background:'var(--color-background-primary)', color:'var(--color-text-primary)' };
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
+      <div style={{ fontSize:12, color:'var(--color-text-tertiary)', lineHeight:1.5 }}>
+        Make the app your own. Your logo, name, and colors appear across the app, on invoices, and on the client payment page — ideal for firms reselling under their own brand.
+      </div>
+
+      <div>
+        <div style={{ fontSize:13, fontWeight:600, marginBottom:8 }}>Logo</div>
+        <div style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
+          <div style={{ width:180, height:56, borderRadius:8, border:'0.5px dashed var(--color-border-secondary)', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--color-background-secondary)', overflow:'hidden' }}>
+            {logoUrl ? <img src={logoUrl} alt="Logo" style={{ maxHeight:44, maxWidth:160, objectFit:'contain' }} /> : <span style={{ fontSize:11, color:'var(--color-text-tertiary)' }}>No logo</span>}
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" style={{ display:'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadLogo(f); e.target.value=''; }} />
+            <div style={{ display:'flex', gap:8 }}>
+              <button className="btn-secondary" style={{ fontSize:12 }} disabled={uploading} onClick={()=>fileRef.current?.click()}>{uploading ? 'Uploading…' : (logoUrl ? 'Replace logo' : 'Upload logo')}</button>
+              {logoUrl && <button className="btn-secondary" style={{ fontSize:12 }} onClick={removeLogo}>Remove</button>}
+            </div>
+            <div style={{ fontSize:11, color:'var(--color-text-tertiary)' }}>PNG or SVG with a transparent background works best.</div>
+          </div>
+        </div>
+      </div>
+
+      <FieldRow label="Brand name (shown when there's no logo)">
+        <input style={box} value={brandName} onChange={e=>setBrandName(e.target.value)} placeholder="Mountain Top Ledger" />
+      </FieldRow>
+
+      <div>
+        <div style={{ fontSize:13, fontWeight:600, marginBottom:10 }}>Colors</div>
+        <div style={{ display:'flex', gap:24, flexWrap:'wrap' }}>
+          <label style={{ display:'flex', alignItems:'center', gap:10, fontSize:13 }}>
+            <input type="color" value={primary} onChange={e=>setPrimary(e.target.value)} style={{ width:40, height:32, border:'none', background:'none', cursor:'pointer' }} />
+            <span>Primary <span style={{ color:'var(--color-text-tertiary)', fontFamily:'monospace' }}>{primary}</span></span>
+          </label>
+          <label style={{ display:'flex', alignItems:'center', gap:10, fontSize:13 }}>
+            <input type="color" value={accent} onChange={e=>setAccent(e.target.value)} style={{ width:40, height:32, border:'none', background:'none', cursor:'pointer' }} />
+            <span>Accent <span style={{ color:'var(--color-text-tertiary)', fontFamily:'monospace' }}>{accent}</span></span>
+          </label>
+        </div>
+        <div style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:8 }}>Primary is the sidebar/header color; accent is used for buttons and highlights.</div>
+      </div>
+
+      <div>
+        <div style={{ fontSize:12, fontWeight:600, color:'var(--color-text-secondary)', marginBottom:8 }}>Preview</div>
+        <div style={{ display:'flex', border:'0.5px solid var(--color-border-tertiary)', borderRadius:10, overflow:'hidden', height:120 }}>
+          <div style={{ width:130, background:primary, color:readable(primary), padding:'12px 14px', fontSize:12, fontWeight:600, display:'flex', alignItems:'flex-start' }}>
+            {logoUrl ? <img src={logoUrl} alt="" style={{ maxWidth:100, maxHeight:26, objectFit:'contain' }} /> : (brandName || 'Mountain Top Ledger')}
+          </div>
+          <div style={{ flex:1, background:'var(--color-background-secondary)', padding:'14px', display:'flex', flexDirection:'column', gap:10 }}>
+            <div style={{ height:10, width:'40%', background:'var(--color-border-secondary)', borderRadius:4 }} />
+            <button style={{ alignSelf:'flex-start', background:accent, color:readable(accent), border:'none', borderRadius:8, padding:'8px 16px', fontSize:12, fontWeight:600, cursor:'default' }}>Primary button</button>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+        <button className="btn-primary" onClick={save} disabled={busy}>{busy ? 'Saving…' : 'Save branding'}</button>
+        {hasCustom && <button className="btn-secondary" style={{ fontSize:12 }} onClick={useThemeColors} disabled={busy}>Use theme colors instead</button>}
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const [tab, setTab] = useState('appearance');
 
   const renderContent = () => {
     switch(tab) {
       case 'appearance':   return <ThemePicker />;
+      case 'brand':        return <BrandingSettings />;
       case 'company':      return <CompanySettings />;
       case 'team':         return <TeamSettings />;
       case 'billing':      return <BillingPage />;
