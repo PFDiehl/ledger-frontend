@@ -6,6 +6,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null);
   const [orgs,    setOrgs]    = useState([]);
+  const [tenants, setTenants] = useState([]);
   const [org,     setOrgState] = useState(() => {
     try { return JSON.parse(localStorage.getItem('ledger_org')); } catch { return null; }
   });
@@ -19,6 +20,7 @@ export function AuthProvider({ children }) {
         const me = await api.get('/auth/me');
         setUser(me.data.user);
         setOrgs(me.data.orgs);
+        setTenants(me.data.tenants || []);
         const savedOrg = me.data.orgs.find(o => o.id === org?.id) ?? me.data.orgs[0];
         if (savedOrg) selectOrg(savedOrg);
       } catch {
@@ -71,6 +73,7 @@ export function AuthProvider({ children }) {
     if (data.refreshToken) setRefreshToken(data.refreshToken);
     setUser(data.user);
     setOrgs(data.orgs);
+    setTenants(data.tenants || []);
     const firstOrg = data.orgs[0];
     if (firstOrg) selectOrg(firstOrg);
     return data;
@@ -82,6 +85,7 @@ export function AuthProvider({ children }) {
     if (data.refreshToken) setRefreshToken(data.refreshToken);
     setUser(data.user);
     setOrgs(data.orgs);
+    setTenants(data.tenants || []);
     const firstOrg = data.orgs[0];
     if (firstOrg) selectOrg(firstOrg);
     return data;
@@ -102,12 +106,13 @@ export function AuthProvider({ children }) {
     clearAuth();
     setUser(null);
     setOrgs([]);
+    setTenants([]);
     setOrgState(null);
     localStorage.removeItem('ledger_org');
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, orgs, org, loading, login, verify2FA, register, logout, selectOrg, applyOrgUpdate }}>
+    <AuthContext.Provider value={{ user, orgs, tenants, org, loading, login, verify2FA, register, logout, selectOrg, applyOrgUpdate }}>
       {children}
     </AuthContext.Provider>
   );

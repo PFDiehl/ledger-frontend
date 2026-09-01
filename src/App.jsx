@@ -25,6 +25,7 @@ import CurrenciesPage            from './pages/CurrenciesPage';
 import CustomerPortalPage        from './pages/CustomerPortalPage';
 import BillingPage               from './pages/BillingPage';
 import MultiCompanyPage          from './pages/MultiCompanyPage';
+import ResellerPage              from './pages/ResellerPage';
 import AICategorizePage          from './pages/AICategorizePage';
 import AnomalyDetectionPage      from './pages/AnomalyDetectionPage';
 import CashFlowForecastPage      from './pages/CashFlowForecastPage';
@@ -50,7 +51,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://ledger-accounting-prod
 const BILLING_ENFORCED = import.meta.env.VITE_BILLING_ENFORCED === 'true';
 
 export default function App() {
-  const { user, org, loading, logout } = useAuth();
+  const { user, org, tenants, loading, logout } = useAuth();
   const [activeNav, setActiveNav]  = useState('dashboard');
   const [view, setView]            = useState({ type:'list' });
   const [onboarded, setOnboarded]  = useState(() => !!localStorage.getItem('onboarded'));
@@ -201,6 +202,7 @@ export default function App() {
       case 'payroll':     return <PayrollPage />;
       case 'billing':     return <BillingPage />;
       case 'companies':   return <MultiCompanyPage />;
+      case 'reseller':    return <ResellerPage />;
       case 'ai-categorize':  return <AICategorizePage />;
       case 'ai-anomalies':   return <AnomalyDetectionPage />;
       case 'ai-forecast':    return <CashFlowForecastPage />;
@@ -213,7 +215,7 @@ export default function App() {
     <div className="app">
       <TopBar orgName={org?.name ?? 'My Company'} onLogout={logout} onAI={() => setShowAI(s => !s)} />
       <div className="app-body">
-        <Sidebar activeId={activeNav} onNavigate={item => nav(item.id)} />
+        <Sidebar activeId={activeNav} onNavigate={item => nav(item.id)} isReseller={(tenants?.length || 0) > 0} />
         <main className="main-content">{renderPage()}</main>
       </div>
       {showAI && <AIInsightsPanel onClose={() => setShowAI(false)} />}

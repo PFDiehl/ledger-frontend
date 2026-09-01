@@ -45,7 +45,7 @@ const ALL_NAV = [
   { id:'billing',       icon:'credit-card',   label:'Billing',        level:2, section:'More' },
 ];
 
-export default function Sidebar({ activeId='digest', onNavigate }) {
+export default function Sidebar({ activeId='digest', onNavigate, isReseller=false }) {
   const [expanded, setExpanded] = useState(false);
   const { used, days } = getUsageLevel();
 
@@ -54,8 +54,13 @@ export default function Sidebar({ activeId='digest', onNavigate }) {
     : days >= 3 || used.length >= 2 ? 1
     : 0;
 
-  const visible = ALL_NAV.filter(i => i.level <= maxLevel);
-  const hiddenCount = ALL_NAV.filter(i => i.level > maxLevel).length;
+  // Reseller console is only shown to partner (tenant) accounts, and always visible.
+  const navSource = isReseller
+    ? [...ALL_NAV, { id:'reseller', icon:'briefcase', label:'Reseller', level:0, section:'More' }]
+    : ALL_NAV;
+
+  const visible = navSource.filter(i => i.level <= maxLevel);
+  const hiddenCount = navSource.filter(i => i.level > maxLevel).length;
 
   const sections = [...new Set(visible.map(i => i.section ?? ''))];
 
