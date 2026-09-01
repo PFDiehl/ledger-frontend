@@ -17,7 +17,8 @@ export default function BillsPage({ presetVendor } = {}) {
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState({ vendor:'', amount:'', dueDate:'', description:'', category:'' });
+  const [editingStatus, setEditingStatus] = useState(null);
+  const [form, setForm] = useState({ vendor:'', amount:'', dueDate:'', description:'', category:'', paidDate:'' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -62,18 +63,21 @@ export default function BillsPage({ presetVendor } = {}) {
 
   function openNew() {
     setEditingId(null);
-    setForm({ vendor:'', amount:'', dueDate:'', description:'', category:'' });
+    setEditingStatus(null);
+    setForm({ vendor:'', amount:'', dueDate:'', description:'', category:'', paidDate:'' });
     setShowForm(true);
   }
 
   function openEdit(b) {
     setEditingId(b.id);
+    setEditingStatus(b.status);
     setForm({
       vendor: b.vendor || '',
       amount: b.amount != null ? String(b.amount) : '',
       dueDate: b.dueDate ? new Date(b.dueDate).toISOString().slice(0,10) : '',
       description: b.description || '',
       category: b.category || '',
+      paidDate: b.paidDate ? new Date(b.paidDate).toISOString().slice(0,10) : '',
     });
     setSelected(null);
     setShowForm(true);
@@ -82,7 +86,8 @@ export default function BillsPage({ presetVendor } = {}) {
   function closeForm() {
     setShowForm(false);
     setEditingId(null);
-    setForm({ vendor:'', amount:'', dueDate:'', description:'', category:'' });
+    setEditingStatus(null);
+    setForm({ vendor:'', amount:'', dueDate:'', description:'', category:'', paidDate:'' });
   }
 
   async function deleteBill(id) {
@@ -176,6 +181,7 @@ export default function BillsPage({ presetVendor } = {}) {
             <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Category: </span><span style={{fontSize:13}}>{selected.category||'-'}</span></div>
             <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Amount: </span><span style={{fontSize:18,fontWeight:700,color:'#c0392b'}}>{fmt(selected.amount)}</span></div>
             <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Status: </span><span style={{fontSize:13,textTransform:'capitalize'}}>{selected.status}</span></div>
+            {selected.status === 'paid' && selected.paidDate && <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Paid: </span><span style={{fontSize:13}}>{new Date(selected.paidDate).toLocaleDateString()}</span></div>}
             {selected.dueDate && <div style={{marginBottom:12}}><span style={{color:'#7A9A7A',fontSize:13}}>Due: </span><span style={{fontSize:13}}>{new Date(selected.dueDate).toLocaleDateString()}</span></div>}
             {selected.description && <div style={{marginBottom:20}}><span style={{color:'#7A9A7A',fontSize:13}}>Description: </span><span style={{fontSize:13}}>{selected.description}</span></div>}
             <div style={{display:'flex',gap:10,marginTop:20}}>
@@ -221,6 +227,12 @@ export default function BillsPage({ presetVendor } = {}) {
                 <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>DUE DATE</label>
                 <input type='date' value={form.dueDate} onChange={e=>setForm(f=>({...f,dueDate:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} />
               </div>
+              {editingId && editingStatus === 'paid' && (
+                <div>
+                  <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>PAID DATE <span style={{fontWeight:400,textTransform:'none',color:'#9BB39B'}}>(when it was paid)</span></label>
+                  <input type='date' value={form.paidDate} onChange={e=>setForm(f=>({...f,paidDate:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} />
+                </div>
+              )}
               <div>
                 <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>DESCRIPTION</label>
                 <input value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder='Monthly rent' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} />
