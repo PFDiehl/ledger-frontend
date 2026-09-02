@@ -11,6 +11,7 @@ const TABS = [
   { id: 'clients',  label: 'Clients'  },
   { id: 'branding', label: 'Branding' },
   { id: 'domains',  label: 'Domains'  },
+  { id: 'payments', label: 'Payments' },
 ];
 
 const box = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '0.5px solid #D4DDCC', fontSize: 13, boxSizing: 'border-box', background: '#ffffff', color: '#1f2a24' };
@@ -94,6 +95,7 @@ export default function ResellerPage() {
           {tab === 'clients'   && <Clients tenantId={tenantId} clients={clients} reload={() => loadAll(tenantId)} />}
           {tab === 'branding'  && <Branding tenantId={tenantId} tenant={tenant} onSaved={() => loadAll(tenantId)} />}
           {tab === 'domains'   && <Domains tenantId={tenantId} tenant={tenant} reload={() => loadAll(tenantId)} />}
+          {tab === 'payments'  && <Payments tenantId={tenantId} tenant={tenant} />}
         </>
       )}
     </div>
@@ -369,6 +371,125 @@ function Domains({ tenantId, tenant, reload }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function Payments({ tenantId, tenant }) {
+  const toast = useToast();
+  const [status, setStatus]   = useState(null);
+  const [revenue, setRevenue] = useState(null);
+  const [prices, setPrices]   = useState({ starter: '', growth: '' });
+  const [busy, setBusy]       = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const p = tenant?.stripePriceIds || {};
+    setPrices({ starter: p.starter || '', growth: p.growth || '' });
+  }, [tenant?.id]);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const s = await fetch(`${API}/connect/tenants/${tenantId}/status`, { headers: H() }).then(r => r.json());
+      setStatus(s.data || { connected: false });
+      if (s.data?.connected) {
+        const rev = await fetch(`${API}/connect/tenants/${tenantId}/revenue`, { headers: H() }).then(r => r.json());
+        setRevenue(rev.data || null);
+      }
+    } catch { setStatus({ connected: false }); }
+    setLoading(false);
+  }
+  useEffect(() => { if (tenantId) load(); }, [tenantId]);
+
+  async function connect() {
+    setBusy(true);
+    try {
+      const r = await fetch(`${API}/connect/tenants/${tenantId}/onboard`, { method: 'POST', headers: H() }).then(r => r.json());
+      if (r.data?.url) window.location.href = r.data.url;
+      else toast.error(r.message || 'Could not start Stripe onboarding.');
+    } catch { toast.error('Cannot connect'); }
+    finally { setBusy(false); }
+  }
+
+  async function savePrices() {
+    setBusy(true);
+    try {
+      const stripePriceIds = {};
+      if (prices.starter.trim()) stripePriceIds.starter = prices.starter.trim();
+      if (prices.growth.trim())  stripePriceIds.growth  = prices.growth.trim();
+      const r = await fetch(`${API}/connect/tenants/${tenantId}/pricing`, { method: 'PATCH', headers: H(), body: JSON.stringify({ stripePriceIds }) }).then(r => r.json());
+      if (r.data) toast.success('Plan prices saved'); else toast.error(r.message || 'Could not save');
+    } catch { toast.error('Cannot connect'); }
+    finally { setBusy(false); }
+  }
+
+  if (loading) return <div style={{ padding: 30, color: '#5E6B62' }}>Loading…</div>;
+
+  const connected = status?.connected;
+  const live = connected && status.chargesEnabled;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 620 }}>
+      <div style={{ fontSize: 12, color: '#8A968C', lineHeight: 1.5 }}>
+        Connect your own Stripe account to bill your client companies. Their subscription payments go to you; the platform automatically keeps a 20% fee.
+      </div>
+
+      <div style={card}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>Stripe account</div>
+            <div style={{ fontSize: 12, color: '#5E6B62', marginTop: 2 }}>
+              {!connected ? 'Not connected yet.'
+                : live ? 'Connected and ready to accept payments.'
+                : 'Connected — finish Stripe onboarding to enable charges.'}
+            </div>
+          </div>
+          {!connected
+            ? <button className="btn-primary" disabled={busy} onClick={connect}>{busy ? '…' : 'Connect Stripe'}</button>
+            : !live
+              ? <button className="btn-secondary" disabled={busy} onClick={connect}>{busy ? '…' : 'Finish setup'}</button>
+              : <span style={{ fontSize: 12, fontWeight: 600, color: '#2D7A4A', background: '#EBF2E8', padding: '4px 12px', borderRadius: 20 }}>✓ Active</span>}
+        </div>
+        {connected && (
+          <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 12, color: '#5E6B62' }}>
+            <span>Charges: {status.chargesEnabled ? '✓' : '—'}</span>
+            <span>Payouts: {status.payoutsEnabled ? '✓' : '—'}</span>
+            <span>Details: {status.detailsSubmitted ? '✓' : '—'}</span>
+          </div>
+        )}
+      </div>
+
+      <div style={card}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Plan prices</div>
+        <div style={{ fontSize: 12, color: '#8A968C', marginBottom: 12 }}>
+          Create products in your own Stripe dashboard, then paste each plan's Price ID (starts with "price_") here. These are what your clients are charged.
+        </div>
+        <Field label="Starter price ID"><input style={box} value={prices.starter} onChange={e => setPrices(p => ({ ...p, starter: e.target.value }))} placeholder="price_..." /></Field>
+        <div style={{ height: 12 }} />
+        <Field label="Growth price ID"><input style={box} value={prices.growth} onChange={e => setPrices(p => ({ ...p, growth: e.target.value }))} placeholder="price_..." /></Field>
+        <div style={{ marginTop: 14 }}><button className="btn-primary" disabled={busy} onClick={savePrices}>{busy ? 'Saving…' : 'Save prices'}</button></div>
+      </div>
+
+      {revenue && !revenue.error && (
+        <div style={card}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Your balance</div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <Stat label={`Available (${revenue.currency})`} value={money(revenue.available)} />
+            <Stat label={`Pending (${revenue.currency})`} value={money(revenue.pending)} />
+          </div>
+          {revenue.recentPayouts?.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#5E6B62', marginBottom: 6 }}>Recent payouts</div>
+              {revenue.recentPayouts.map((p, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '5px 0', borderBottom: '1px solid #EBF2E8' }}>
+                  <span>{p.arrivalDate}</span><span>{money(p.amount)} {p.currency} · {p.status}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
