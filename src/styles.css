@@ -16,6 +16,24 @@
   --gray-700: #3d3d3a;
   --border: rgba(0,0,0,0.08);
   --border-md: rgba(0,0,0,0.12);
+
+  /* Neutral content tokens — surfaces, text, and borders used across the app.
+     Theme-independent (the --brand-* tokens handle the colored chrome). Defining
+     them here so every var(--color-*) resolves to a real value instead of
+     rendering transparent/inheriting. */
+  --color-background-primary:   #FFFFFF;
+  --color-background-secondary: #F5F8F3;
+  --color-background-tertiary:  #EDF2EA;
+  --color-surface:              #FFFFFF;
+  --color-surface-secondary:    #F5F8F3;
+  --color-text:                 #1F2A24;
+  --color-text-primary:         #1F2A24;
+  --color-text-secondary:       #5E6B62;
+  --color-text-tertiary:        #8A968C;
+  --color-border:               #E2E8E0;
+  --color-border-secondary:     #D4DDCC;
+  --color-border-tertiary:      #EBF2E8;
+  --color-border-info:          #B9D4E8;
 }
 
 /* ─── Reset ─── */

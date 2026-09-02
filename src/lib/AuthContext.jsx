@@ -7,6 +7,7 @@ export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null);
   const [orgs,    setOrgs]    = useState([]);
   const [tenants, setTenants] = useState([]);
+  const [isPlatformOwner, setIsPlatformOwner] = useState(false);
   const [org,     setOrgState] = useState(() => {
     try { return JSON.parse(localStorage.getItem('ledger_org')); } catch { return null; }
   });
@@ -21,6 +22,7 @@ export function AuthProvider({ children }) {
         setUser(me.data.user);
         setOrgs(me.data.orgs);
         setTenants(me.data.tenants || []);
+        setIsPlatformOwner(!!me.data.isPlatformOwner);
         const savedOrg = me.data.orgs.find(o => o.id === org?.id) ?? me.data.orgs[0];
         if (savedOrg) selectOrg(savedOrg);
       } catch {
@@ -74,6 +76,7 @@ export function AuthProvider({ children }) {
     setUser(data.user);
     setOrgs(data.orgs);
     setTenants(data.tenants || []);
+    setIsPlatformOwner(!!data.isPlatformOwner);
     const firstOrg = data.orgs[0];
     if (firstOrg) selectOrg(firstOrg);
     return data;
@@ -86,6 +89,7 @@ export function AuthProvider({ children }) {
     setUser(data.user);
     setOrgs(data.orgs);
     setTenants(data.tenants || []);
+    setIsPlatformOwner(!!data.isPlatformOwner);
     const firstOrg = data.orgs[0];
     if (firstOrg) selectOrg(firstOrg);
     return data;
@@ -107,12 +111,13 @@ export function AuthProvider({ children }) {
     setUser(null);
     setOrgs([]);
     setTenants([]);
+    setIsPlatformOwner(false);
     setOrgState(null);
     localStorage.removeItem('ledger_org');
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, orgs, tenants, org, loading, login, verify2FA, register, logout, selectOrg, applyOrgUpdate }}>
+    <AuthContext.Provider value={{ user, orgs, tenants, isPlatformOwner, org, loading, login, verify2FA, register, logout, selectOrg, applyOrgUpdate }}>
       {children}
     </AuthContext.Provider>
   );

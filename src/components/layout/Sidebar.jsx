@@ -45,7 +45,7 @@ const ALL_NAV = [
   { id:'billing',       icon:'credit-card',   label:'Billing',        level:2, section:'More' },
 ];
 
-export default function Sidebar({ activeId='digest', onNavigate, isReseller=false }) {
+export default function Sidebar({ activeId='digest', onNavigate, isReseller=false, isPlatformOwner=false }) {
   const [expanded, setExpanded] = useState(false);
   const { used, days } = getUsageLevel();
 
@@ -54,10 +54,11 @@ export default function Sidebar({ activeId='digest', onNavigate, isReseller=fals
     : days >= 3 || used.length >= 2 ? 1
     : 0;
 
-  // Reseller console is only shown to partner (tenant) accounts, and always visible.
-  const navSource = isReseller
-    ? [...ALL_NAV, { id:'reseller', icon:'briefcase', label:'Reseller', level:0, section:'More' }]
-    : ALL_NAV;
+  // Reseller console is only shown to partner (tenant) accounts; the platform
+  // admin console only to the platform owner. Both are always visible when shown.
+  let navSource = ALL_NAV;
+  if (isReseller)       navSource = [...navSource, { id:'reseller', icon:'briefcase', label:'Reseller', level:0, section:'More' }];
+  if (isPlatformOwner)  navSource = [...navSource, { id:'admin',    icon:'shield-lock', label:'Platform admin', level:0, section:'Platform' }];
 
   const visible = navSource.filter(i => i.level <= maxLevel);
   const hiddenCount = navSource.filter(i => i.level > maxLevel).length;
