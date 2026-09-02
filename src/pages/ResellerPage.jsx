@@ -13,8 +13,8 @@ const TABS = [
   { id: 'domains',  label: 'Domains'  },
 ];
 
-const box = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '0.5px solid var(--color-border-secondary)', fontSize: 13, boxSizing: 'border-box', background: 'var(--color-background-primary)', color: 'var(--color-text-primary)' };
-const card = { background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 12, padding: 20 };
+const box = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '0.5px solid #D4DDCC', fontSize: 13, boxSizing: 'border-box', background: '#ffffff', color: '#1f2a24' };
+const card = { background: '#ffffff', border: '0.5px solid #EBF2E8', borderRadius: 12, padding: 20 };
 
 export default function ResellerPage() {
   const toast = useToast();
@@ -53,7 +53,7 @@ export default function ResellerPage() {
         <div style={{ ...card, textAlign: 'center', padding: 40 }}>
           <div style={{ fontSize: 34, marginBottom: 10 }}>🏢</div>
           <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>No reseller workspace on this account</p>
-          <p style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>This area is for partner firms reselling under their own brand.</p>
+          <p style={{ fontSize: 13, color: '#5E6B62' }}>This area is for partner firms reselling under their own brand.</p>
         </div>
       </div>
     );
@@ -64,7 +64,7 @@ export default function ResellerPage() {
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 className="page-title">Reseller</h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: 13, marginTop: 2 }}>
+          <p style={{ color: '#5E6B62', fontSize: 13, marginTop: 2 }}>
             Manage your client companies, brand, and domains.
           </p>
         </div>
@@ -79,15 +79,15 @@ export default function ResellerPage() {
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
             padding: '7px 16px', borderRadius: 20, border: '1px solid',
-            borderColor: tab === t.id ? 'var(--brand-primary)' : 'var(--color-border-secondary)',
-            background: tab === t.id ? 'var(--brand-primary)' : 'var(--color-background-primary)',
-            color: tab === t.id ? '#fff' : 'var(--color-text-secondary)', fontSize: 13, fontWeight: tab === t.id ? 600 : 400, cursor: 'pointer',
+            borderColor: tab === t.id ? 'var(--brand-primary)' : '#D4DDCC',
+            background: tab === t.id ? 'var(--brand-primary)' : '#ffffff',
+            color: tab === t.id ? '#fff' : '#5E6B62', fontSize: 13, fontWeight: tab === t.id ? 600 : 400, cursor: 'pointer',
           }}>{t.label}</button>
         ))}
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--color-text-secondary)' }}>Loading…</div>
+        <div style={{ textAlign: 'center', padding: 40, color: '#5E6B62' }}>Loading…</div>
       ) : (
         <>
           {tab === 'overview'  && <Overview tenant={tenant} usage={usage} />}
@@ -103,7 +103,7 @@ export default function ResellerPage() {
 function Stat({ label, value }) {
   return (
     <div style={{ ...card, flex: '1 1 160px' }}>
-      <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 12, color: '#5E6B62', marginBottom: 6 }}>{label}</div>
       <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--brand-primary)' }}>{value}</div>
     </div>
   );
@@ -120,19 +120,19 @@ function Overview({ tenant, usage }) {
       </div>
       <div style={card}>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Your reseller plan</div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid var(--color-border-tertiary)', fontSize: 13 }}>
-          <span style={{ color: 'var(--color-text-secondary)' }}>Plan</span><span style={{ fontWeight: 600, textTransform: 'capitalize' }}>{(tenant?.plan || '—').replace(/_/g, ' ')}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid #EBF2E8', fontSize: 13 }}>
+          <span style={{ color: '#5E6B62' }}>Plan</span><span style={{ fontWeight: 600, textTransform: 'capitalize' }}>{(tenant?.plan || '—').replace(/_/g, ' ')}</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid var(--color-border-tertiary)', fontSize: 13 }}>
-          <span style={{ color: 'var(--color-text-secondary)' }}>Status</span><span style={{ fontWeight: 600, color: statusColor, textTransform: 'capitalize' }}>{tenant?.status || '—'}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid #EBF2E8', fontSize: 13 }}>
+          <span style={{ color: '#5E6B62' }}>Status</span><span style={{ fontWeight: 600, color: statusColor, textTransform: 'capitalize' }}>{tenant?.status || '—'}</span>
         </div>
         {tenant?.trialEndsAt && (
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 13 }}>
-            <span style={{ color: 'var(--color-text-secondary)' }}>Trial ends</span><span style={{ fontWeight: 600 }}>{new Date(tenant.trialEndsAt).toLocaleDateString()}</span>
+            <span style={{ color: '#5E6B62' }}>Trial ends</span><span style={{ fontWeight: 600 }}>{new Date(tenant.trialEndsAt).toLocaleDateString()}</span>
           </div>
         )}
       </div>
-      <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>
+      <div style={{ fontSize: 12, color: '#8A968C' }}>
         Billing through your own Stripe account (with the platform fee) is set up separately — that's the next phase.
       </div>
     </div>
@@ -164,7 +164,7 @@ function Clients({ tenantId, clients, reload }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <div style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{clients.length} client compan{clients.length === 1 ? 'y' : 'ies'}</div>
+        <div style={{ fontSize: 13, color: '#5E6B62' }}>{clients.length} client compan{clients.length === 1 ? 'y' : 'ies'}</div>
         <button className="btn-primary" onClick={() => { setShow(true); setCreated(null); }}>+ Add client</button>
       </div>
 
@@ -172,24 +172,24 @@ function Clients({ tenantId, clients, reload }) {
         <div style={{ ...card, textAlign: 'center', padding: 40 }}>
           <div style={{ fontSize: 30, marginBottom: 8 }}>🗂️</div>
           <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>No client companies yet</p>
-          <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 16 }}>Add a client to create their company and owner login.</p>
+          <p style={{ fontSize: 13, color: '#5E6B62', marginBottom: 16 }}>Add a client to create their company and owner login.</p>
           <button className="btn-primary" onClick={() => { setShow(true); setCreated(null); }}>Add your first client</button>
         </div>
       ) : (
         <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--color-border-tertiary)' }}>
-                <th style={{ textAlign: 'left', padding: '10px 16px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Company</th>
-                <th style={{ textAlign: 'left', padding: '10px 16px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Plan</th>
-                <th style={{ textAlign: 'right', padding: '10px 16px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Users</th>
+              <tr style={{ borderBottom: '1px solid #EBF2E8' }}>
+                <th style={{ textAlign: 'left', padding: '10px 16px', color: '#5E6B62', fontWeight: 600 }}>Company</th>
+                <th style={{ textAlign: 'left', padding: '10px 16px', color: '#5E6B62', fontWeight: 600 }}>Plan</th>
+                <th style={{ textAlign: 'right', padding: '10px 16px', color: '#5E6B62', fontWeight: 600 }}>Users</th>
               </tr>
             </thead>
             <tbody>
               {clients.map(c => (
-                <tr key={c.id} style={{ borderBottom: '0.5px solid var(--color-border-tertiary)' }}>
+                <tr key={c.id} style={{ borderBottom: '0.5px solid #EBF2E8' }}>
                   <td style={{ padding: '11px 16px', fontWeight: 500 }}>{c.name}</td>
-                  <td style={{ padding: '11px 16px', color: 'var(--color-text-secondary)', textTransform: 'capitalize' }}>{c.plan || '—'}</td>
+                  <td style={{ padding: '11px 16px', color: '#5E6B62', textTransform: 'capitalize' }}>{c.plan || '—'}</td>
                   <td style={{ padding: '11px 16px', textAlign: 'right' }}>{c._count?.members ?? '—'}</td>
                 </tr>
               ))}
@@ -200,19 +200,19 @@ function Clients({ tenantId, clients, reload }) {
 
       {show && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: 'var(--color-background-primary)', borderRadius: 14, padding: 26, width: 440, maxWidth: '94vw' }}>
+          <div style={{ background: '#ffffff', borderRadius: 14, padding: 26, width: 440, maxWidth: '94vw' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h2 style={{ fontSize: 17, fontWeight: 600 }}>{created ? 'Client created' : 'Add client company'}</h2>
-              <button onClick={() => { setShow(false); setCreated(null); }} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--color-text-secondary)' }}>×</button>
+              <button onClick={() => { setShow(false); setCreated(null); }} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#5E6B62' }}>×</button>
             </div>
 
             {created ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>
-                  <strong style={{ color: 'var(--color-text-primary)' }}>{created.org?.name}</strong> is set up. Share this temporary password with the owner — they should change it on first sign-in.
+                <div style={{ fontSize: 13, color: '#5E6B62' }}>
+                  <strong style={{ color: '#1f2a24' }}>{created.org?.name}</strong> is set up. Share this temporary password with the owner — they should change it on first sign-in.
                 </div>
                 <div style={{ background: 'var(--brand-accent-light)', borderRadius: 8, padding: '14px 16px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 4 }}>TEMPORARY PASSWORD</div>
+                  <div style={{ fontSize: 11, color: '#5E6B62', marginBottom: 4 }}>TEMPORARY PASSWORD</div>
                   <div style={{ fontFamily: 'monospace', fontSize: 18, fontWeight: 700, color: 'var(--brand-primary)' }}>{created.tempPassword}</div>
                 </div>
                 <button className="btn-secondary" onClick={() => { navigator.clipboard?.writeText(created.tempPassword); toast.success('Copied'); }}>Copy password</button>
@@ -280,21 +280,21 @@ function Branding({ tenantId, tenant, onSaved }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 560 }}>
-      <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)', lineHeight: 1.5 }}>
+      <div style={{ fontSize: 12, color: '#8A968C', lineHeight: 1.5 }}>
         This is the brand your client companies see. Colors and logo apply across their app and login when they reach you on your own domain.
       </div>
       <Field label="Brand name"><input style={box} value={name} onChange={e => setName(e.target.value)} placeholder="Smith Accounting" /></Field>
       <Field label="Logo URL"><input style={box} value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="https://…/logo.png" /></Field>
       <Field label="Support email"><input style={box} type="email" value={support} onChange={e => setSupport(e.target.value)} placeholder="help@smithaccounting.com" /></Field>
       <div>
-        <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 6 }}>Primary color</label>
+        <label style={{ fontSize: 12, fontWeight: 500, color: '#5E6B62', display: 'block', marginBottom: 6 }}>Primary color</label>
         <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
           <input type="color" value={color} onChange={e => setColor(e.target.value)} style={{ width: 40, height: 32, border: 'none', background: 'none', cursor: 'pointer' }} />
-          <span style={{ fontFamily: 'monospace', color: 'var(--color-text-tertiary)' }}>{color}</span>
+          <span style={{ fontFamily: 'monospace', color: '#8A968C' }}>{color}</span>
         </label>
       </div>
       <div>
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 8 }}>Preview</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: '#5E6B62', marginBottom: 8 }}>Preview</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: color, color: readable(color), padding: '14px 16px', borderRadius: 10 }}>
           {logoUrl ? <img src={logoUrl} alt="" style={{ maxHeight: 26, maxWidth: 120, objectFit: 'contain' }} /> : <span style={{ fontWeight: 700 }}>{name || 'Your brand'}</span>}
         </div>
@@ -337,7 +337,7 @@ function Domains({ tenantId, tenant, reload }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 620 }}>
-      <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)', lineHeight: 1.5 }}>
+      <div style={{ fontSize: 12, color: '#8A968C', lineHeight: 1.5 }}>
         Point your own domain (e.g. <code>app.smithaccounting.com</code>) at the platform so your clients sign in under your brand.
       </div>
 
@@ -349,19 +349,19 @@ function Domains({ tenantId, tenant, reload }) {
       {pending && (
         <div style={{ ...card, background: 'var(--brand-accent-light)' }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Verify {pending.domain}</div>
-          <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginBottom: 10, lineHeight: 1.5 }}>{pending.instructions}</div>
+          <div style={{ fontSize: 12.5, color: '#5E6B62', marginBottom: 10, lineHeight: 1.5 }}>{pending.instructions}</div>
           <button className="btn-primary" style={{ fontSize: 12 }} disabled={busy} onClick={() => verify(pending.id)}>{busy ? 'Checking…' : "I've added the record — verify"}</button>
         </div>
       )}
 
       <div>
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 8 }}>Verified domains</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: '#5E6B62', marginBottom: 8 }}>Verified domains</div>
         {verifiedDomains.length === 0 ? (
-          <div style={{ fontSize: 13, color: 'var(--color-text-tertiary)', padding: '12px 0' }}>None yet.</div>
+          <div style={{ fontSize: 13, color: '#8A968C', padding: '12px 0' }}>None yet.</div>
         ) : (
           <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
             {verifiedDomains.map(d => (
-              <div key={d.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 16px', borderBottom: '0.5px solid var(--color-border-tertiary)' }}>
+              <div key={d.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 16px', borderBottom: '0.5px solid #EBF2E8' }}>
                 <span style={{ fontSize: 13, fontWeight: 500 }}>{d.domain}</span>
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#2D7A4A', background: '#EBF2E8', padding: '2px 10px', borderRadius: 20 }}>✓ Verified</span>
               </div>
@@ -376,7 +376,7 @@ function Domains({ tenantId, tenant, reload }) {
 function Field({ label, children }) {
   return (
     <div>
-      <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 6 }}>{label}</label>
+      <label style={{ fontSize: 12, fontWeight: 500, color: '#5E6B62', display: 'block', marginBottom: 6 }}>{label}</label>
       {children}
     </div>
   );
