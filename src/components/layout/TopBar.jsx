@@ -3,12 +3,14 @@ import { useTheme, THEMES } from '../../lib/ThemeContext';
 import { useAuth }  from '../../lib/AuthContext';
 
 export default function TopBar({ onLogout, onAI }) {
-  const { org, user } = useAuth();
+  const { org, orgs = [], user, selectOrg } = useAuth();
   const { themeId, setTheme } = useTheme();
   const [showThemes, setShowThemes] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
+  const [showOrgs, setShowOrgs] = useState(false);
 
   const initials = user?.fullName?.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() ?? 'U';
+  const canSwitch = (orgs?.length || 0) > 1;
 
   return (
     <header className="topbar">
@@ -21,9 +23,40 @@ export default function TopBar({ onLogout, onAI }) {
           </div>
         )}
         {org && (
-          <div className="org-pill">
-            {org.name}
-            <i className="ti ti-chevron-down" style={{ fontSize:11, marginLeft:3 }} />
+          <div style={{ position:'relative' }}>
+            <div className="org-pill"
+              onClick={canSwitch ? () => setShowOrgs(s => !s) : undefined}
+              style={{ cursor: canSwitch ? 'pointer' : 'default' }}
+              title={canSwitch ? 'Switch company' : undefined}>
+              {org.name}
+              {canSwitch && <i className="ti ti-chevron-down" style={{ fontSize:11, marginLeft:3 }} />}
+            </div>
+            {canSwitch && showOrgs && (
+              <>
+                <div style={{ position:'fixed', inset:0, zIndex:99 }} onClick={() => setShowOrgs(false)} />
+                <div style={{
+                  position:'absolute', top:'calc(100% + 8px)', left:0,
+                  background:'var(--color-background-primary)',
+                  border:'0.5px solid var(--color-border-secondary)',
+                  borderRadius:12, padding:6, zIndex:100,
+                  boxShadow:'0 8px 24px rgba(0,0,0,0.10)', width:240, maxHeight:340, overflowY:'auto',
+                }}>
+                  <div style={{ fontSize:10, fontWeight:600, textTransform:'uppercase', letterSpacing:'.06em', color:'var(--color-text-tertiary)', padding:'6px 10px 4px' }}>
+                    Switch company
+                  </div>
+                  {orgs.map(o => (
+                    <button key={o.id}
+                      onClick={() => { if (o.id !== org.id) selectOrg?.(o); setShowOrgs(false); }}
+                      style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'8px 10px', borderRadius:8, border:'none', cursor:'pointer', textAlign:'left',
+                        background: o.id === org.id ? 'var(--color-background-secondary)' : 'transparent', color:'var(--color-text-primary)', fontSize:13 }}>
+                      <span style={{ flex:1 }}>{o.name}</span>
+                      {o.role && <span style={{ fontSize:10, color:'var(--color-text-tertiary)', textTransform:'capitalize' }}>{o.role}</span>}
+                      {o.id === org.id && <i className="ti ti-check" style={{ fontSize:13, color:'var(--brand-primary)' }} />}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

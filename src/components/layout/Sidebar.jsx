@@ -45,7 +45,7 @@ const ALL_NAV = [
   { id:'billing',       icon:'credit-card',   label:'Billing',        level:2, section:'More' },
 ];
 
-export default function Sidebar({ activeId='digest', onNavigate, hasOrg=true, isReseller=false, isPlatformOwner=false }) {
+export default function Sidebar({ activeId='digest', onNavigate, hasOrg=true, isOrgAdmin=false, isReseller=false, isPlatformOwner=false }) {
   const [expanded, setExpanded] = useState(false);
   const { used, days } = getUsageLevel();
 
@@ -60,6 +60,9 @@ export default function Sidebar({ activeId='digest', onNavigate, hasOrg=true, is
   let navSource = hasOrg
     ? ALL_NAV
     : [{ id:'settings', icon:'settings', label:'Settings', level:0, section:'More' }];
+
+  // Owners/admins of a company can manage which accounting firms may access its books.
+  if (hasOrg && isOrgAdmin) navSource = [...navSource, { id:'access', icon:'shield-check', label:'Accountant access', level:1, section:'More' }];
 
   // Reseller console is only shown to partner (tenant) accounts; the platform
   // admin console only to the platform owner. Both are always visible when shown.

@@ -16,6 +16,7 @@ const TABS = [
 
 const box = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '0.5px solid #D4DDCC', fontSize: 13, boxSizing: 'border-box', background: '#ffffff', color: '#1f2a24' };
 const card = { background: '#ffffff', border: '0.5px solid #EBF2E8', borderRadius: 12, padding: 20 };
+const linkBtn = { fontSize: 12, color: '#B4482F', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 };
 
 export default function ResellerPage() {
   const toast = useToast();
@@ -148,6 +149,24 @@ function Clients({ tenantId, clients, reload }) {
   const [busy, setBusy]   = useState(false);
   const [created, setCreated] = useState(null); // { org, tempPassword }
 
+  // Book-access grants, keyed by client org id, plus the per-row scope choice.
+  const [grantByOrg, setGrantByOrg] = useState({});
+  const [scopeByOrg, setScopeByOrg] = useState({});
+  const [rowBusy, setRowBusy]       = useState('');
+
+  async function loadGrants() {
+    try {
+      const j = await fetch(`${API}/access-grants/tenant/${tenantId}`, { headers: H() }).then(r => r.json());
+      const map = {};
+      (j.data || []).forEach(g => {
+        // Keep the most recent grant per org (list is newest-first).
+        if (!map[g.orgId]) map[g.orgId] = g;
+      });
+      setGrantByOrg(map);
+    } catch { /* leave as-is */ }
+  }
+  useEffect(() => { if (tenantId) loadGrants(); }, [tenantId, clients.length]);
+
   async function add() {
     if (!form.name.trim() || !form.ownerName.trim() || !form.email.trim()) { toast.error('Name, owner, and email are required.'); return; }
     setBusy(true);
@@ -161,6 +180,67 @@ function Clients({ tenantId, clients, reload }) {
       } else toast.error(j.message || 'Could not create the client.');
     } catch { toast.error('Cannot connect'); }
     finally { setBusy(false); }
+  }
+
+  async function requestAccess(orgId) {
+    setRowBusy(orgId);
+    try {
+      const scope = scopeByOrg[orgId] || 'view';
+      const r = await fetch(`${API}/access-grants/request`, { method: 'POST', headers: H(), body: JSON.stringify({ tenantId, orgId, scope }) });
+      const j = await r.json();
+      if (j.success !== false && j.data) { toast.success('Access requested — the client must approve.'); loadGrants(); }
+      else toast.error(j.message || 'Could not request access.');
+    } catch { toast.error('Cannot connect'); }
+    finally { setRowBusy(''); }
+  }
+
+  async function revokeAccess(grantId, orgId) {
+    setRowBusy(orgId);
+    try {
+      const r = await fetch(`${API}/access-grants/${grantId}/revoke`, { method: 'POST', headers: H() });
+      const j = await r.json();
+      if (j.success !== false) { toast.success('Access ended.'); loadGrants(); }
+      else toast.error(j.message || 'Could not update.');
+    } catch { toast.error('Cannot connect'); }
+    finally { setRowBusy(''); }
+  }
+
+  function AccessCell({ c }) {
+    const g = grantByOrg[c.id];
+    if (rowBusy === c.id) return <span style={{ fontSize: 12, color: '#8A968C' }}>…</span>;
+
+    if (g?.status === 'active') {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#1E7A3D', background: '#E6F4EA', padding: '3px 9px', borderRadius: 20 }}>
+            ✓ {g.scope === 'full' ? 'Full' : 'View'}
+          </span>
+          <button onClick={() => revokeAccess(g.id, c.id)} style={linkBtn}>End</button>
+        </div>
+      );
+    }
+    if (g?.status === 'pending') {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#2564A8', background: '#EAF2FB', padding: '3px 9px', borderRadius: 20 }}>Awaiting client</span>
+          <button onClick={() => revokeAccess(g.id, c.id)} style={linkBtn}>Cancel</button>
+        </div>
+      );
+    }
+    // none / declined / revoked → offer a (re)request
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+        <select value={scopeByOrg[c.id] || 'view'} onChange={e => setScopeByOrg(s => ({ ...s, [c.id]: e.target.value }))}
+          style={{ ...box, width: 'auto', padding: '5px 8px', fontSize: 12 }}>
+          <option value="view">View only</option>
+          <option value="full">Full</option>
+        </select>
+        <button onClick={() => requestAccess(c.id)}
+          style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-primary)', background: 'none', border: '1px solid #D4DDCC', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          Request access
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -178,6 +258,7 @@ function Clients({ tenantId, clients, reload }) {
           <button className="btn-primary" onClick={() => { setShow(true); setCreated(null); }}>Add your first client</button>
         </div>
       ) : (
+        <>
         <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
@@ -185,6 +266,7 @@ function Clients({ tenantId, clients, reload }) {
                 <th style={{ textAlign: 'left', padding: '10px 16px', color: '#5E6B62', fontWeight: 600 }}>Company</th>
                 <th style={{ textAlign: 'left', padding: '10px 16px', color: '#5E6B62', fontWeight: 600 }}>Plan</th>
                 <th style={{ textAlign: 'right', padding: '10px 16px', color: '#5E6B62', fontWeight: 600 }}>Users</th>
+                <th style={{ textAlign: 'right', padding: '10px 16px', color: '#5E6B62', fontWeight: 600 }}>Books access</th>
               </tr>
             </thead>
             <tbody>
@@ -193,11 +275,16 @@ function Clients({ tenantId, clients, reload }) {
                   <td style={{ padding: '11px 16px', fontWeight: 500 }}>{c.name}</td>
                   <td style={{ padding: '11px 16px', color: '#5E6B62', textTransform: 'capitalize' }}>{c.plan || '—'}</td>
                   <td style={{ padding: '11px 16px', textAlign: 'right' }}>{c._count?.members ?? '—'}</td>
+                  <td style={{ padding: '11px 16px', textAlign: 'right' }}><AccessCell c={c} /></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        <p style={{ fontSize: 12, color: '#8A968C', marginTop: 10, lineHeight: 1.5 }}>
+          Requesting access sends the client an approval. You can only open a client's books after they approve — and either of you can end access at any time. Once approved, switch into their books from the company menu at the top left.
+        </p>
+        </>
       )}
 
       {show && (

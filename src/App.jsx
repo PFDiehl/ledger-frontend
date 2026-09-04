@@ -27,6 +27,7 @@ import BillingPage               from './pages/BillingPage';
 import MultiCompanyPage          from './pages/MultiCompanyPage';
 import ResellerPage              from './pages/ResellerPage';
 import PlatformAdminPage         from './pages/PlatformAdminPage';
+import AccountantAccessPage, { PendingAccessBanner } from './pages/AccountantAccessPage';
 import AICategorizePage          from './pages/AICategorizePage';
 import AnomalyDetectionPage      from './pages/AnomalyDetectionPage';
 import CashFlowForecastPage      from './pages/CashFlowForecastPage';
@@ -60,6 +61,7 @@ export default function App() {
   // users there instead of dropping them on an empty, company-less Dashboard.
   const hasOrg         = (orgs?.length || 0) > 0;
   const isResellerOnly = !hasOrg && (tenants?.length || 0) > 0;
+  const isOrgAdmin     = ['owner', 'admin'].includes(org?.role);
   const landingNav     = isResellerOnly ? 'reseller'
                        : (!hasOrg && isPlatformOwner) ? 'admin'
                        : 'dashboard';
@@ -222,6 +224,7 @@ export default function App() {
       case 'companies':   return <MultiCompanyPage />;
       case 'reseller':    return <ResellerPage />;
       case 'admin':       return <PlatformAdminPage />;
+      case 'access':      return <AccountantAccessPage />;
       case 'ai-categorize':  return <AICategorizePage />;
       case 'ai-anomalies':   return <AnomalyDetectionPage />;
       case 'ai-forecast':    return <CashFlowForecastPage />;
@@ -234,8 +237,11 @@ export default function App() {
     <div className="app">
       <TopBar orgName={org?.name ?? (isResellerOnly ? tenants?.[0]?.name : null) ?? 'My Company'} onLogout={logout} onAI={() => setShowAI(s => !s)} />
       <div className="app-body">
-        <Sidebar activeId={activeNav} onNavigate={item => nav(item.id)} hasOrg={hasOrg} isReseller={(tenants?.length || 0) > 0} isPlatformOwner={isPlatformOwner} />
-        <main className="main-content">{renderPage()}</main>
+        <Sidebar activeId={activeNav} onNavigate={item => nav(item.id)} hasOrg={hasOrg} isOrgAdmin={isOrgAdmin} isReseller={(tenants?.length || 0) > 0} isPlatformOwner={isPlatformOwner} />
+        <main className="main-content">
+          {isOrgAdmin && hasOrg && activeNav !== 'access' && <PendingAccessBanner onReview={() => nav('access')} />}
+          {renderPage()}
+        </main>
       </div>
       {showAI && <AIInsightsPanel onClose={() => setShowAI(false)} />}
     </div>
