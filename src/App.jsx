@@ -52,7 +52,17 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://ledger-accounting-prod
 const BILLING_ENFORCED = import.meta.env.VITE_BILLING_ENFORCED === 'true';
 
 export default function App() {
-  const { user, org, tenants, isPlatformOwner, loading, logout } = useAuth();
+  const { user, org, orgs, tenants, isPlatformOwner, loading, logout } = useAuth();
+
+  // Who is this? A normal client user has at least one company (org). A reseller
+  // owner created from the Platform admin console has a login but NO company of
+  // their own — their whole job lives in the Reseller console. We route those
+  // users there instead of dropping them on an empty, company-less Dashboard.
+  const hasOrg         = (orgs?.length || 0) > 0;
+  const isResellerOnly = !hasOrg && (tenants?.length || 0) > 0;
+  const landingNav     = isResellerOnly ? 'reseller'
+                       : (!hasOrg && isPlatformOwner) ? 'admin'
+                       : 'dashboard';
   const [activeNav, setActiveNav]  = useState('dashboard');
   const [view, setView]            = useState({ type:'list' });
   const [onboarded, setOnboarded]  = useState(() => !!localStorage.getItem('onboarded'));
@@ -68,9 +78,9 @@ export default function App() {
   // wherever the app was last viewing.
   const prevUser = useRef(null);
   useEffect(() => {
-    if (user && !prevUser.current) { setActiveNav('dashboard'); setView({ type:'list' }); }
+    if (user && !prevUser.current) { setActiveNav(landingNav); setView({ type:'list' }); }
     prevUser.current = user;
-  }, [user]);
+  }, [user, landingNav]);
 
   // After Stripe redirects back from an INVOICE payment (/?paid=true&session_id=...)
   useEffect(() => {
@@ -173,11 +183,18 @@ export default function App() {
     if (subInfo && !subInfo.active) return <SubscribeGate org={org} selectedPlan={selectedPlan} apiBase={API_BASE} onLogout={logout} />;
   }
 
-  if (!onboarded) return <OnboardingPage onComplete={() => { localStorage.setItem('onboarded','1'); setOnboarded(true); }} />;
+  // Only run the company-setup wizard for users who actually have a company.
+  // Reseller owners (and a company-less platform owner) skip straight into the app.
+  if (!onboarded && hasOrg) return <OnboardingPage onComplete={() => { localStorage.setItem('onboarded','1'); setOnboarded(true); }} />;
 
   const nav = id => { setActiveNav(id); setView({ type:'list' }); };
 
   const renderPage = () => {
+    // A reseller owner with no company can only reach their console, the platform
+    // admin (if they're the owner), and Settings — everything else needs a company.
+    if (isResellerOnly && !['reseller','admin','settings'].includes(activeNav)) {
+      return <ResellerPage />;
+    }
     switch (activeNav) {
       case 'dashboard':   return <DashboardPage />;
       case 'digest':     return <DigestPage />;
@@ -215,9 +232,9 @@ export default function App() {
 
   return (
     <div className="app">
-      <TopBar orgName={org?.name ?? 'My Company'} onLogout={logout} onAI={() => setShowAI(s => !s)} />
+      <TopBar orgName={org?.name ?? (isResellerOnly ? tenants?.[0]?.name : null) ?? 'My Company'} onLogout={logout} onAI={() => setShowAI(s => !s)} />
       <div className="app-body">
-        <Sidebar activeId={activeNav} onNavigate={item => nav(item.id)} isReseller={(tenants?.length || 0) > 0} isPlatformOwner={isPlatformOwner} />
+        <Sidebar activeId={activeNav} onNavigate={item => nav(item.id)} hasOrg={hasOrg} isReseller={(tenants?.length || 0) > 0} isPlatformOwner={isPlatformOwner} />
         <main className="main-content">{renderPage()}</main>
       </div>
       {showAI && <AIInsightsPanel onClose={() => setShowAI(false)} />}
