@@ -51,7 +51,7 @@ export function PendingAccessBanner({ onReview }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#EAF2FB', border: '0.5px solid #B9D4E8', color: '#1f2a24', padding: '10px 16px', borderRadius: 10, margin: '0 0 16px' }}>
       <i className="ti ti-shield-lock" style={{ fontSize: 18, color: '#2564A8' }} />
       <span style={{ flex: 1, fontSize: 13 }}>
-        {count} accountant access request{count > 1 ? 's are' : ' is'} waiting for your approval.
+        {count} bookkeeper access request{count > 1 ? 's are' : ' is'} waiting for your approval.
       </span>
       <button onClick={onReview}
         style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: '#2564A8', border: 'none', borderRadius: 8, padding: '7px 14px', cursor: 'pointer' }}>
@@ -79,7 +79,7 @@ function downloadRecord(grantId, toast) {
   <table style="border-collapse:collapse;font-size:13px;margin-bottom:20px">
     ${row('Status', (rec.status || '').toUpperCase())}
     ${row('Access level', rec.scope === 'full' ? 'Full (view & edit)' : 'View only')}
-    ${row('Accounting firm', rec.firm?.name)}
+    ${row('Bookkeeping firm', rec.firm?.name)}
     ${row('Client company', rec.client?.name)}
     ${row('Requested by', rec.requestedBy ? `${rec.requestedBy.fullName} (${rec.requestedBy.email})` : '—')}
     ${row('Approved by', rec.grantedBy ? `${rec.grantedBy.fullName} (${rec.grantedBy.email})` : '—')}
@@ -138,9 +138,9 @@ export default function AccountantAccessPage() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1 className="page-title">Accountant access</h1>
+        <h1 className="page-title">Bookkeeper access</h1>
         <p style={{ color: 'var(--color-text-secondary)', fontSize: 13, marginTop: 2 }}>
-          Control which accounting firms can access this company’s books. You can end any access at any time.
+          Control which bookkeepers can access this company’s books. You can end any access at any time.
         </p>
       </div>
 
@@ -197,7 +197,7 @@ export default function AccountantAccessPage() {
           <div style={card}>
             <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px' }}>Firms with access</h2>
             {active.length === 0 ? (
-              <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>No accounting firm currently has access to this company’s books.</p>
+              <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>No bookkeeper currently has access to this company’s books.</p>
             ) : active.map(g => (
               <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 12, borderTop: '0.5px solid var(--color-border, #E2E8E0)', paddingTop: 12, marginTop: 12, flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: 200 }}>

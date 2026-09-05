@@ -25,7 +25,7 @@ export default function PrivacyPage() {
       <p>We use your information only to provide, maintain, secure, and improve the Service — for example, to run your account, keep your books, connect your bank at your direction, process payments you initiate, provide support, and meet legal obligations. <strong>We do not sell or rent your personal information or financial data, and we do not use it for advertising.</strong></p>
 
       <h2 style={H2}>3. Legal Basis and Your Control</h2>
-      <p>Your data is yours. You control what you enter, and you can export it or delete your account at any time (see Section 7). Where you grant an accounting firm access to your books, that access is given by you and can be revoked by you at any time from within the Service.</p>
+      <p>Your data is yours. You control what you enter, and you can export it or delete your account at any time (see Section 7). Where you grant a bookkeeper access to your books, that access is given by you and can be revoked by you at any time from within the Service.</p>
 
       <h2 style={H2}>4. Service Providers We Share Data With</h2>
       <p>We share limited data only with trusted service providers who process it on our behalf to deliver the Service, under contracts that require them to protect it. These include:</p>

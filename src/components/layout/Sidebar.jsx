@@ -61,11 +61,11 @@ export default function Sidebar({ activeId='digest', onNavigate, hasOrg=true, is
     ? ALL_NAV
     : [{ id:'settings', icon:'settings', label:'Settings', level:0, section:'More' }];
 
-  // Owners/admins of a company can manage which accounting firms may access its books,
+  // Owners/admins of a company can manage which bookkeepers may access its books,
   // and run the year-end close.
   if (hasOrg && isOrgAdmin) navSource = [
     ...navSource,
-    { id:'access',   icon:'shield-check',   label:'Accountant access', level:1, section:'More' },
+    { id:'access',   icon:'shield-check',   label:'Bookkeeper access', level:1, section:'More' },
     { id:'year-end', icon:'calendar-stats', label:'Year-end close',    level:2, section:'Advanced' },
   ];
 
