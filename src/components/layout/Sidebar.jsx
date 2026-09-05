@@ -61,8 +61,13 @@ export default function Sidebar({ activeId='digest', onNavigate, hasOrg=true, is
     ? ALL_NAV
     : [{ id:'settings', icon:'settings', label:'Settings', level:0, section:'More' }];
 
-  // Owners/admins of a company can manage which accounting firms may access its books.
-  if (hasOrg && isOrgAdmin) navSource = [...navSource, { id:'access', icon:'shield-check', label:'Accountant access', level:1, section:'More' }];
+  // Owners/admins of a company can manage which accounting firms may access its books,
+  // and run the year-end close.
+  if (hasOrg && isOrgAdmin) navSource = [
+    ...navSource,
+    { id:'access',   icon:'shield-check',   label:'Accountant access', level:1, section:'More' },
+    { id:'year-end', icon:'calendar-stats', label:'Year-end close',    level:2, section:'Advanced' },
+  ];
 
   // Reseller console is only shown to partner (tenant) accounts; the platform
   // admin console only to the platform owner. Both are always visible when shown.

@@ -312,6 +312,7 @@ export default function ReportsPage() {
               {line('Total liabilities', data.liabilities.total, { strong: true, color: RED })}
               {sectionHead('Equity')}
               {(data.equity.lines || []).map(l => line(`${l.code} · ${l.name}`, l.amount, { indent: true }))}
+              {Number(data.equity.retainedEarnings) !== 0 && line('Retained earnings (prior years)', data.equity.retainedEarnings, { indent: true })}
               {line('Net income (current earnings)', data.equity.netIncome, { indent: true })}
               {line('Total equity', data.equity.total, { strong: true })}
               <div style={{ borderTop: '2px solid ' + GREEN, marginTop: 10, paddingTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

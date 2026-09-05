@@ -28,6 +28,7 @@ import MultiCompanyPage          from './pages/MultiCompanyPage';
 import ResellerPage              from './pages/ResellerPage';
 import PlatformAdminPage         from './pages/PlatformAdminPage';
 import AccountantAccessPage, { PendingAccessBanner } from './pages/AccountantAccessPage';
+import YearEndClosePage         from './pages/YearEndClosePage';
 import AICategorizePage          from './pages/AICategorizePage';
 import AnomalyDetectionPage      from './pages/AnomalyDetectionPage';
 import CashFlowForecastPage      from './pages/CashFlowForecastPage';
@@ -215,6 +216,7 @@ export default function App() {
       case 'reports':     return <ReportsPage />;
       case 'coa':         return <ChartOfAccountsPage />;
       case 'journal':     return <JournalEntriesPage />;
+      case 'year-end':    return <YearEndClosePage />;
       case 'budgets':     return <BudgetsPage />;
       case 'recurring':   return <RecurringInvoicesPage />;
       case 'documents':   return <DocumentsPage />;
