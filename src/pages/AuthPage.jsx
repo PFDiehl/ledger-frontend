@@ -98,7 +98,7 @@ export default function AuthPage({ onSuccess }) {
             <line x1="14" y1="42" x2="42" y2="42" stroke="#ffd166" strokeWidth="1.5" opacity="0.4"/>
           </svg>
           <div style={{fontSize:'28px', fontWeight:'700', color:'#ffd166', letterSpacing:'0.5px', fontFamily:'Georgia, serif'}}>
-            Mountain Top Ledger
+            MountainTop Ledger
           </div>
           <div style={{fontSize:'13px', color:'#7A9A7A', marginTop:'6px', letterSpacing:'2px'}}>
             BUILT FOR WHERE YOU ARE GOING

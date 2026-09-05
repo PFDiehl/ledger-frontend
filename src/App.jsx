@@ -163,7 +163,7 @@ export default function App() {
       return <div style={box}>
         <div style={{fontSize:48}}>🎉</div>
         <h1 style={{margin:0, fontSize:24}}>You're all set!</h1>
-        <p style={{color:'#555', maxWidth:380}}>Your first month is free — welcome to Mountain Top Ledger. You won't be charged until next month.</p>
+        <p style={{color:'#555', maxWidth:380}}>Your first month is free — welcome to MountainTop Ledger. You won't be charged until next month.</p>
         <a href="/" style={{padding:'10px 20px', background:'#2D7A4A', color:'#fff', borderRadius:8, textDecoration:'none', fontWeight:600}}>Go to my dashboard</a>
       </div>;
     return <div style={box}>

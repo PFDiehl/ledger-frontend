@@ -19,12 +19,12 @@ function previewConsent({ firmName, clientName, scope }) {
     '',
     'DRAFT — PENDING LEGAL REVIEW. This wording is a starting point and has not been reviewed by an attorney. It is not legal advice.',
     '',
-    `I, acting on behalf of ${clientName}, authorize ${firmName} to ${level} within the Mountain Top Ledger platform.`,
+    `I, acting on behalf of ${clientName}, authorize ${firmName} to ${level} within the MountainTop Ledger platform.`,
     '',
     'I understand that:',
     `• This access is given voluntarily and I may revoke it at any time, which immediately ends ${firmName}'s access.`,
     `• ${firmName} acts as my agent for bookkeeping/accounting purposes and is expected to keep my financial information confidential.`,
-    '• Mountain Top Ledger provides this access at my direction and keeps a dated record of this authorization.',
+    '• MountainTop Ledger provides this access at my direction and keeps a dated record of this authorization.',
     '• Granting access does not transfer ownership of my data, which remains mine.',
     '',
     `By approving, I confirm I am authorized to grant this permission on behalf of ${clientName}.`,
@@ -75,7 +75,7 @@ function downloadRecord(grantId, toast) {
       const html = `<!doctype html><html><head><meta charset="utf-8"><title>Access authorization ${esc(rec.id)}</title></head>
 <body style="font:13px/1.6 system-ui,-apple-system,sans-serif;color:#1f2a24;max-width:680px;margin:32px auto;padding:0 24px">
   <h1 style="font-size:18px;margin:0 0 4px">Authorization to access bookkeeping records</h1>
-  <div style="color:#8A968C;font-size:12px;margin-bottom:20px">Mountain Top Ledger — permission record</div>
+  <div style="color:#8A968C;font-size:12px;margin-bottom:20px">MountainTop Ledger — permission record</div>
   <table style="border-collapse:collapse;font-size:13px;margin-bottom:20px">
     ${row('Status', (rec.status || '').toUpperCase())}
     ${row('Access level', rec.scope === 'full' ? 'Full (view & edit)' : 'View only')}
@@ -93,7 +93,7 @@ function downloadRecord(grantId, toast) {
   </table>
   <div style="font-size:12px;color:#5E6B62;font-weight:600;margin-bottom:6px">Consent agreed to</div>
   <pre style="white-space:pre-wrap;font:12px/1.6 system-ui,sans-serif;background:#F5F8F3;border:0.5px solid #D4DDCC;border-radius:8px;padding:16px;color:#1f2a24">${esc(rec.consentText || 'No consent text was recorded for this grant.')}</pre>
-  <div style="font-size:11px;color:#8A968C;margin-top:16px">Generated ${new Date().toLocaleString()} from Mountain Top Ledger. This is a copy of a record retained by the platform.</div>
+  <div style="font-size:11px;color:#8A968C;margin-top:16px">Generated ${new Date().toLocaleString()} from MountainTop Ledger. This is a copy of a record retained by the platform.</div>
 </body></html>`;
       if (w) { w.document.open(); w.document.write(html); w.document.close(); w.focus(); setTimeout(() => { try { w.print(); } catch {} }, 350); }
     })

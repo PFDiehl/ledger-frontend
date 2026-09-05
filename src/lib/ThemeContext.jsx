@@ -2,14 +2,14 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 
 // ── Theme definitions ─────────────────────────────────────────────────────────
-// Palettes mirror the Mountain Top Ledger mobile app: Original, Evergreen, Slate.
+// Palettes mirror the MountainTop Ledger mobile app: Original, Evergreen, Slate.
 // Ocean is kept as an extra option.
 
 export const THEMES = {
   original: {
     id:          'original',
     name:        'Original',
-    description: 'Forest green — the Mountain Top look',
+    description: 'Forest green — the MountainTop look',
     preview:     ['#2D4A35', '#A8D4A8', '#EBF2E8', '#FFD166'],
 
     vars: {

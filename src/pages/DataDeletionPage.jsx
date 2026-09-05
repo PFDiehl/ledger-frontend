@@ -3,16 +3,16 @@ export default function DataDeletionPage() {
   return (
     <div style={{maxWidth:800,margin:'0 auto',padding:'48px 24px',fontFamily:'sans-serif',color:'#333',lineHeight:1.7}}>
       <div style={{marginBottom:32}}>
-        <a href="/" style={{color:'#2D4A35',textDecoration:'none',fontSize:14}}>← Back to Mountain Top Ledger</a>
+        <a href="/" style={{color:'#2D4A35',textDecoration:'none',fontSize:14}}>← Back to MountainTop Ledger</a>
       </div>
       <h1 style={{fontSize:36,fontWeight:700,color:'#2D4A35',marginBottom:8}}>Delete Your Data</h1>
-      <p style={{color:'#666',marginBottom:32}}>How to delete your Mountain Top Ledger account and data. Last updated: September 5, 2026</p>
+      <p style={{color:'#666',marginBottom:32}}>How to delete your MountainTop Ledger account and data. Last updated: September 5, 2026</p>
 
-      <p>You can delete your Mountain Top Ledger account and its associated data at any time. There are two ways to do it.</p>
+      <p>You can delete your MountainTop Ledger account and its associated data at any time. There are two ways to do it.</p>
 
       <h2 style={H2}>Option 1 — Delete in the app (fastest)</h2>
       <ol>
-        <li>Sign in to Mountain Top Ledger.</li>
+        <li>Sign in to MountainTop Ledger.</li>
         <li>Go to <strong>Settings → Security</strong>.</li>
         <li>Choose <strong>Delete account</strong> and confirm.</li>
       </ol>
@@ -38,7 +38,7 @@ export default function DataDeletionPage() {
       <p>Contact us any time at <a href="mailto:support@mountaintopledger.com" style={{color:'#2D4A35'}}>support@mountaintopledger.com</a>. See also our <a href="/privacy" style={{color:'#2D4A35'}}>Privacy Policy</a>.</p>
 
       <div style={{marginTop:48,paddingTop:24,borderTop:'1px solid #eee',color:'#999',fontSize:13}}>
-        © 2026 Mountain Top Ledger. All rights reserved.
+        © 2026 MountainTop Ledger. All rights reserved.
       </div>
     </div>
   );

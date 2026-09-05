@@ -49,7 +49,7 @@ export default function ResetPasswordPage() {
         border:'1px solid rgba(168,212,168,0.2)', borderRadius:'24px', padding:'48px 40px', backdropFilter:'blur(10px)',
       }}>
         <div style={{textAlign:'center', marginBottom:'32px'}}>
-          <div style={{fontSize:'24px', fontWeight:'700', color:'#ffd166', fontFamily:'Georgia, serif'}}>Mountain Top Ledger</div>
+          <div style={{fontSize:'24px', fontWeight:'700', color:'#ffd166', fontFamily:'Georgia, serif'}}>MountainTop Ledger</div>
         </div>
 
         <div style={{fontSize:'20px', fontWeight:'600', color:'#fff', marginBottom:'24px', textAlign:'center'}}>

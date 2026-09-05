@@ -8,7 +8,7 @@ export default function LandingPage({ onGetStarted }) {
             <polygon points="16,2 4,28 28,28" fill="#ffd166" opacity="0.2"/>
             <polygon points="16,2 11,16 16,14 21,16" fill="#ffd166" opacity="0.8"/>
           </svg>
-          <span style={{fontSize:20,fontWeight:700,color:'#ffd166',letterSpacing:1}}>Mountain Top Ledger</span>
+          <span style={{fontSize:20,fontWeight:700,color:'#ffd166',letterSpacing:1}}>MountainTop Ledger</span>
         </div>
         <button onClick={onGetStarted} style={{backgroundColor:'transparent',border:'1px solid #ffd166',color:'#ffd166',padding:'8px 24px',borderRadius:8,fontSize:14,cursor:'pointer',fontFamily:'sans-serif',letterSpacing:1}}>
           Sign In
@@ -23,10 +23,10 @@ export default function LandingPage({ onGetStarted }) {
             <line x1="8" y1="56" x2="56" y2="56" stroke="#ffd166" strokeWidth="2" opacity="0.3"/>
           </svg>
         </div>
-        <h1 style={{fontSize:56,fontWeight:700,color:'#ffd166',marginBottom:8,lineHeight:1.1}}>Mountain Top Ledger</h1>
+        <h1 style={{fontSize:56,fontWeight:700,color:'#ffd166',marginBottom:8,lineHeight:1.1}}>MountainTop Ledger</h1>
         <p style={{fontSize:16,color:'#f5a623',letterSpacing:4,marginBottom:32,fontFamily:'sans-serif'}}>BUILT FOR WHERE YOU ARE GOING</p>
         <p style={{fontSize:20,color:'#a8d4a8',maxWidth:700,margin:'0 auto 48px',lineHeight:1.7,fontFamily:'sans-serif'}}>
-          Every great business starts somewhere. Mountain Top Ledger is business accounting built to take you from your first invoice to your biggest milestone, and every step in between. Start your free trial with just the essentials, then add payroll, advanced reports, and enterprise tools only when your business is ready. You always pay for what you need and nothing more.
+          Every great business starts somewhere. MountainTop Ledger is business accounting built to take you from your first invoice to your biggest milestone, and every step in between. Start your free trial with just the essentials, then add payroll, advanced reports, and enterprise tools only when your business is ready. You always pay for what you need and nothing more.
         </p>
         <button onClick={onGetStarted} style={{backgroundColor:'#ffd166',color:'#0d2010',padding:'16px 48px',borderRadius:12,fontSize:18,fontWeight:700,cursor:'pointer',border:'none',fontFamily:'sans-serif',letterSpacing:1}}>
           Get Started Free
@@ -108,7 +108,7 @@ export default function LandingPage({ onGetStarted }) {
 
       <div style={{textAlign:'center',padding:'80px 48px',background:'linear-gradient(180deg,#080f28 0%,#0a2010 50%,#071408 100%)'}}>
         <h2 style={{fontSize:36,color:'#ffd166',marginBottom:16,fontWeight:700}}>Ready to take your books to the top?</h2>
-        <p style={{fontSize:18,color:'#a8d4a8',marginBottom:40,fontFamily:'sans-serif'}}>Start your journey with Mountain Top Ledger today</p>
+        <p style={{fontSize:18,color:'#a8d4a8',marginBottom:40,fontFamily:'sans-serif'}}>Start your journey with MountainTop Ledger today</p>
         <button onClick={onGetStarted} style={{backgroundColor:'#ffd166',color:'#0d2010',padding:'16px 48px',borderRadius:12,fontSize:18,fontWeight:700,cursor:'pointer',border:'none',fontFamily:'sans-serif',letterSpacing:1}}>
           Create Free Account
         </button>
@@ -116,7 +116,7 @@ export default function LandingPage({ onGetStarted }) {
 
       <div style={{textAlign:'center',padding:'24px 48px',backgroundColor:'#030805',borderTop:'1px solid rgba(255,209,102,0.1)'}}>
         <p style={{fontSize:13,color:'#2a5a2a',fontFamily:'sans-serif',margin:0,letterSpacing:1}}>
-          Copyright 2026 Mountain Top Ledger &nbsp;·&nbsp; mountaintopledger.com &nbsp;·&nbsp;
+          Copyright 2026 MountainTop Ledger &nbsp;·&nbsp; mountaintopledger.com &nbsp;·&nbsp;
           <a href="/privacy" style={{color:'#5a8a5a',textDecoration:'none'}}>Privacy Policy</a>
         </p>
       </div>

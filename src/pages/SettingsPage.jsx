@@ -264,7 +264,7 @@ function TeamSettings() {
           <button className="btn-primary" style={{ fontSize:12 }} disabled={busy} onClick={sendInvite}>{busy ? '…' : 'Add'}</button>
           <button className="btn-secondary" style={{ fontSize:12 }} onClick={() => setInviteOpen(false)}>Cancel</button>
           <div style={{ flexBasis:'100%', fontSize:11, color:'var(--color-text-tertiary)' }}>
-            They need a Mountain Top Ledger account first. Roles: Viewer (read-only), Member (day-to-day work), Manager, Admin (settings &amp; team).
+            They need a MountainTop Ledger account first. Roles: Viewer (read-only), Member (day-to-day work), Manager, Admin (settings &amp; team).
           </div>
         </div>
       )}
@@ -688,7 +688,7 @@ function IntegrationsSettings() {
         <div style={{ border:'0.5px solid var(--color-border-tertiary)', borderRadius:10, padding:'16px 18px', display:'flex', flexDirection:'column', gap:14 }}>
           <div>
             <div style={{ fontSize:13, fontWeight:600, marginBottom:2 }}>Sync</div>
-            <div style={{ fontSize:12, color:'var(--color-text-tertiary)' }}>Push your Mountain Top Ledger customers into QuickBooks. Runs safely — already-synced customers are skipped.</div>
+            <div style={{ fontSize:12, color:'var(--color-text-tertiary)' }}>Push your MountainTop Ledger customers into QuickBooks. Runs safely — already-synced customers are skipped.</div>
           </div>
 
           <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
@@ -768,7 +768,7 @@ function IntegrationsSettings() {
 
           <div style={{ borderTop:'0.5px solid var(--color-border-tertiary)', paddingTop:14, marginTop:2 }}>
             <div style={{ fontSize:13, fontWeight:600, marginBottom:2 }}>Import</div>
-            <div style={{ fontSize:12, color:'var(--color-text-tertiary)', marginBottom:10 }}>Already keep your books in QuickBooks? Pull your existing data into Mountain Top Ledger. Safe to re-run — matches are updated, not duplicated. Import customers first, since invoices link to them.</div>
+            <div style={{ fontSize:12, color:'var(--color-text-tertiary)', marginBottom:10 }}>Already keep your books in QuickBooks? Pull your existing data into MountainTop Ledger. Safe to re-run — matches are updated, not duplicated. Import customers first, since invoices link to them.</div>
             <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
               <button className="btn-secondary" style={{ fontSize:12 }} disabled={importing} onClick={importCustomers}>{importing ? 'Importing…' : 'Import customers ← QuickBooks'}</button>
               <button className="btn-secondary" style={{ fontSize:12 }} disabled={importingInv} onClick={importInvoices}>{importingInv ? 'Importing…' : 'Import invoices ← QuickBooks'}</button>
@@ -945,7 +945,7 @@ function BrandingSettings() {
       </div>
 
       <FieldRow label="Brand name (shown when there's no logo)">
-        <input style={box} value={brandName} onChange={e=>setBrandName(e.target.value)} placeholder="Mountain Top Ledger" />
+        <input style={box} value={brandName} onChange={e=>setBrandName(e.target.value)} placeholder="MountainTop Ledger" />
       </FieldRow>
 
       <div>
@@ -967,7 +967,7 @@ function BrandingSettings() {
         <div style={{ fontSize:12, fontWeight:600, color:'var(--color-text-secondary)', marginBottom:8 }}>Preview</div>
         <div style={{ display:'flex', border:'0.5px solid var(--color-border-tertiary)', borderRadius:10, overflow:'hidden', height:120 }}>
           <div style={{ width:130, background:primary, color:readable(primary), padding:'12px 14px', fontSize:12, fontWeight:600, display:'flex', alignItems:'flex-start' }}>
-            {logoUrl ? <img src={logoUrl} alt="" style={{ maxWidth:100, maxHeight:26, objectFit:'contain' }} /> : (brandName || 'Mountain Top Ledger')}
+            {logoUrl ? <img src={logoUrl} alt="" style={{ maxWidth:100, maxHeight:26, objectFit:'contain' }} /> : (brandName || 'MountainTop Ledger')}
           </div>
           <div style={{ flex:1, background:'var(--color-background-secondary)', padding:'14px', display:'flex', flexDirection:'column', gap:10 }}>
             <div style={{ height:10, width:'40%', background:'var(--color-border-secondary)', borderRadius:4 }} />

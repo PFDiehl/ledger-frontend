@@ -3,12 +3,12 @@ export default function PrivacyPage() {
   return (
     <div style={{maxWidth:800,margin:'0 auto',padding:'48px 24px',fontFamily:'sans-serif',color:'#333',lineHeight:1.7}}>
       <div style={{marginBottom:32}}>
-        <a href="/" style={{color:'#2D4A35',textDecoration:'none',fontSize:14}}>← Back to Mountain Top Ledger</a>
+        <a href="/" style={{color:'#2D4A35',textDecoration:'none',fontSize:14}}>← Back to MountainTop Ledger</a>
       </div>
       <h1 style={{fontSize:36,fontWeight:700,color:'#2D4A35',marginBottom:8}}>Privacy Policy</h1>
       <p style={{color:'#666',marginBottom:32}}>Last updated: September 5, 2026</p>
 
-      <p>This Privacy Policy explains how Mountain Top Ledger ("we," "us," or "our") collects, uses, and protects information when you use the Mountain Top Ledger website and mobile app (together, the "Service"). By using the Service, you agree to this policy.</p>
+      <p>This Privacy Policy explains how MountainTop Ledger ("we," "us," or "our") collects, uses, and protects information when you use the MountainTop Ledger website and mobile app (together, the "Service"). By using the Service, you agree to this policy.</p>
 
       <h2 style={H2}>1. Information We Collect</h2>
       <p>We collect the following categories of information:</p>
@@ -54,19 +54,19 @@ export default function PrivacyPage() {
       <p>We use essential cookies and similar technologies to keep you logged in and maintain your session. We do not use tracking or advertising cookies.</p>
 
       <h2 style={H2}>9. Children's Privacy</h2>
-      <p>Mountain Top Ledger is a business tool and is not directed at children under 13. We do not knowingly collect personal information from children under 13.</p>
+      <p>MountainTop Ledger is a business tool and is not directed at children under 13. We do not knowingly collect personal information from children under 13.</p>
 
       <h2 style={H2}>10. Changes to This Policy</h2>
       <p>We may update this Privacy Policy from time to time. We will post the updated policy on this page and revise the "Last updated" date above.</p>
 
       <h2 style={H2}>11. Contact Us</h2>
       <p>If you have any questions about this Privacy Policy or your data, contact us at:</p>
-      <p><strong>Mountain Top Ledger</strong><br/>
+      <p><strong>MountainTop Ledger</strong><br/>
       Email: support@mountaintopledger.com<br/>
       Website: mountaintopledger.com</p>
 
       <div style={{marginTop:48,paddingTop:24,borderTop:'1px solid #eee',color:'#999',fontSize:13}}>
-        © 2026 Mountain Top Ledger. All rights reserved.
+        © 2026 MountainTop Ledger. All rights reserved.
       </div>
     </div>
   );
