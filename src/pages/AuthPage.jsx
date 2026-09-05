@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/AuthContext';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 export default function AuthPage({ onSuccess }) {
-  const { login, verify2FA, register } = useAuth();
+  const { login, loginWithGoogle, verify2FA, register } = useAuth();
+  const googleBtnRef = useRef(null);
   const [mode, setMode] = useState('login');
   const [showPw, setShowPw] = useState(false);
   const [form, setForm] = useState({ email: '', password: '', fullName: '', orgName: '' });
@@ -15,6 +17,52 @@ export default function AuthPage({ onSuccess }) {
   const [twoFactorCode, setTwoFactorCode]   = useState('');
 
   function setField(k, v) { setForm(f => ({ ...f, [k]: v })); setError(''); }
+
+  async function handleGoogleCredential(credential) {
+    setError(''); setNotice(''); setLoading(true);
+    try {
+      const result = await loginWithGoogle(credential);
+      if (result?.twoFactorRequired) {
+        setTwoFactorToken(result.twoFactorToken); setTwoFactorCode(''); setMode('2fa'); return;
+      }
+      onSuccess?.();
+    } catch (err) {
+      setError(err.message ?? 'Google sign-in failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Render Google's official "Sign in with Google" button when configured. No-op
+  // (button simply doesn't appear) until VITE_GOOGLE_CLIENT_ID is set, so the page
+  // works normally before Google setup is complete.
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return;
+    if (mode !== 'login' && mode !== 'register') return;
+    let cancelled = false;
+    const render = () => {
+      if (cancelled || !window.google?.accounts?.id || !googleBtnRef.current) return;
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: (resp) => { if (resp?.credential) handleGoogleCredential(resp.credential); },
+      });
+      googleBtnRef.current.innerHTML = '';
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: 'filled_blue', size: 'large', width: 360, shape: 'pill',
+        text: mode === 'register' ? 'signup_with' : 'signin_with',
+      });
+    };
+    if (window.google?.accounts?.id) { render(); return () => { cancelled = true; }; }
+    let s = document.getElementById('gis-script');
+    if (!s) {
+      s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.async = true; s.defer = true; s.id = 'gis-script';
+      document.body.appendChild(s);
+    }
+    s.addEventListener('load', render);
+    return () => { cancelled = true; s && s.removeEventListener('load', render); };
+  }, [mode]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -142,6 +190,17 @@ export default function AuthPage({ onSuccess }) {
         {mode === '2fa' && (
           <div style={{fontSize:'14px', color:'#7A9A7A', marginBottom:'20px', textAlign:'center'}}>
             Enter the 6-digit code from your authenticator app. You can also use one of your backup codes.
+          </div>
+        )}
+
+        {GOOGLE_CLIENT_ID && (mode === 'login' || mode === 'register') && (
+          <div style={{ marginBottom: '22px' }}>
+            <div ref={googleBtnRef} style={{ display: 'flex', justifyContent: 'center' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '22px 0 4px' }}>
+              <div style={{ flex: 1, height: 1, background: 'rgba(168,212,168,0.18)' }} />
+              <span style={{ fontSize: '12px', color: '#7A9A7A' }}>or continue with email</span>
+              <div style={{ flex: 1, height: 1, background: 'rgba(168,212,168,0.18)' }} />
+            </div>
           </div>
         )}
 
@@ -278,7 +337,7 @@ export default function AuthPage({ onSuccess }) {
 
         <div style={{textAlign:'center', marginTop:'32px', paddingTop:'24px', borderTop:'1px solid rgba(168,212,168,0.1)'}}>
           <div style={{fontSize:'11px', color:'#3a5a3a', letterSpacing:'1px'}}>
-            © 2026 MOUNTAIN TOP LEDGER · mountaintopledger.com
+            © 2026 MOUNTAINTOP LEDGER · mountaintopledger.com
           </div>
         </div>
       </div>

@@ -82,6 +82,22 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
+  // Sign in with Google: `credential` is the Google ID token from Google Identity
+  // Services. Same shape as login — may return { twoFactorRequired } for 2FA users.
+  const loginWithGoogle = useCallback(async (credential) => {
+    const { data } = await api.post('/auth/google', { credential });
+    if (data.twoFactorRequired) return data;
+    setAccessToken(data.accessToken);
+    if (data.refreshToken) setRefreshToken(data.refreshToken);
+    setUser(data.user);
+    setOrgs(data.orgs);
+    setTenants(data.tenants || []);
+    setIsPlatformOwner(!!data.isPlatformOwner);
+    const firstOrg = data.orgs[0];
+    if (firstOrg) selectOrg(firstOrg);
+    return data;
+  }, []);
+
   const verify2FA = useCallback(async (twoFactorToken, code) => {
     const { data } = await api.post('/auth/2fa/verify', { twoFactorToken, code });
     setAccessToken(data.accessToken);
@@ -117,7 +133,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, orgs, tenants, isPlatformOwner, org, loading, login, verify2FA, register, logout, selectOrg, applyOrgUpdate }}>
+    <AuthContext.Provider value={{ user, orgs, tenants, isPlatformOwner, org, loading, login, loginWithGoogle, verify2FA, register, logout, selectOrg, applyOrgUpdate }}>
       {children}
     </AuthContext.Provider>
   );
