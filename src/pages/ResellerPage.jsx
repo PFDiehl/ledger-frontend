@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
+import PartnerAgreementGate from './PartnerAgreementGate';
 
 const API = import.meta.env.VITE_API_URL || 'https://ledger-accounting-production.up.railway.app/api';
 const H = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` });
@@ -27,6 +28,7 @@ export default function ResellerPage() {
   const [tenant, setTenant]   = useState(null);
   const [usage, setUsage]     = useState(null);
   const [clients, setClients] = useState([]);
+  const [agreement, setAgreement] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const tenantId = activeTenantId || tenants[0]?.id;
@@ -35,14 +37,16 @@ export default function ResellerPage() {
     if (!id) { setLoading(false); return; }
     setLoading(true);
     try {
-      const [t, u, c] = await Promise.all([
+      const [t, u, c, ag] = await Promise.all([
         fetch(`${API}/tenants/${id}`, { headers: H() }).then(r => r.json()),
         fetch(`${API}/tenants/${id}/usage`, { headers: H() }).then(r => r.json()),
         fetch(`${API}/tenants/${id}/clients`, { headers: H() }).then(r => r.json()),
+        fetch(`${API}/partner-agreement/status?tenantId=${id}`, { headers: H() }).then(r => r.json()),
       ]);
       setTenant(t.data || null);
       setUsage(u.data || null);
       setClients(c.data || []);
+      setAgreement(ag.data || null);
     } catch { toast.error('Could not load your reseller workspace.'); }
     setLoading(false);
   }
@@ -77,21 +81,27 @@ export default function ResellerPage() {
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 8, margin: '14px 0 18px', flexWrap: 'wrap' }}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{
-            padding: '7px 16px', borderRadius: 20, border: '1px solid',
-            borderColor: tab === t.id ? 'var(--brand-primary)' : '#D4DDCC',
-            background: tab === t.id ? 'var(--brand-primary)' : '#ffffff',
-            color: tab === t.id ? '#fff' : '#5E6B62', fontSize: 13, fontWeight: tab === t.id ? 600 : 400, cursor: 'pointer',
-          }}>{t.label}</button>
-        ))}
-      </div>
-
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40, color: '#5E6B62' }}>Loading…</div>
+      ) : !agreement?.accepted ? (
+        <PartnerAgreementGate
+          tenantId={tenantId}
+          tenantName={tenant?.name || tenants.find(t => t.id === tenantId)?.name}
+          status={agreement}
+          onAccepted={() => loadAll(tenantId)}
+        />
       ) : (
         <>
+          <div style={{ display: 'flex', gap: 8, margin: '14px 0 18px', flexWrap: 'wrap' }}>
+            {TABS.map(t => (
+              <button key={t.id} onClick={() => setTab(t.id)} style={{
+                padding: '7px 16px', borderRadius: 20, border: '1px solid',
+                borderColor: tab === t.id ? 'var(--brand-primary)' : '#D4DDCC',
+                background: tab === t.id ? 'var(--brand-primary)' : '#ffffff',
+                color: tab === t.id ? '#fff' : '#5E6B62', fontSize: 13, fontWeight: tab === t.id ? 600 : 400, cursor: 'pointer',
+              }}>{t.label}</button>
+            ))}
+          </div>
           {tab === 'overview'  && <Overview tenant={tenant} usage={usage} />}
           {tab === 'clients'   && <Clients tenantId={tenantId} clients={clients} reload={() => loadAll(tenantId)} />}
           {tab === 'branding'  && <Branding tenantId={tenantId} tenant={tenant} onSaved={() => loadAll(tenantId)} />}
