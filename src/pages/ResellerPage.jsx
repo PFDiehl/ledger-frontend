@@ -13,6 +13,7 @@ const TABS = [
   { id: 'branding', label: 'Branding' },
   { id: 'domains',  label: 'Domains'  },
   { id: 'payments', label: 'Payments' },
+  { id: 'billing',  label: 'Platform fee' },
 ];
 
 const box = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '0.5px solid #D4DDCC', fontSize: 13, boxSizing: 'border-box', background: '#ffffff', color: '#1f2a24' };
@@ -107,6 +108,7 @@ export default function ResellerPage() {
           {tab === 'branding'  && <Branding tenantId={tenantId} tenant={tenant} onSaved={() => loadAll(tenantId)} />}
           {tab === 'domains'   && <Domains tenantId={tenantId} tenant={tenant} reload={() => loadAll(tenantId)} />}
           {tab === 'payments'  && <Payments tenantId={tenantId} tenant={tenant} />}
+          {tab === 'billing'   && <PlatformFees tenantId={tenantId} />}
         </>
       )}
     </div>
@@ -118,6 +120,98 @@ function Stat({ label, value }) {
     <div style={{ ...card, flex: '1 1 160px' }}>
       <div style={{ fontSize: 12, color: '#5E6B62', marginBottom: 6 }}>{label}</div>
       <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--brand-primary)' }}>{value}</div>
+    </div>
+  );
+}
+
+function PlatformFees({ tenantId }) {
+  const toast = useToast();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [savingId, setSavingId] = useState(null);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const r = await fetch(`${API}/platform-fees/tenant/${tenantId}`, { headers: H() }).then(r => r.json());
+      setData(r.data || null);
+    } catch { toast.error('Could not load your platform-fee summary.'); }
+    setLoading(false);
+  }
+  useEffect(() => { if (tenantId) load(); }, [tenantId]);
+
+  async function togglePayroll(orgId, next) {
+    setSavingId(orgId);
+    try {
+      const r = await fetch(`${API}/platform-fees/tenant/${tenantId}/client/${orgId}`, {
+        method: 'PATCH', headers: H(), body: JSON.stringify({ payrollEnabled: next }),
+      });
+      const body = await r.json();
+      if (!r.ok) throw new Error(body.message || 'Could not update.');
+      await load();
+    } catch (e) { toast.error(e.message || 'Could not update.'); }
+    setSavingId(null);
+  }
+
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: '#5E6B62' }}>Loading…</div>;
+  if (!data)   return <div style={card}>No billing data yet.</div>;
+
+  const { rates, clients, counts, monthlyTotal } = data;
+  const active = clients.filter(c => c.active);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <Stat label="Active clients" value={counts.total} />
+        <Stat label="Running payroll" value={counts.withPayroll} />
+        <Stat label="Your platform fee / mo" value={money(monthlyTotal)} />
+      </div>
+
+      <div style={card}>
+        <div style={{ fontSize: 13, color: '#5E6B62', marginBottom: 12, lineHeight: 1.5 }}>
+          You keep 100% of what you bill your clients. MountainTop charges a flat monthly platform fee per active client —
+          <strong> {money(rates.base)}</strong> per client, or <strong>{money(rates.payroll)}</strong> if the client runs payroll.
+          Flip the switch on any client whose books include payroll.
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ textAlign: 'left', color: '#8A968C', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                <th style={{ padding: '6px 8px' }}>Client</th>
+                <th style={{ padding: '6px 8px', textAlign: 'center' }}>Runs payroll</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Fee / mo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {active.length === 0 ? (
+                <tr><td colSpan={3} style={{ padding: '16px 8px', color: '#8A968C' }}>No active clients yet.</td></tr>
+              ) : active.map(c => (
+                <tr key={c.id} style={{ borderTop: '0.5px solid #EBF2E8' }}>
+                  <td style={{ padding: '10px 8px', fontWeight: 600, color: '#1f2a24' }}>{c.name}</td>
+                  <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                    <input type="checkbox" checked={c.payrollEnabled} disabled={savingId === c.id}
+                      onChange={e => togglePayroll(c.id, e.target.checked)}
+                      style={{ width: 16, height: 16, cursor: savingId === c.id ? 'wait' : 'pointer' }} />
+                  </td>
+                  <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 600, color: '#1f2a24' }}>{money(c.fee)}</td>
+                </tr>
+              ))}
+            </tbody>
+            {active.length > 0 && (
+              <tfoot>
+                <tr style={{ borderTop: '1px solid #D4DDCC' }}>
+                  <td style={{ padding: '10px 8px', fontWeight: 700 }}>Total</td>
+                  <td style={{ padding: '10px 8px', textAlign: 'center', color: '#8A968C', fontSize: 12 }}>{counts.withPayroll} w/ payroll</td>
+                  <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: 'var(--brand-primary)' }}>{money(monthlyTotal)}</td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+        <p style={{ fontSize: 11, color: '#8A968E', marginTop: 12, lineHeight: 1.5 }}>
+          An estimate of your monthly platform fee based on your current active clients. Automated billing is coming soon.
+        </p>
+      </div>
     </div>
   );
 }

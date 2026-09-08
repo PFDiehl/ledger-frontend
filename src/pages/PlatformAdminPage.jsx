@@ -4,6 +4,7 @@ import { useToast } from '../lib/ToastContext';
 
 const API = import.meta.env.VITE_API_URL || 'https://ledger-accounting-production.up.railway.app/api';
 const H = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` });
+const money = (n) => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0 });
 
 const card  = { background: '#ffffff', border: '0.5px solid #EBF2E8', borderRadius: 12, padding: 20 };
 const box   = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '0.5px solid #D4DDCC', fontSize: 13, boxSizing: 'border-box', background: '#ffffff', color: '#1f2a24' };
@@ -39,6 +40,7 @@ export default function PlatformAdminPage() {
 
   const [stats, setStats]     = useState(null);
   const [tenants, setTenants] = useState([]);
+  const [fees, setFees]       = useState(null);
   const [loading, setLoading] = useState(true);
 
   // create-reseller form
@@ -50,12 +52,14 @@ export default function PlatformAdminPage() {
   async function loadAll() {
     setLoading(true);
     try {
-      const [s, t] = await Promise.all([
+      const [s, t, f] = await Promise.all([
         fetch(`${API}/tenants/admin/stats`, { headers: H() }).then(r => r.json()),
         fetch(`${API}/tenants`,             { headers: H() }).then(r => r.json()),
+        fetch(`${API}/platform-fees/admin`, { headers: H() }).then(r => r.json()),
       ]);
       setStats(s.data || null);
       setTenants(Array.isArray(t.data) ? t.data : []);
+      setFees(f.data || null);
     } catch {
       toast.error('Could not load the platform admin data.');
     }
@@ -120,6 +124,8 @@ export default function PlatformAdminPage() {
     );
   }
 
+  const feeByTenant = Object.fromEntries((fees?.resellers || []).map(r => [r.tenantId, r.monthlyTotal]));
+
   return (
     <div className="page">
       <div className="page-header">
@@ -135,6 +141,7 @@ export default function PlatformAdminPage() {
         <StatCard label="Active"        value={loading ? '—' : (stats?.activeTenants ?? 0)} />
         <StatCard label="Client cos."   value={loading ? '—' : (stats?.organizations ?? 0)} />
         <StatCard label="Total users"   value={loading ? '—' : (stats?.users ?? 0)} />
+        <StatCard label="Platform fee / mo" value={loading ? '—' : money(fees?.grandTotal ?? 0)} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: 20, alignItems: 'start' }}>
@@ -154,6 +161,7 @@ export default function PlatformAdminPage() {
                     <th style={{ padding: '6px 8px' }}>Owner</th>
                     <th style={{ padding: '6px 8px' }}>Status</th>
                     <th style={{ padding: '6px 8px', textAlign: 'center' }}>Clients</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>Fee/mo</th>
                     <th style={{ padding: '6px 8px' }}>Payments</th>
                   </tr>
                 </thead>
@@ -179,6 +187,7 @@ export default function PlatformAdminPage() {
                       </td>
                       <td style={{ padding: '9px 8px' }}>{statusPill(t.status)}</td>
                       <td style={{ padding: '9px 8px', textAlign: 'center', color: '#1f2a24', fontWeight: 600 }}>{t.clientCount}</td>
+                      <td style={{ padding: '9px 8px', textAlign: 'right', color: '#1f2a24', fontWeight: 600 }}>{money(feeByTenant[t.id] ?? 0)}</td>
                       <td style={{ padding: '9px 8px', color: '#5E6B62', fontSize: 12 }}>
                         {t.stripeConnectStatus === 'active'
                           ? <span style={{ color: '#1E7A3D', fontWeight: 600 }}>Connected</span>
