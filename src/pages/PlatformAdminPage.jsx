@@ -29,6 +29,7 @@ function statusPill(status) {
     trialing:  { bg: '#EAF2FB', fg: '#2564A8' },
     suspended: { bg: '#FBECEA', fg: '#B4482F' },
     canceled:  { bg: '#F0F0F0', fg: '#6B6B6B' },
+    retired:   { bg: '#F0F0F0', fg: '#6B6B6B' },
   };
   const c = map[status] || { bg: '#F0F0F0', fg: '#6B6B6B' };
   return <span style={{ background: c.bg, color: c.fg, fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 20, textTransform: 'capitalize' }}>{status || 'unknown'}</span>;
@@ -48,6 +49,8 @@ export default function PlatformAdminPage() {
   const [slugTouched, setSlugTouched] = useState(false);
   const [creating, setCreating] = useState(false);
   const [created, setCreated]   = useState(null); // { org/owner + tempPassword }
+  const [busyId, setBusyId]     = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   async function loadAll() {
     setLoading(true);
@@ -111,6 +114,34 @@ export default function PlatformAdminPage() {
     setCreating(false);
   }
 
+  async function retireToggle(t) {
+    setBusyId(t.id);
+    try {
+      const path = t.status === 'retired' ? 'reactivate' : 'retire';
+      const res = await fetch(`${API}/tenants/${t.id}/${path}`, { method: 'POST', headers: H() });
+      const j = await res.json();
+      if (!res.ok || j.success === false) throw new Error(j.message || 'Could not update.');
+      toast.success(t.status === 'retired' ? 'Reseller reactivated.' : 'Reseller retired.');
+      loadAll();
+    } catch (e) { toast.error(e.message || 'Could not update the reseller.'); }
+    setBusyId(null);
+  }
+
+  async function deleteReseller(t) {
+    setBusyId(t.id);
+    try {
+      const res = await fetch(`${API}/tenants/${t.id}`, { method: 'DELETE', headers: H() });
+      const j = await res.json();
+      if (!res.ok || j.success === false) throw new Error(j.message || 'Could not delete.');
+      toast.success('Reseller deleted.');
+      setConfirmDelete(null);
+      loadAll();
+    } catch (e) { toast.error(e.message || 'Could not delete the reseller.'); }
+    setBusyId(null);
+  }
+
+  const actionBtn = { fontSize: 12, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, color: '#2564A8' };
+
   if (!isPlatformOwner) {
     return (
       <div className="page">
@@ -163,6 +194,7 @@ export default function PlatformAdminPage() {
                     <th style={{ padding: '6px 8px', textAlign: 'center' }}>Clients</th>
                     <th style={{ padding: '6px 8px', textAlign: 'right' }}>Fee/mo</th>
                     <th style={{ padding: '6px 8px' }}>Payments</th>
+                    <th style={{ padding: '6px 8px' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -192,6 +224,29 @@ export default function PlatformAdminPage() {
                         {t.stripeConnectStatus === 'active'
                           ? <span style={{ color: '#1E7A3D', fontWeight: 600 }}>Connected</span>
                           : <span style={{ color: '#8A968C' }}>{t.stripeConnectStatus || 'Not connected'}</span>}
+                      </td>
+                      <td style={{ padding: '9px 8px', whiteSpace: 'nowrap' }}>
+                        <button onClick={() => retireToggle(t)} disabled={busyId === t.id} style={actionBtn}>
+                          {t.status === 'retired' ? 'Reactivate' : 'Retire'}
+                        </button>
+                        {confirmDelete === t.id ? (
+                          <span style={{ marginLeft: 8 }}>
+                            <button onClick={() => deleteReseller(t)} disabled={busyId === t.id}
+                              style={{ ...actionBtn, color: '#B4482F', fontWeight: 700 }}>Confirm</button>
+                            <button onClick={() => setConfirmDelete(null)}
+                              style={{ ...actionBtn, color: '#8A968C', marginLeft: 6 }}>Cancel</button>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => t.clientCount > 0
+                              ? toast.error('This reseller has clients — retire it instead, or remove its clients first.')
+                              : setConfirmDelete(t.id)}
+                            disabled={busyId === t.id}
+                            title={t.clientCount > 0 ? 'Has clients — retire instead' : 'Delete permanently'}
+                            style={{ ...actionBtn, marginLeft: 8, color: t.clientCount > 0 ? '#C9C9C9' : '#B4482F', cursor: t.clientCount > 0 ? 'not-allowed' : 'pointer' }}>
+                            Delete
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
