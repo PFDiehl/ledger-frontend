@@ -217,7 +217,36 @@ function PlatformFees({ tenantId }) {
 }
 
 function Overview({ tenant, usage }) {
+  const toast = useToast();
   const statusColor = tenant?.status === 'active' ? '#2D7A4A' : tenant?.status === 'suspended' ? '#c0392b' : '#854F0B';
+
+  async function downloadAgreement() {
+    if (!tenant?.id) return;
+    try {
+      const j = await fetch(`${API}/partner-agreement/${tenant.id}/record`, { headers: H() }).then(r => r.json());
+      const d = j.data;
+      if (!d) { toast.error('No signed agreement on file yet.'); return; }
+      const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+      const when = d.acceptedAt ? new Date(d.acceptedAt).toLocaleString() : '';
+      const w = window.open('', '_blank');
+      if (!w) { toast.error('Please allow pop-ups to download the agreement.'); return; }
+      w.document.write(`<!doctype html><meta charset="utf-8"><title>Reseller Partner Agreement — ${esc(d.reseller?.name || '')}</title>`
+        + `<div style="max-width:720px;margin:32px auto;font-family:Georgia,serif;color:#111;line-height:1.55;padding:0 20px">`
+        + `<h2 style="margin:0 0 4px">MountainTop Ledger — White-Label Reseller Partner Agreement</h2>`
+        + `<div style="font-size:12px;color:#555;margin-bottom:16px">Electronic acceptance record · version ${esc(d.version)}</div>`
+        + `<table style="font-size:13px;border-collapse:collapse;margin-bottom:16px">`
+        + `<tr><td style="padding:2px 14px 2px 0;color:#555">Firm</td><td>${esc(d.reseller?.name || '')}</td></tr>`
+        + `<tr><td style="padding:2px 14px 2px 0;color:#555">Accepted by</td><td>${esc(d.acceptedName || '')}${d.acceptedTitle ? ', ' + esc(d.acceptedTitle) : ''}</td></tr>`
+        + `<tr><td style="padding:2px 14px 2px 0;color:#555">Account</td><td>${esc(d.acceptedBy?.email || '')}</td></tr>`
+        + `<tr><td style="padding:2px 14px 2px 0;color:#555">Date &amp; time</td><td>${esc(when)}</td></tr>`
+        + `<tr><td style="padding:2px 14px 2px 0;color:#555">IP address</td><td>${esc(d.acceptIp || '')}</td></tr>`
+        + `</table><hr>`
+        + `<pre style="white-space:pre-wrap;font-family:Georgia,serif;font-size:12.5px">${esc(d.consentText || '')}</pre></div>`);
+      w.document.close();
+      setTimeout(() => w.print(), 300);
+    } catch { toast.error('Could not load the agreement.'); }
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -239,6 +268,10 @@ function Overview({ tenant, usage }) {
           </div>
         )}
       </div>
+      <button onClick={downloadAgreement}
+        style={{ alignSelf: 'flex-start', fontSize: 13, fontWeight: 600, color: 'var(--brand-primary)', background: '#fff', border: '1px solid #D4DDCC', borderRadius: 8, padding: '8px 14px', cursor: 'pointer' }}>
+        ⬇ Download your signed partner agreement
+      </button>
       <div style={{ fontSize: 12, color: '#8A968C' }}>
         Billing through your own Stripe account (with the platform fee) is set up separately — that's the next phase.
       </div>
@@ -309,7 +342,30 @@ function Clients({ tenantId, clients, reload }) {
     finally { setRowBusy(''); }
   }
 
+  const [confirmOff, setConfirmOff] = useState('');
+  async function offboard(orgId) {
+    setRowBusy(orgId);
+    try {
+      const r = await fetch(`${API}/tenants/${tenantId}/clients/${orgId}/offboard`, { method: 'POST', headers: H() });
+      const j = await r.json();
+      if (j.success !== false) { toast.success('Client offboarded — billing stopped and access ended. Their books are kept.'); setConfirmOff(''); reload(); loadGrants(); }
+      else toast.error(j.message || 'Could not offboard.');
+    } catch { toast.error('Cannot connect'); }
+    finally { setRowBusy(''); }
+  }
+  async function reactivate(orgId) {
+    setRowBusy(orgId);
+    try {
+      const r = await fetch(`${API}/tenants/${tenantId}/clients/${orgId}/reactivate`, { method: 'POST', headers: H() });
+      const j = await r.json();
+      if (j.success !== false) { toast.success('Client reactivated.'); reload(); }
+      else toast.error(j.message || 'Could not reactivate.');
+    } catch { toast.error('Cannot connect'); }
+    finally { setRowBusy(''); }
+  }
+
   function AccessCell({ c }) {
+    if (c.planStatus === 'canceled') return <span style={{ fontSize: 12, color: '#B7C0B4' }}>—</span>;
     const g = grantByOrg[c.id];
     if (rowBusy === c.id) return <span style={{ fontSize: 12, color: '#8A968C' }}>…</span>;
 
@@ -371,15 +427,27 @@ function Clients({ tenantId, clients, reload }) {
                 <th style={{ textAlign: 'left', padding: '10px 16px', color: '#5E6B62', fontWeight: 600 }}>Plan</th>
                 <th style={{ textAlign: 'right', padding: '10px 16px', color: '#5E6B62', fontWeight: 600 }}>Users</th>
                 <th style={{ textAlign: 'right', padding: '10px 16px', color: '#5E6B62', fontWeight: 600 }}>Books access</th>
+                <th style={{ padding: '10px 16px' }}></th>
               </tr>
             </thead>
             <tbody>
               {clients.map(c => (
-                <tr key={c.id} style={{ borderBottom: '0.5px solid #EBF2E8' }}>
-                  <td style={{ padding: '11px 16px', fontWeight: 500 }}>{c.name}</td>
+                <tr key={c.id} style={{ borderBottom: '0.5px solid #EBF2E8', opacity: c.planStatus === 'canceled' ? 0.55 : 1 }}>
+                  <td style={{ padding: '11px 16px', fontWeight: 500 }}>
+                    {c.name}
+                    {c.planStatus === 'canceled' && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 600, color: '#8A968C', background: '#F0F0F0', padding: '2px 8px', borderRadius: 20 }}>Offboarded</span>}
+                  </td>
                   <td style={{ padding: '11px 16px', color: '#5E6B62', textTransform: 'capitalize' }}>{c.plan || '—'}</td>
                   <td style={{ padding: '11px 16px', textAlign: 'right' }}>{c._count?.members ?? '—'}</td>
                   <td style={{ padding: '11px 16px', textAlign: 'right' }}><AccessCell c={c} /></td>
+                  <td style={{ padding: '11px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    {rowBusy === c.id ? <span style={{ fontSize: 12, color: '#8A968C' }}>…</span>
+                     : c.planStatus === 'canceled'
+                       ? <button onClick={() => reactivate(c.id)} style={linkBtn}>Reactivate</button>
+                       : confirmOff === c.id
+                         ? <span><button onClick={() => offboard(c.id)} style={{ ...linkBtn, color: '#B4482F', fontWeight: 700 }}>Confirm</button><button onClick={() => setConfirmOff('')} style={{ ...linkBtn, color: '#8A968C', marginLeft: 8 }}>Cancel</button></span>
+                         : <button onClick={() => setConfirmOff(c.id)} style={{ ...linkBtn, color: '#B4482F' }}>Offboard</button>}
+                  </td>
                 </tr>
               ))}
             </tbody>
