@@ -51,6 +51,7 @@ export default function PlatformAdminPage() {
   const [created, setCreated]   = useState(null); // { org/owner + tempPassword }
   const [busyId, setBusyId]     = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [confirmCharge, setConfirmCharge] = useState(null);
 
   async function loadAll() {
     setLoading(true);
@@ -140,6 +141,21 @@ export default function PlatformAdminPage() {
     setBusyId(null);
   }
 
+  async function chargeReseller(t) {
+    setBusyId(t.id);
+    try {
+      const res = await fetch(`${API}/platform-fees/tenant/${t.id}/billing/charge`, { method: 'POST', headers: H() });
+      const j = await res.json();
+      if (!res.ok || j.success === false) throw new Error(j.message || 'Could not charge.');
+      const d = j.data || {};
+      if (d.skipped) toast.info(`${t.name}: nothing to charge (${d.reason}).`);
+      else if (d.paid) toast.success(`${t.name}: charged ${money(d.amount)} ✓`);
+      else toast.error(`${t.name}: charge ${d.status || 'did not complete'} — check the card.`);
+      loadAll();
+    } catch (e) { toast.error(e.message || 'Could not charge the reseller.'); }
+    setBusyId(null);
+  }
+
   const actionBtn = { fontSize: 12, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, color: '#2564A8' };
 
   if (!isPlatformOwner) {
@@ -226,6 +242,17 @@ export default function PlatformAdminPage() {
                           : <span style={{ color: '#8A968C' }}>{t.stripeConnectStatus || 'Not connected'}</span>}
                       </td>
                       <td style={{ padding: '9px 8px', whiteSpace: 'nowrap' }}>
+                        {confirmCharge === t.id ? (
+                          <span style={{ marginRight: 8 }}>
+                            <button onClick={() => { setConfirmCharge(null); chargeReseller(t); }} disabled={busyId === t.id}
+                              style={{ ...actionBtn, color: '#1E7A3D', fontWeight: 700 }}>Charge now</button>
+                            <button onClick={() => setConfirmCharge(null)}
+                              style={{ ...actionBtn, color: '#8A968C', marginLeft: 6 }}>Cancel</button>
+                          </span>
+                        ) : (
+                          <button onClick={() => setConfirmCharge(t.id)} disabled={busyId === t.id}
+                            style={{ ...actionBtn, marginRight: 8 }} title="Charge this reseller's monthly platform fee (test mode)">Charge</button>
+                        )}
                         <button onClick={() => retireToggle(t)} disabled={busyId === t.id} style={actionBtn}>
                           {t.status === 'retired' ? 'Reactivate' : 'Retire'}
                         </button>

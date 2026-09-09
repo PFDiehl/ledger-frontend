@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth }               from './lib/AuthContext';
+import { api }                   from './lib/api';
 import AuthPage                  from './pages/AuthPage';
 import OnboardingPage            from './pages/OnboardingPage';
 import TopBar                    from './components/layout/TopBar';
@@ -122,6 +123,19 @@ export default function App() {
         .catch(() => setSubStatus('error'));
     }
   }, []);
+
+  // After Stripe redirects back from RESELLER platform-fee CARD SETUP
+  // (/?fee_setup=done&session_id=...). Keyed on `user` so the auth token is ready.
+  useEffect(() => {
+    if (!user) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('fee_setup') === 'done' && params.get('session_id')) {
+      const sessionId = params.get('session_id');
+      window.history.replaceState({}, '', window.location.pathname);
+      api.post('/platform-fees/billing/setup/verify', { session_id: sessionId })
+        .catch((e) => console.error('Card setup verify failed:', e?.message));
+    }
+  }, [user]);
 
   // Billing gate: when enforced, check the org's subscription so we can require
   // a card before granting access. Fails OPEN on error to avoid locking anyone out.

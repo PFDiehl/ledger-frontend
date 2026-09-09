@@ -129,16 +129,36 @@ function PlatformFees({ tenantId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
+  const [billing, setBilling] = useState(null);
 
   async function load() {
     setLoading(true);
     try {
-      const r = await fetch(`${API}/platform-fees/tenant/${tenantId}`, { headers: H() }).then(r => r.json());
+      const [r, b] = await Promise.all([
+        fetch(`${API}/platform-fees/tenant/${tenantId}`, { headers: H() }).then(r => r.json()),
+        fetch(`${API}/platform-fees/tenant/${tenantId}/billing`, { headers: H() }).then(r => r.json()),
+      ]);
       setData(r.data || null);
+      setBilling(b.data || null);
     } catch { toast.error('Could not load your platform-fee summary.'); }
     setLoading(false);
   }
   useEffect(() => { if (tenantId) load(); }, [tenantId]);
+
+  async function setupCard() {
+    try {
+      const j = await fetch(`${API}/platform-fees/tenant/${tenantId}/billing/setup`, { method: 'POST', headers: H() }).then(r => r.json());
+      if (j.data?.url) window.location.href = j.data.url;
+      else toast.error(j.message || 'Could not start card setup.');
+    } catch { toast.error('Cannot connect'); }
+  }
+  async function manageCard() {
+    try {
+      const j = await fetch(`${API}/platform-fees/tenant/${tenantId}/billing/portal`, { method: 'POST', headers: H() }).then(r => r.json());
+      if (j.data?.url) window.location.href = j.data.url;
+      else toast.error(j.message || 'Could not open billing.');
+    } catch { toast.error('Cannot connect'); }
+  }
 
   async function togglePayroll(orgId, next) {
     setSavingId(orgId);
@@ -165,6 +185,33 @@ function PlatformFees({ tenantId }) {
         <Stat label="Active clients" value={counts.total} />
         <Stat label="Running payroll" value={counts.withPayroll} />
         <Stat label="Your platform fee / mo" value={money(monthlyTotal)} />
+      </div>
+
+      <div style={card}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#1f2a24', marginBottom: 4 }}>Payment method</div>
+            {billing?.hasCard
+              ? <div style={{ fontSize: 13, color: '#5E6B62' }}>Card on file — {(billing.cardBrand || 'card').toUpperCase()} ending {billing.cardLast4}. Estimated next charge: <strong style={{ color: '#1f2a24' }}>{money(billing.estimatedMonthly)}</strong>.</div>
+              : <div style={{ fontSize: 13, color: '#5E6B62' }}>No card on file yet. Add one so your monthly platform fee can be charged automatically.</div>}
+          </div>
+          <button onClick={billing?.hasCard ? manageCard : setupCard}
+            style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: 'var(--brand-primary)', border: 'none', borderRadius: 8, padding: '9px 16px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            {billing?.hasCard ? 'Update card' : 'Set up card'}
+          </button>
+        </div>
+        {billing?.charges?.length > 0 && (
+          <div style={{ marginTop: 14, borderTop: '0.5px solid #EBF2E8', paddingTop: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#8A968C', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>Billing history</div>
+            {billing.charges.map(ch => (
+              <div key={ch.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '5px 0', color: '#5E6B62' }}>
+                <span>{new Date(ch.when).toLocaleDateString()} · {ch.clientCount} client{ch.clientCount !== 1 ? 's' : ''}{ch.payrollCount ? ` (${ch.payrollCount} payroll)` : ''}</span>
+                <span><strong style={{ color: '#1f2a24' }}>{money(ch.amount)}</strong> · <span style={{ color: ch.status === 'paid' ? '#1E7A3D' : ch.status === 'failed' ? '#B4482F' : '#854F0B', textTransform: 'capitalize' }}>{ch.status}</span></span>
+              </div>
+            ))}
+          </div>
+        )}
+        <p style={{ fontSize: 11, color: '#8A968E', marginTop: 10 }}>Test mode — no real charges yet. Billing goes live once MountainTop's account is fully set up.</p>
       </div>
 
       <div style={card}>
