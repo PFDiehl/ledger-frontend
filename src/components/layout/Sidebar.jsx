@@ -31,9 +31,11 @@ const ALL_NAV = [
   { id:'budgets',       icon:'trending-up',   label:'Budgets',        level:1, section:'Reports' },
   { id:'coa',           icon:'list',          label:'Chart of accounts',level:2, section:'Advanced' },
   { id:'journal',       icon:'book',          label:'Journal entries', level:2, section:'Advanced' },
-  // AI features (AI categorize / Anomaly scan / Cash forecast) are hidden until
-  // they're built for real and cleared for QuickBooks data handling. Re-add here
-  // to bring them back.
+  // Smart tools — built for real and fully self-contained (all computed on our own
+  // server from the company's own data; nothing is sent to any outside service).
+  { id:'ai-categorize', icon:'sparkles',      label:'AI categorize',   level:1, section:'Smart tools' },
+  { id:'ai-anomalies',  icon:'radar',         label:'Anomaly scan',    level:1, section:'Smart tools' },
+  { id:'ai-forecast',   icon:'chart-line',    label:'Cash forecast',   level:1, section:'Smart tools' },
   // Hidden until built for real (each currently shows placeholder/mock data and
   // has no backend). Re-add the relevant line to bring a feature back:
   //   Documents      — needs real file storage + OCR (upload currently non-persistent)
