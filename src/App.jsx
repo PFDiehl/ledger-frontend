@@ -73,6 +73,7 @@ export default function App() {
   const [view, setView]            = useState({ type:'list' });
   const [onboarded, setOnboarded]  = useState(() => !!localStorage.getItem('onboarded'));
   const [showLanding, setShowLanding] = useState(true);
+  const [authMode, setAuthMode]    = useState('login'); // 'login' | 'register' — which form AuthPage opens on
   const [showAI, setShowAI]        = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(null); // invoice payment
   const [subStatus, setSubStatus]  = useState(null);          // subscription (post-checkout verify)
@@ -194,8 +195,8 @@ export default function App() {
   if (isTerms) return <TermsPage />;
   if (isPortal) return <CustomerPortalPage token={window.location.pathname.replace('/portal/','')} />;
   if (loading)  return <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color:'var(--color-text-secondary)' }}>Loading…</div>;
-  if (!user && showLanding) return <LandingPage onGetStarted={(plan)=>{ if (typeof plan === 'string' && plan) { setSelectedPlan(plan); localStorage.setItem('mtl_selected_plan', plan); } setShowLanding(false); }} />;
-  if (!user) return <AuthPage onSuccess={() => {}} />;
+  if (!user && showLanding) return <LandingPage onGetStarted={(plan, mode)=>{ if (typeof plan === 'string' && plan) { setSelectedPlan(plan); localStorage.setItem('mtl_selected_plan', plan); } setAuthMode(mode === 'login' ? 'login' : 'register'); setShowLanding(false); }} />;
+  if (!user) return <AuthPage initialMode={authMode} onBack={() => setShowLanding(true)} onSuccess={() => {}} />;
 
   // Card-required gate: block access until the org has an active/trialing plan.
   if (BILLING_ENFORCED) {

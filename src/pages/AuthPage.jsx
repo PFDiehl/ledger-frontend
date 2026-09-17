@@ -4,10 +4,10 @@ import { useAuth } from '../lib/AuthContext';
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-export default function AuthPage({ onSuccess }) {
+export default function AuthPage({ onSuccess, onBack, initialMode }) {
   const { login, loginWithGoogle, verify2FA, register } = useAuth();
   const googleBtnRef = useRef(null);
-  const [mode, setMode] = useState('login');
+  const [mode, setMode] = useState(initialMode === 'register' ? 'register' : 'login');
   const [showPw, setShowPw] = useState(false);
   const [form, setForm] = useState({ email: '', password: '', fullName: '', orgName: '' });
   const [error, setError] = useState('');
@@ -113,15 +113,20 @@ export default function AuthPage({ onSuccess }) {
       padding: '24px',
       fontFamily: 'sans-serif'
     }}>
-      {/* Back to home */}
-      <a href="/" style={{
-        position: 'absolute', top: 24, left: 24,
-        color: '#A8D4A8', fontSize: '15px', textDecoration: 'none',
-        display: 'flex', alignItems: 'center', gap: 6,
-        opacity: 0.8
-      }}>
-        ← Home
-      </a>
+      {/* Back to home — clear, tappable pill */}
+      <button
+        type="button"
+        onClick={() => (onBack ? onBack() : (window.location.href = '/'))}
+        style={{
+          position: 'absolute', top: 20, left: 20,
+          color: '#0d2010', fontSize: '14px', fontWeight: 700,
+          background: 'rgba(255,209,102,0.92)', border: 'none',
+          borderRadius: 999, padding: '9px 18px', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 6,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.25)'
+        }}>
+        ← Back to home
+      </button>
 
       <div style={{
         width: '100%', maxWidth: '460px',

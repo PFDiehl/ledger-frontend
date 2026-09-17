@@ -10,6 +10,9 @@ export default function LandingPage({ onGetStarted }) {
   }, []);
   const mobile = vw < 640;
 
+  // Which feature card is expanded in place (null = none)
+  const [openFeature, setOpenFeature] = useState(null);
+
   // Palette — Deep Teal + Gold (gold used only in the header)
   const DT = '#0A5E66';        // deep teal (header band, primary accent)
   const DT_INK = '#083338';    // dark headings / prices
@@ -18,6 +21,22 @@ export default function LandingPage({ onGetStarted }) {
   const FEAT_BD = '#93A6BA';   // feature-card borders
   const BODY = '#33465A';      // body text
   const MUTED = '#6E7F92';
+
+  // Feature cards — short blurb + deeper detail shown when expanded in place
+  const FEATURES = [
+    {icon:'📄',title:'Invoicing',desc:'Create and send professional invoices in seconds. Track what you\'re owed.',
+      detail:'Create polished, professional invoices in seconds and send them straight to your customers. Track what\'s paid, outstanding, and overdue at a glance, set up recurring invoices for repeat clients, and let customers pay online so you get paid faster.'},
+    {icon:'💰',title:'Expense Tracking',desc:'Log expenses on the go from your phone or desktop. Never miss a deduction.',
+      detail:'Log expenses the moment they happen from your phone or desktop, and snap a photo of the receipt so it\'s always attached. Keep spending organized by category so nothing slips through the cracks and every deduction is ready at tax time.'},
+    {icon:'📋',title:'Bills Management',desc:'Stay on top of what you owe. Never miss a payment deadline again.',
+      detail:'Keep every bill you owe in one place with clear due dates, so you never miss a payment or get hit with a late fee again. See exactly what\'s coming due and plan your cash flow with confidence.'},
+    {icon:'📊',title:'Reports',desc:'Clear financial reports so you always know where your business stands.',
+      detail:'Get clear Profit & Loss, Balance Sheet, and Cash Flow statements on demand — no accounting degree required. Filter by any date range and switch between cash and accrual accounting so you always know exactly where your business stands.'},
+    {icon:'📱',title:'Mobile App',desc:'Full accounting power in your pocket, wherever you are.',
+      detail:'Take your whole business with you. The mobile app puts invoicing, expenses, and reports right in your pocket, so you can run the books from the job site, a client meeting, or your couch. Available on iPhone, with Android on the way.'},
+    {icon:'☁️',title:'Cloud Sync',desc:'Your data is always safe and accessible from any device, anywhere.',
+      detail:'Your data is automatically backed up and synced to the cloud, so it\'s always safe and always current on every device you use. Start an invoice on your laptop and finish it on your phone — everything stays perfectly in sync.'},
+  ];
 
   return (
     <div style={{minHeight:'100vh',backgroundColor:'#ffffff',fontFamily:'Georgia, serif',overflowX:'hidden'}}>
@@ -31,7 +50,7 @@ export default function LandingPage({ onGetStarted }) {
           </svg>
           <span style={{fontSize:mobile?20:34,fontWeight:700,color:GOLD,letterSpacing:mobile?0.3:1,lineHeight:1.1}}>MountainTop Ledger</span>
         </div>
-        <button onClick={onGetStarted} style={{backgroundColor:'transparent',border:`2px solid ${GOLD}`,color:GOLD,padding:mobile?'8px 16px':'12px 32px',borderRadius:8,fontSize:mobile?14:17,fontWeight:600,cursor:'pointer',fontFamily:'sans-serif',letterSpacing:mobile?0.3:1,whiteSpace:'nowrap',flex:'0 0 auto'}}>
+        <button onClick={()=>onGetStarted(null,'login')} style={{backgroundColor:'transparent',border:`2px solid ${GOLD}`,color:GOLD,padding:mobile?'8px 16px':'12px 32px',borderRadius:8,fontSize:mobile?14:17,fontWeight:600,cursor:'pointer',fontFamily:'sans-serif',letterSpacing:mobile?0.3:1,whiteSpace:'nowrap',flex:'0 0 auto'}}>
           Sign In
         </button>
       </nav>
@@ -50,31 +69,43 @@ export default function LandingPage({ onGetStarted }) {
         <p style={{fontSize:mobile?17:21,color:BODY,maxWidth:660,margin:'0 auto 44px',lineHeight:1.7,fontFamily:'sans-serif'}}>
           Every great business starts somewhere. MountainTop Ledger is business accounting built to take you from your first invoice to your biggest milestone — and every step in between. Start with just the essentials, then add payroll and advanced tools only when you're ready.
         </p>
-        <button onClick={onGetStarted} style={{backgroundColor:DT,color:'#ffffff',padding:'18px 54px',borderRadius:12,fontSize:19,fontWeight:700,cursor:'pointer',border:'none',fontFamily:'sans-serif',letterSpacing:1}}>
+        <button onClick={()=>onGetStarted(null,'register')} style={{backgroundColor:DT,color:'#ffffff',padding:'18px 54px',borderRadius:12,fontSize:19,fontWeight:700,cursor:'pointer',border:'none',fontFamily:'sans-serif',letterSpacing:1}}>
           Get Started Free
         </button>
         <p style={{fontSize:14,color:'#8798A8',marginTop:18,fontFamily:'sans-serif'}}>Free first month · Cancel anytime</p>
       </div>
 
       {/* Features */}
-      <div style={{padding:'70px 32px',backgroundColor:'#F3F8F9'}}>
-        <h2 style={{textAlign:'center',fontSize:34,color:DT_INK,marginBottom:52,fontWeight:700}}>Everything your business needs</h2>
+      <div style={{padding:mobile?'56px 22px':'70px 32px',backgroundColor:'#F3F8F9'}}>
+        <h2 style={{textAlign:'center',fontSize:mobile?28:34,color:DT_INK,marginBottom:mobile?36:52,fontWeight:700}}>Everything your business needs</h2>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:24,maxWidth:920,margin:'0 auto'}}>
-          {[
-            {icon:'📄',title:'Invoicing',desc:'Create and send professional invoices in seconds. Track what you\'re owed.'},
-            {icon:'💰',title:'Expense Tracking',desc:'Log expenses on the go from your phone or desktop. Never miss a deduction.'},
-            {icon:'📋',title:'Bills Management',desc:'Stay on top of what you owe. Never miss a payment deadline again.'},
-            {icon:'📊',title:'Reports',desc:'Clear financial reports so you always know where your business stands.'},
-            {icon:'📱',title:'Mobile App',desc:'Full accounting power in your pocket. Available on iPhone.'},
-            {icon:'☁️',title:'Cloud Sync',desc:'Your data is always safe and accessible from any device, anywhere.'},
-          ].map(f => (
-            <div key={f.title} onClick={onGetStarted} style={{backgroundColor:'#ffffff',border:`1.5px solid ${FEAT_BD}`,borderRadius:16,padding:30,cursor:'pointer',boxShadow:'0 1px 3px rgba(20,40,50,0.07)',transition:'border-color 0.15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=DT} onMouseLeave={e=>e.currentTarget.style.borderColor=FEAT_BD}>
+          {FEATURES.map(f => {
+            const isOpen = openFeature?.title === f.title;
+            return (
+            <div key={f.title} onClick={()=>setOpenFeature(isOpen?null:f)} style={{backgroundColor:'#ffffff',border:`1.5px solid ${isOpen?DT:FEAT_BD}`,borderRadius:16,padding:30,cursor:'pointer',boxShadow:'0 1px 3px rgba(20,40,50,0.07)',transition:'border-color 0.15s'}} onMouseEnter={e=>{if(!isOpen)e.currentTarget.style.borderColor=DT;}} onMouseLeave={e=>{if(!isOpen)e.currentTarget.style.borderColor=FEAT_BD;}}>
               <div style={{fontSize:34,marginBottom:14}}>{f.icon}</div>
               <h3 style={{fontSize:19,color:DT_INK,marginBottom:8,fontWeight:700,fontFamily:'sans-serif'}}>{f.title}</h3>
               <p style={{fontSize:15,color:BODY,lineHeight:1.6,fontFamily:'sans-serif',margin:0}}>{f.desc}</p>
+              <div style={{marginTop:14,fontSize:14,color:DT,fontWeight:700,fontFamily:'sans-serif'}}>{isOpen?'Hide ▲':'Learn more →'}</div>
             </div>
-          ))}
+            );
+          })}
         </div>
+
+        {/* Expand-in-place detail panel — keeps visitors on the page, funnels to sign-up */}
+        {openFeature && (
+          <div style={{maxWidth:920,margin:'24px auto 0',background:'#ffffff',border:`2px solid ${DT}`,borderRadius:16,padding:mobile?'26px 22px':'36px 40px',boxShadow:'0 6px 22px rgba(20,40,50,0.10)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:14}}>
+              <span style={{fontSize:32}}>{openFeature.icon}</span>
+              <h3 style={{fontSize:mobile?22:26,color:DT_INK,fontWeight:700,margin:0}}>{openFeature.title}</h3>
+            </div>
+            <p style={{fontSize:mobile?16:17,color:BODY,lineHeight:1.75,fontFamily:'sans-serif',margin:'0 0 26px'}}>{openFeature.detail}</p>
+            <div style={{display:'flex',flexWrap:'wrap',gap:14}}>
+              <button onClick={()=>onGetStarted(null,'register')} style={{backgroundColor:DT,color:'#ffffff',padding:'14px 32px',borderRadius:10,fontSize:16,fontWeight:700,cursor:'pointer',border:'none',fontFamily:'sans-serif',letterSpacing:0.5}}>Get Started Free</button>
+              <button onClick={()=>setOpenFeature(null)} style={{backgroundColor:'transparent',color:DT,padding:'14px 28px',borderRadius:10,fontSize:16,fontWeight:600,cursor:'pointer',border:`1.5px solid ${DT}`,fontFamily:'sans-serif'}}>Close</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Pricing */}
@@ -105,7 +136,7 @@ export default function LandingPage({ onGetStarted }) {
                 <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#2C3E52',fontSize:15.5,lineHeight:1.5,marginBottom:13}}><span style={{color:DT,fontWeight:700}}>✓</span> Single user</li>
               </ul>
 
-              <button onClick={() => onGetStarted('startup')} style={{marginTop:'auto',padding:'16px 24px',borderRadius:12,fontSize:17,fontWeight:700,fontFamily:'sans-serif',letterSpacing:1,cursor:'pointer',border:'none',background:DT,color:'#ffffff',width:'100%'}}>Start free</button>
+              <button onClick={() => onGetStarted('startup','register')} style={{marginTop:'auto',padding:'16px 24px',borderRadius:12,fontSize:17,fontWeight:700,fontFamily:'sans-serif',letterSpacing:1,cursor:'pointer',border:'none',background:DT,color:'#ffffff',width:'100%'}}>Start free</button>
             </div>
           </div>
 
@@ -126,7 +157,7 @@ export default function LandingPage({ onGetStarted }) {
                 <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#2C3E52',fontSize:15.5,lineHeight:1.5,marginBottom:13}}><span style={{color:DT,fontWeight:700}}>✓</span> Advanced reports</li>
               </ul>
 
-              <button onClick={() => onGetStarted('growth')} style={{marginTop:'auto',padding:'16px 24px',borderRadius:12,fontSize:17,fontWeight:700,fontFamily:'sans-serif',letterSpacing:1,cursor:'pointer',background:'transparent',color:DT,border:`1.5px solid ${DT}`,width:'100%'}}>Start free</button>
+              <button onClick={() => onGetStarted('growth','register')} style={{marginTop:'auto',padding:'16px 24px',borderRadius:12,fontSize:17,fontWeight:700,fontFamily:'sans-serif',letterSpacing:1,cursor:'pointer',background:'transparent',color:DT,border:`1.5px solid ${DT}`,width:'100%'}}>Start free</button>
             </div>
           </div>
 
@@ -139,7 +170,7 @@ export default function LandingPage({ onGetStarted }) {
       <div style={{textAlign:'center',padding:'74px 32px',backgroundColor:DT}}>
         <h2 style={{fontSize:36,color:'#ffffff',marginBottom:16,fontWeight:700}}>Ready to take your books to the top?</h2>
         <p style={{fontSize:18,color:'#CFE6E8',marginBottom:38,fontFamily:'sans-serif'}}>Start your journey with MountainTop Ledger today</p>
-        <button onClick={onGetStarted} style={{backgroundColor:'#ffffff',color:DT,padding:'17px 50px',borderRadius:12,fontSize:18,fontWeight:700,cursor:'pointer',border:'none',fontFamily:'sans-serif',letterSpacing:1}}>
+        <button onClick={()=>onGetStarted(null,'register')} style={{backgroundColor:'#ffffff',color:DT,padding:'17px 50px',borderRadius:12,fontSize:18,fontWeight:700,cursor:'pointer',border:'none',fontFamily:'sans-serif',letterSpacing:1}}>
           Create Free Account
         </button>
       </div>
