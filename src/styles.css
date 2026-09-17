@@ -149,6 +149,7 @@ button { cursor: pointer; font: inherit; background: none; border: none; }
   width: 100%;
   padding: 8px 16px;
   font-size: 14px;
+  font-weight: 600;
   color: rgba(255,255,255,0.74);
   border-radius: 0;
   text-align: left;
@@ -159,7 +160,7 @@ button { cursor: pointer; font: inherit; background: none; border: none; }
 .nav-item:hover { background: rgba(255,255,255,0.08); }
 .nav-item.active {
   color: var(--brand-nav-active-icon, #fff);
-  font-weight: 500;
+  font-weight: 700;
   background: var(--brand-nav-active-bg, rgba(255,255,255,0.16));
   border-left-color: var(--brand-nav-active-border, var(--brand-nav-active-bg, #fff));
 }
