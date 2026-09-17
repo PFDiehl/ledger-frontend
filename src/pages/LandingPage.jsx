@@ -1,4 +1,15 @@
+import { useState, useEffect } from 'react';
+
 export default function LandingPage({ onGetStarted }) {
+  // Responsive: shrink header + hero on narrow screens
+  const [vw, setVw] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  useEffect(() => {
+    const onResize = () => setVw(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  const mobile = vw < 640;
+
   // Palette — Deep Teal + Gold (gold used only in the header)
   const DT = '#0A5E66';        // deep teal (header band, primary accent)
   const DT_INK = '#083338';    // dark headings / prices
@@ -9,24 +20,24 @@ export default function LandingPage({ onGetStarted }) {
   const MUTED = '#6E7F92';
 
   return (
-    <div style={{minHeight:'100vh',backgroundColor:'#ffffff',fontFamily:'Georgia, serif'}}>
+    <div style={{minHeight:'100vh',backgroundColor:'#ffffff',fontFamily:'Georgia, serif',overflowX:'hidden'}}>
 
       {/* Header band — deep teal, gold logo + name + Sign In */}
-      <nav style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'36px 56px',backgroundColor:DT}}>
-        <div style={{display:'flex',alignItems:'center',gap:18}}>
-          <svg width="56" height="56" viewBox="0 0 32 32">
+      <nav style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:mobile?'16px 18px':'36px 56px',backgroundColor:DT,gap:12}}>
+        <div style={{display:'flex',alignItems:'center',gap:mobile?9:18,minWidth:0}}>
+          <svg width={mobile?32:56} height={mobile?32:56} viewBox="0 0 32 32" style={{flex:'0 0 auto'}}>
             <polygon points="16,2 4,28 28,28" fill={GOLD} opacity="0.28"/>
             <polygon points="16,2 11,16 16,14 21,16" fill={GOLD}/>
           </svg>
-          <span style={{fontSize:34,fontWeight:700,color:GOLD,letterSpacing:1}}>MountainTop Ledger</span>
+          <span style={{fontSize:mobile?20:34,fontWeight:700,color:GOLD,letterSpacing:mobile?0.3:1,lineHeight:1.1}}>MountainTop Ledger</span>
         </div>
-        <button onClick={onGetStarted} style={{backgroundColor:'transparent',border:`2px solid ${GOLD}`,color:GOLD,padding:'12px 32px',borderRadius:8,fontSize:17,fontWeight:600,cursor:'pointer',fontFamily:'sans-serif',letterSpacing:1}}>
+        <button onClick={onGetStarted} style={{backgroundColor:'transparent',border:`2px solid ${GOLD}`,color:GOLD,padding:mobile?'8px 16px':'12px 32px',borderRadius:8,fontSize:mobile?14:17,fontWeight:600,cursor:'pointer',fontFamily:'sans-serif',letterSpacing:mobile?0.3:1,whiteSpace:'nowrap',flex:'0 0 auto'}}>
           Sign In
         </button>
       </nav>
 
       {/* Hero */}
-      <div style={{textAlign:'center',padding:'96px 32px 88px',background:'linear-gradient(180deg,#E7F2F3 0%,#FFFFFF 60%,#EDF6F7 100%)'}}>
+      <div style={{textAlign:'center',padding:mobile?'56px 22px 60px':'96px 32px 88px',background:'linear-gradient(180deg,#E7F2F3 0%,#FFFFFF 60%,#EDF6F7 100%)'}}>
         <div style={{marginBottom:34}}>
           <svg width="104" height="104" viewBox="0 0 64 64">
             <polygon points="32,4 8,56 56,56" fill={DT} opacity="0.16"/>
@@ -34,9 +45,9 @@ export default function LandingPage({ onGetStarted }) {
             <line x1="8" y1="56" x2="56" y2="56" stroke={DT} strokeWidth="2.5" opacity="0.35"/>
           </svg>
         </div>
-        <p style={{fontSize:16,color:DT,letterSpacing:5,marginBottom:20,fontWeight:600,fontFamily:'sans-serif'}}>MOUNTAINTOP LEDGER</p>
-        <h1 style={{fontSize:52,fontWeight:700,color:DT_INK,marginBottom:28,lineHeight:1.12,maxWidth:720,marginLeft:'auto',marginRight:'auto'}}>Built for where you're going</h1>
-        <p style={{fontSize:21,color:BODY,maxWidth:660,margin:'0 auto 44px',lineHeight:1.75,fontFamily:'sans-serif'}}>
+        <p style={{fontSize:mobile?13:16,color:DT,letterSpacing:mobile?3:5,marginBottom:20,fontWeight:600,fontFamily:'sans-serif'}}>MOUNTAINTOP LEDGER</p>
+        <h1 style={{fontSize:mobile?34:52,fontWeight:700,color:DT_INK,marginBottom:28,lineHeight:1.14,maxWidth:720,marginLeft:'auto',marginRight:'auto'}}>Built for where you're going</h1>
+        <p style={{fontSize:mobile?17:21,color:BODY,maxWidth:660,margin:'0 auto 44px',lineHeight:1.7,fontFamily:'sans-serif'}}>
           Every great business starts somewhere. MountainTop Ledger is business accounting built to take you from your first invoice to your biggest milestone — and every step in between. Start with just the essentials, then add payroll and advanced tools only when you're ready.
         </p>
         <button onClick={onGetStarted} style={{backgroundColor:DT,color:'#ffffff',padding:'18px 54px',borderRadius:12,fontSize:19,fontWeight:700,cursor:'pointer',border:'none',fontFamily:'sans-serif',letterSpacing:1}}>
