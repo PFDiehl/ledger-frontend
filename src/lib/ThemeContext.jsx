@@ -2,49 +2,134 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 
 // ── Theme definitions ─────────────────────────────────────────────────────────
-// Palettes mirror the MountainTop Ledger mobile app: Original, Evergreen, Slate.
-// Ocean is kept as an extra option.
+// Curated set: the three brand finalists (Teal, Dark Teal, Navy) plus two saved
+// favorites (Slate — great at night — and Evergreen). Dark Teal is the default and
+// matches the marketing site / app brand (deep teal #0A5E66 + gold #F2C14E).
 
 export const THEMES = {
-  original: {
-    id:          'original',
-    name:        'Original',
-    description: 'Forest green — the MountainTop look',
-    preview:     ['#2D4A35', '#A8D4A8', '#EBF2E8', '#FFD166'],
+  teal: {
+    id:          'teal',
+    name:        'Teal',
+    description: 'Bright teal & gold — fresh and clean',
+    preview:     ['#0E7C86', '#17A2B0', '#E4F3F4', '#F2C14E'],
 
     vars: {
-      '--brand-sidebar':        '#2D4A35',
-      '--brand-sidebar-mid':    '#3D6045',
-      '--brand-sidebar-icon':   '#6A9A70',
-      '--brand-nav-active-bg':  '#A8D4A8',
-      '--brand-nav-active-icon':'#1A3020',
-      '--brand-nav-active-border':'#A8D4A8',
-      '--brand-topbar':         '#2D4A35',
-      '--brand-logo':           '#A8D4A8',
-      '--brand-topbar-sub':     '#6A9A70',
-      '--brand-primary':        '#2D4A35',
-      '--brand-primary-hover':  '#3D6045',
-      '--brand-primary-text':   '#A8D4A8',
-      '--brand-btn-primary-bg': '#A8D4A8',
-      '--brand-btn-primary-text':'#1A3020',
-      '--brand-kpi-hero-bg':    '#2D4A35',
-      '--brand-kpi-hero-label': '#6A9A70',
-      '--brand-kpi-hero-val':   '#A8D4A8',
-      '--brand-kpi-tint-bg':    '#EBF2E8',
-      '--brand-kpi-tint-border':'#D4DDCC',
-      '--brand-page-bg':        '#F5F7F2',
-      '--brand-card-border':    '#D4DDCC',
-      '--brand-section-label':  '#7A9A7A',
-      '--brand-inv-header':     '#2D4A35',
-      '--brand-inv-header-logo':'#A8D4A8',
-      '--brand-inv-header-sub': '#6A9A70',
-      '--brand-inv-total':      '#2D4A35',
-      '--brand-pay-btn-bg':     '#2D4A35',
-      '--brand-pay-btn-text':   '#A8D4A8',
-      '--brand-mobile-bar':     '#2D4A35',
-      '--brand-mobile-active':  '#A8D4A8',
-      '--brand-accent-light':   '#EBF2E8',
-      '--brand-alert-bar':      '#C07A50',
+      '--brand-sidebar':        '#0E7C86',
+      '--brand-sidebar-mid':    '#129AA6',
+      '--brand-sidebar-icon':   '#9CD3D9',
+      '--brand-nav-active-bg':  '#17A2B0',
+      '--brand-nav-active-icon':'#FFFFFF',
+      '--brand-nav-active-border':'#F2C14E',
+      '--brand-topbar':         '#0E7C86',
+      '--brand-logo':           '#FFFFFF',
+      '--brand-topbar-sub':     '#9CD3D9',
+      '--brand-primary':        '#0E7C86',
+      '--brand-primary-hover':  '#0B6670',
+      '--brand-primary-text':   '#FFFFFF',
+      '--brand-btn-primary-bg': '#0E7C86',
+      '--brand-btn-primary-text':'#FFFFFF',
+      '--brand-kpi-hero-bg':    '#0E7C86',
+      '--brand-kpi-hero-label': '#9CD3D9',
+      '--brand-kpi-hero-val':   '#FFFFFF',
+      '--brand-kpi-tint-bg':    '#E4F3F4',
+      '--brand-kpi-tint-border':'#CBE8EA',
+      '--brand-page-bg':        '#EFF7F7',
+      '--brand-card-border':    '#D6E9EA',
+      '--brand-section-label':  '#5F8489',
+      '--brand-inv-header':     '#0E7C86',
+      '--brand-inv-header-logo':'#FFFFFF',
+      '--brand-inv-header-sub': '#9CD3D9',
+      '--brand-inv-total':      '#0E7C86',
+      '--brand-pay-btn-bg':     '#0E7C86',
+      '--brand-pay-btn-text':   '#FFFFFF',
+      '--brand-mobile-bar':     '#0E7C86',
+      '--brand-mobile-active':  '#FFFFFF',
+      '--brand-accent-light':   '#E4F3F4',
+      '--brand-alert-bar':      '#C0703A',
+    },
+  },
+
+  'dark-teal': {
+    id:          'dark-teal',
+    name:        'Dark Teal',
+    description: 'Deep teal & gold — the MountainTop brand',
+    preview:     ['#0A5E66', '#F2C14E', '#E3F0F0', '#0E7C86'],
+
+    vars: {
+      '--brand-sidebar':        '#0A5E66',
+      '--brand-sidebar-mid':    '#0C7079',
+      '--brand-sidebar-icon':   '#7FB6BB',
+      '--brand-nav-active-bg':  '#0E7C86',
+      '--brand-nav-active-icon':'#FFFFFF',
+      '--brand-nav-active-border':'#F2C14E',
+      '--brand-topbar':         '#0A5E66',
+      '--brand-logo':           '#F2C14E',
+      '--brand-topbar-sub':     '#7FB6BB',
+      '--brand-primary':        '#0A5E66',
+      '--brand-primary-hover':  '#084C53',
+      '--brand-primary-text':   '#FFFFFF',
+      '--brand-btn-primary-bg': '#0A5E66',
+      '--brand-btn-primary-text':'#FFFFFF',
+      '--brand-kpi-hero-bg':    '#0A5E66',
+      '--brand-kpi-hero-label': '#7FB6BB',
+      '--brand-kpi-hero-val':   '#FFFFFF',
+      '--brand-kpi-tint-bg':    '#E3F0F0',
+      '--brand-kpi-tint-border':'#C9E1E2',
+      '--brand-page-bg':        '#EDF4F5',
+      '--brand-card-border':    '#D3E4E5',
+      '--brand-section-label':  '#5E8085',
+      '--brand-inv-header':     '#0A5E66',
+      '--brand-inv-header-logo':'#F2C14E',
+      '--brand-inv-header-sub': '#7FB6BB',
+      '--brand-inv-total':      '#0A5E66',
+      '--brand-pay-btn-bg':     '#0A5E66',
+      '--brand-pay-btn-text':   '#FFFFFF',
+      '--brand-mobile-bar':     '#0A5E66',
+      '--brand-mobile-active':  '#F2C14E',
+      '--brand-accent-light':   '#E3F0F0',
+      '--brand-alert-bar':      '#C0703A',
+    },
+  },
+
+  navy: {
+    id:          'navy',
+    name:        'Navy',
+    description: 'Deep navy & gold — private-bank premium',
+    preview:     ['#0C2A44', '#2A84B8', '#7EC4E8', '#E0B154'],
+
+    vars: {
+      '--brand-sidebar':        '#0C2A44',
+      '--brand-sidebar-mid':    '#123A5C',
+      '--brand-sidebar-icon':   '#5E86A6',
+      '--brand-nav-active-bg':  '#164A70',
+      '--brand-nav-active-icon':'#ffffff',
+      '--brand-nav-active-border':'#E0B154',
+      '--brand-topbar':         '#0C2A44',
+      '--brand-logo':           '#E6EFF7',
+      '--brand-topbar-sub':     '#5E86A6',
+      '--brand-primary':        '#0C2A44',
+      '--brand-primary-hover':  '#123A5C',
+      '--brand-primary-text':   '#ffffff',
+      '--brand-btn-primary-bg': '#2A84B8',
+      '--brand-btn-primary-text':'#ffffff',
+      '--brand-kpi-hero-bg':    '#0C2A44',
+      '--brand-kpi-hero-label': '#7EC4E8',
+      '--brand-kpi-hero-val':   '#ffffff',
+      '--brand-kpi-tint-bg':    '#E7F1F9',
+      '--brand-kpi-tint-border':'#CFE0EC',
+      '--brand-page-bg':        '#EEF3F8',
+      '--brand-card-border':    '#D6E2EC',
+      '--brand-section-label':  '#5F7183',
+      '--brand-inv-header':     '#0C2A44',
+      '--brand-inv-header-logo':'#E0B154',
+      '--brand-inv-header-sub': '#7EA7C4',
+      '--brand-inv-total':      '#0C2A44',
+      '--brand-pay-btn-bg':     '#2A84B8',
+      '--brand-pay-btn-text':   '#ffffff',
+      '--brand-mobile-bar':     '#0C2A44',
+      '--brand-mobile-active':  '#7EC4E8',
+      '--brand-accent-light':   '#E7F1F9',
+      '--brand-alert-bar':      '#C0703A',
     },
   },
 
@@ -220,7 +305,7 @@ export const THEMES = {
 // ── Apply theme vars to :root ─────────────────────────────────────────────────
 
 function applyTheme(themeId) {
-  const theme = THEMES[themeId] ?? THEMES['deep-harbor'];
+  const theme = THEMES[themeId] ?? THEMES['dark-teal'];
   const root  = document.documentElement;
 
   // Apply all brand variables
@@ -267,7 +352,7 @@ const ThemeContext = createContext(null);
 export function ThemeProvider({ children }) {
   const [themeId, setThemeId] = useState(() => {
     const saved = localStorage.getItem('ledger-theme');
-    return (saved && THEMES[saved]) ? saved : 'deep-harbor';
+    return (saved && THEMES[saved]) ? saved : 'dark-teal';
   });
 
   const { org } = useAuth();
