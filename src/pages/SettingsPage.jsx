@@ -1009,8 +1009,8 @@ export default function SettingsPage() {
   return (
     <div className="page settings-page">
       <div className="page-header"><h1 className="page-title">Settings</h1></div>
-      <div style={{ display:'grid', gridTemplateColumns:'180px minmax(0,1fr)', gap:20, alignItems:'start' }}>
-        <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+      <div className="settings-grid" style={{ display:'grid', gridTemplateColumns:'180px minmax(0,1fr)', gap:20, alignItems:'start' }}>
+        <div className="settings-tabs" style={{ display:'flex', flexDirection:'column', gap:2 }}>
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
               display:'flex', alignItems:'center', gap:8, padding:'8px 12px',

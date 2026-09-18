@@ -992,6 +992,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .main-content     { padding: 16px; overflow-y: auto; }
   .page-header      { flex-direction: column; align-items: flex-start; gap: 10px; }
   .page-actions     { width: 100%; display: flex; flex-wrap: wrap; gap: 6px; }
+  /* Settings: stack the tab column above the content, tabs become a scroll row */
+  .settings-grid    { grid-template-columns: 1fr !important; }
+  .settings-tabs    { flex-direction: row !important; overflow-x: auto; gap: 4px !important; padding-bottom: 4px; }
+  .settings-tabs button { flex: 0 0 auto; white-space: nowrap; }
   .kpi-grid         { grid-template-columns: 1fr 1fr; gap: 8px; }
   .kpi-value        { font-size: 18px; }
   .inv-summary-strip{ grid-template-columns: 1fr 1fr; gap: 8px; }
