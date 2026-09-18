@@ -980,11 +980,15 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 /* ── Mobile (≤600px) ─── */
 @media (max-width: 600px) {
   .app-body         { flex-direction: column-reverse; }
-  .sidebar          { width: 100%; min-height: auto; border-right: none; border-top: 0.5px solid var(--border); display: flex; flex-direction: row; padding: 0; overflow-x: auto; }
+  .sidebar          { width: 100%; min-height: auto; border-right: none; border-top: 0.5px solid var(--border); display: flex; flex-direction: row; flex-wrap: nowrap; padding: 0; overflow-x: auto; }
+  /* Flatten the per-section wrapper <div>s so every nav item sits in ONE row */
+  .sidebar > div    { display: contents; }
+  /* Hide the "N more features" / "Show less" toggle on the mobile bar */
+  .sidebar button:not(.nav-item) { display: none; }
   .nav-section-label { display: none; }
-  .nav-item         { flex-direction: column; gap: 3px; padding: 10px 14px; white-space: nowrap; border-left: none !important; border-bottom: 3px solid transparent; }
+  .nav-item         { width: auto; flex: 0 0 auto; flex-direction: column; gap: 3px; padding: 8px 14px; white-space: nowrap; border-left: none !important; border-bottom: 3px solid transparent; }
   .nav-item span    { display: block; font-size: 10px; }
-  .nav-item.active  { border-bottom-color: var(--brand-primary,#2D4A35) !important; border-left: none !important; background: #EBF2E8; }
+  .nav-item.active  { border-bottom-color: var(--brand-nav-active-border,var(--brand-primary,#2D4A35)) !important; border-left: none !important; background: var(--brand-accent-light,#EBF2E8); }
   .main-content     { padding: 16px; overflow-y: auto; }
   .page-header      { flex-direction: column; align-items: flex-start; gap: 10px; }
   .page-actions     { width: 100%; display: flex; flex-wrap: wrap; gap: 6px; }
