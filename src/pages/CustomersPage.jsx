@@ -204,8 +204,8 @@ export default function CustomersPage({ org, onNewInvoice }) {
           <button onClick={()=>{setEditing(null);setView('form');}} style={{padding:'10px 22px',borderRadius:10,border:'none',background:'#2D6A4F',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:600}}>+ Add Customer</button>
         </div>
       ) : (
-        <div style={{background:'var(--color-surface)',borderRadius:14,border:'1px solid var(--color-border)',overflow:'hidden'}}>
-          <table style={{width:'100%',borderCollapse:'collapse',fontSize:14}}>
+        <div style={{background:'var(--color-surface)',borderRadius:14,border:'1px solid var(--color-border)',overflowX:'auto'}}>
+          <table style={{width:'100%',minWidth:720,borderCollapse:'collapse',fontSize:14}}>
             <thead><tr style={{background:'var(--color-surface-secondary)'}}>
               <th style={{padding:'12px 16px',borderBottom:'1px solid var(--color-border)',width:36}}>
                 <input type="checkbox" checked={allVisibleChecked} onChange={toggleAllVisible} style={{cursor:'pointer',width:16,height:16}} title="Select all" />

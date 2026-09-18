@@ -160,13 +160,13 @@ export default function VendorsPage({ org, onNewBill }) {
   }
 
   return (
-    <div style={{padding:32,maxWidth:1060,margin:'0 auto'}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:28}}>
+    <div style={{padding:'clamp(16px,4vw,32px)',maxWidth:1060,margin:'0 auto'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:12,marginBottom:24}}>
         <div>
-          <h1 style={{margin:0,fontSize:28,fontWeight:700}}>Vendors</h1>
+          <h1 style={{margin:0,fontSize:26,fontWeight:700}}>Vendors</h1>
           <div style={{color:'var(--color-text-secondary)',fontSize:14,marginTop:4}}>{vendors.length} vendor{vendors.length!==1?'s':''}</div>
         </div>
-        <button onClick={()=>{setEditing(null);setView('form');}} style={{padding:'10px 22px',borderRadius:10,border:'none',background:'#2D6A4F',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:600}}>
+        <button onClick={()=>{setEditing(null);setView('form');}} style={{padding:'9px 16px',borderRadius:10,border:'none',background:'#2D6A4F',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:600,whiteSpace:'nowrap'}}>
           + Add Vendor
         </button>
       </div>
@@ -185,8 +185,8 @@ export default function VendorsPage({ org, onNewBill }) {
           <button onClick={()=>{setEditing(null);setView('form');}} style={{padding:'10px 22px',borderRadius:10,border:'none',background:'#2D6A4F',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:600}}>+ Add Vendor</button>
         </div>
       ) : (
-        <div style={{background:'var(--color-surface)',borderRadius:14,border:'1px solid var(--color-border)',overflow:'hidden'}}>
-          <table style={{width:'100%',borderCollapse:'collapse',fontSize:14}}>
+        <div style={{background:'var(--color-surface)',borderRadius:14,border:'1px solid var(--color-border)',overflowX:'auto'}}>
+          <table style={{width:'100%',minWidth:640,borderCollapse:'collapse',fontSize:14}}>
             <thead><tr style={{background:'var(--color-surface-secondary)'}}>
               {['Company','Vendor Name','Email','Phone','Outstanding',''].map(h=>(
                 <th key={h} style={{textAlign:'left',padding:'12px 16px',color:'var(--color-text-secondary)',fontWeight:600,fontSize:11,borderBottom:'1px solid var(--color-border)',textTransform:'uppercase',letterSpacing:'0.05em'}}>{h}</th>

@@ -138,8 +138,8 @@ export default function BillsPage({ presetVendor } = {}) {
           <button className="btn-primary" onClick={openNew}>Add bill</button>
         </div>
       ) : (
-        <div className="card" style={{marginTop:20,overflow:'hidden'}}>
-          <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+        <div className="card" style={{marginTop:20,overflowX:'auto'}}>
+          <table style={{width:'100%',minWidth:620,borderCollapse:'collapse',fontSize:13}}>
             <thead>
               <tr style={{borderBottom:'1px solid #D4DDCC'}}>
                 <th style={{padding:'10px 16px',textAlign:'left',fontWeight:500,color:'#7A9A7A'}}>Vendor</th>
