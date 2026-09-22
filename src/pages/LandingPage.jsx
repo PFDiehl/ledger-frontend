@@ -179,7 +179,8 @@ export default function LandingPage({ onGetStarted }) {
       <div style={{textAlign:'center',padding:'24px 48px',backgroundColor:'#052A2F'}}>
         <p style={{fontSize:13,color:'#AED3D6',fontFamily:'sans-serif',margin:0,letterSpacing:1}}>
           Copyright 2026 MountainTop Ledger &nbsp;·&nbsp; mountaintopledger.com &nbsp;·&nbsp;
-          <a href="/privacy" style={{color:'#8FC7CB',textDecoration:'none'}}>Privacy Policy</a>
+          <a href="/privacy" style={{color:'#8FC7CB',textDecoration:'none'}}>Privacy Policy</a> &nbsp;·&nbsp;
+          <a href="/terms" style={{color:'#8FC7CB',textDecoration:'none'}}>Terms of Use</a>
         </p>
       </div>
 

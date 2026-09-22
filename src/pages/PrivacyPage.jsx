@@ -32,6 +32,7 @@ export default function PrivacyPage() {
       <ul>
         <li><strong>Plaid</strong> — securely connects your bank account and imports transactions, only if you choose to link a bank.</li>
         <li><strong>Stripe</strong> — processes invoice payments and subscription billing. Card details are handled directly by Stripe.</li>
+        <li><strong>Intuit (QuickBooks)</strong> — if you choose to connect QuickBooks, we exchange accounting data (such as customers, invoices, and expenses) with Intuit at your direction to keep your books in sync. You may use the Service without connecting QuickBooks.</li>
         <li><strong>Cloud hosting and email providers</strong> — host the Service and send transactional emails (such as password resets and notifications).</li>
       </ul>
       <p>These providers are not permitted to use your data for their own purposes. We may also disclose information if required by law, or to protect the rights, safety, and security of our users and the Service.</p>
