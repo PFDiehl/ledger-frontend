@@ -430,6 +430,72 @@ function TwoFactorRow() {
   );
 }
 
+function ChangeEmailRow() {
+  const toast = useToast();
+  const { user, isPlatformOwner, applyUserUpdate } = useAuth();
+  const [open, setOpen]         = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy]         = useState(false);
+
+  async function submit() {
+    const email = newEmail.trim().toLowerCase();
+    if (!email)    { toast.error('Enter your new email address'); return; }
+    if (!password) { toast.error('Enter your current password'); return; }
+    setBusy(true);
+    try {
+      const j = await api.patch('/auth/email', { newEmail: email, password });
+      const updated = j.data?.user;
+      applyUserUpdate(updated, { isPlatformOwner: j.data?.isPlatformOwner });
+      toast.success(`Your login email is now ${updated?.email || email}`);
+      if (j.data?.platformOwnerLost) {
+        toast.info('Update PLATFORM_OWNER_EMAILS in Railway to keep admin access with the new email.');
+      }
+      setOpen(false); setNewEmail(''); setPassword('');
+    } catch (e) {
+      toast.error(e.message || 'Could not change your email');
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div style={{ border:'0.5px solid var(--color-border-tertiary)', borderRadius:10, padding:'14px 16px' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+        <i className="ti ti-mail" style={{ fontSize:18, color:'var(--color-text-secondary)' }} />
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:13, fontWeight:500 }}>Login email</div>
+          <div style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:2, overflow:'hidden', textOverflow:'ellipsis' }}>{user?.email || '—'}</div>
+        </div>
+        {!open && (
+          <button className="btn-secondary" style={{ fontSize:12 }} onClick={() => { setNewEmail(''); setPassword(''); setOpen(true); }}>Change</button>
+        )}
+      </div>
+
+      {open && (
+        <div style={{ marginTop:16, paddingTop:16, borderTop:'0.5px solid var(--color-border-tertiary)', display:'flex', flexDirection:'column', gap:10 }}>
+          <div style={{ fontSize:12, color:'var(--color-text-secondary)' }}>
+            Enter your new email address and your current password to confirm. This changes the address you sign in with — your business email (Company tab) is separate.
+          </div>
+          <FieldRow label="New email address">
+            <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="you@newdomain.com" autoComplete="off" />
+          </FieldRow>
+          <FieldRow label="Current password">
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Your password" autoComplete="current-password" />
+          </FieldRow>
+          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+            <button className="btn-primary" style={{ fontSize:12 }} disabled={busy || !newEmail || !password} onClick={submit}>{busy ? 'Saving…' : 'Update email'}</button>
+            <button className="btn-secondary" style={{ fontSize:12 }} onClick={() => setOpen(false)}>Cancel</button>
+          </div>
+          {isPlatformOwner && (
+            <div style={{ fontSize:11, color:'var(--color-text-tertiary)', background:'var(--color-background-secondary)', borderRadius:8, padding:'8px 10px', lineHeight:1.5 }}>
+              You're a platform owner. If your new email isn't on the platform-owner list, also update <code>PLATFORM_OWNER_EMAILS</code> in Railway — otherwise you'll lose access to the admin console.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SecuritySettings() {
   const toast = useToast();
   const { logout } = useAuth();
@@ -457,6 +523,7 @@ function SecuritySettings() {
   ];
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+      <ChangeEmailRow />
       <TwoFactorRow />
       <div style={{ border:'0.5px solid var(--color-border-tertiary)', borderRadius:10, overflow:'hidden' }}>
         {items.map((item, i) => (

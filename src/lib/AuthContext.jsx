@@ -50,6 +50,14 @@ export function AuthProvider({ children }) {
     } catch { /* ignore */ }
   }
 
+  // Merge changed user fields (e.g. a new login email) into state without a reload.
+  // opts.isPlatformOwner, when provided, keeps the admin-console visibility in sync
+  // (the allow-list is keyed by email, so a new email can change it).
+  function applyUserUpdate(updated, opts = {}) {
+    if (updated) setUser(prev => ({ ...(prev || {}), ...updated }));
+    if (typeof opts.isPlatformOwner === 'boolean') setIsPlatformOwner(opts.isPlatformOwner);
+  }
+
   // Keep the access token fresh. Access tokens are short-lived now, and several
   // pages read the token straight from localStorage (no auto-retry), so we
   // proactively refresh well before expiry — on an interval and when the tab
@@ -133,7 +141,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, orgs, tenants, isPlatformOwner, org, loading, login, loginWithGoogle, verify2FA, register, logout, selectOrg, applyOrgUpdate }}>
+    <AuthContext.Provider value={{ user, orgs, tenants, isPlatformOwner, org, loading, login, loginWithGoogle, verify2FA, register, logout, selectOrg, applyOrgUpdate, applyUserUpdate }}>
       {children}
     </AuthContext.Provider>
   );
