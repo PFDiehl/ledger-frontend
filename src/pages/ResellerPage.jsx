@@ -502,8 +502,11 @@ function Clients({ tenantId, clients, reload }) {
               {clients.map(c => (
                 <tr key={c.id} style={{ borderBottom: '0.5px solid #EBF2E8', opacity: c.planStatus === 'canceled' ? 0.55 : 1 }}>
                   <td style={{ padding: '11px 16px', fontWeight: 500 }}>
-                    {c.name}
-                    {c.planStatus === 'canceled' && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 600, color: '#8A968C', background: '#F0F0F0', padding: '2px 8px', borderRadius: 20 }}>Offboarded</span>}
+                    <div>
+                      {c.name}
+                      {c.planStatus === 'canceled' && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 600, color: '#8A968C', background: '#F0F0F0', padding: '2px 8px', borderRadius: 20 }}>Offboarded</span>}
+                    </div>
+                    {c.email && <div style={{ fontSize: 11, color: '#8A968C', fontWeight: 400, marginTop: 2 }}>{c.email}</div>}
                   </td>
                   <td style={{ padding: '11px 16px', color: '#5E6B62', textTransform: 'capitalize' }}>{c.plan || '—'}</td>
                   <td style={{ padding: '11px 16px', textAlign: 'right' }}>{c._count?.members ?? '—'}</td>
