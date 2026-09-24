@@ -328,6 +328,7 @@ function Overview({ tenant, usage }) {
 
 function Clients({ tenantId, clients, reload }) {
   const toast = useToast();
+  const { refreshMe } = useAuth();
   const [show, setShow]   = useState(false);
   const EMPTY_FORM = {
     name: '', ownerName: '', email: '', plan: 'starter', currency: 'USD', scope: 'full',
@@ -355,6 +356,28 @@ function Clients({ tenantId, clients, reload }) {
     } catch { /* leave as-is */ }
   }
   useEffect(() => { if (tenantId) loadGrants(); }, [tenantId, clients.length]);
+
+  // Auto-refresh so a client's approval shows up here without a manual page reload.
+  // Light polling of the access statuses every 25s; a fuller sync (client list +
+  // the company switcher via refreshMe) whenever the tab regains focus.
+  useEffect(() => {
+    if (!tenantId) return;
+    const iv = setInterval(() => { loadGrants(); }, 25000);
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      loadGrants();
+      reload();
+      refreshMe?.();
+    };
+    window.addEventListener('focus', onVisible);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(iv);
+      window.removeEventListener('focus', onVisible);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenantId]);
 
   async function add() {
     if (!form.name.trim() || !form.ownerName.trim() || !form.email.trim()) { toast.error('Company, contact name, and email are required.'); return; }

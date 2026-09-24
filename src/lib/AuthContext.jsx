@@ -50,6 +50,24 @@ export function AuthProvider({ children }) {
     } catch { /* ignore */ }
   }
 
+  // Re-fetch the signed-in user's companies/tenants from the server without a full
+  // page reload. Used to pick up a client company the moment its access is approved,
+  // so it appears in the company switcher right away. Keeps the current selection.
+  const refreshMe = useCallback(async () => {
+    try {
+      const me = await api.get('/auth/me');
+      setUser(me.data.user);
+      setOrgs(me.data.orgs);
+      setTenants(me.data.tenants || []);
+      setIsPlatformOwner(!!me.data.isPlatformOwner);
+      setOrgState(prev => {
+        const still = me.data.orgs.find(o => o.id === prev?.id);
+        return still ? { ...prev, ...still } : prev;
+      });
+      return me.data;
+    } catch { /* ignore — a later protected call will surface any auth issue */ }
+  }, []);
+
   // Merge changed user fields (e.g. a new login email) into state without a reload.
   // opts.isPlatformOwner, when provided, keeps the admin-console visibility in sync
   // (the allow-list is keyed by email, so a new email can change it).
@@ -141,7 +159,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, orgs, tenants, isPlatformOwner, org, loading, login, loginWithGoogle, verify2FA, register, logout, selectOrg, applyOrgUpdate, applyUserUpdate }}>
+    <AuthContext.Provider value={{ user, orgs, tenants, isPlatformOwner, org, loading, login, loginWithGoogle, verify2FA, register, logout, selectOrg, applyOrgUpdate, applyUserUpdate, refreshMe }}>
       {children}
     </AuthContext.Provider>
   );
