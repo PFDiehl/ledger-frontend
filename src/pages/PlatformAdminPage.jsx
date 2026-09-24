@@ -52,6 +52,8 @@ export default function PlatformAdminPage() {
   const [busyId, setBusyId]     = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmCharge, setConfirmCharge] = useState(null);
+  const [purgeFor, setPurgeFor]   = useState(null);   // reseller id being purged (has clients)
+  const [purgeName, setPurgeName] = useState('');      // typed name confirmation
 
   async function loadAll() {
     setLoading(true);
@@ -128,14 +130,19 @@ export default function PlatformAdminPage() {
     setBusyId(null);
   }
 
-  async function deleteReseller(t) {
+  async function deleteReseller(t, opts = {}) {
     setBusyId(t.id);
     try {
-      const res = await fetch(`${API}/tenants/${t.id}`, { method: 'DELETE', headers: H() });
+      const body = opts.deleteClients ? { deleteClients: true, confirmName: opts.confirmName } : null;
+      const res = await fetch(`${API}/tenants/${t.id}`, {
+        method: 'DELETE', headers: H(),
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
       const j = await res.json();
       if (!res.ok || j.success === false) throw new Error(j.message || 'Could not delete.');
-      toast.success('Reseller deleted.');
-      setConfirmDelete(null);
+      const n = j.data?.deletedClients || 0;
+      toast.success(n ? `Reseller and ${n} client compan${n > 1 ? 'ies' : 'y'} deleted.` : 'Reseller deleted.');
+      setConfirmDelete(null); setPurgeFor(null); setPurgeName('');
       loadAll();
     } catch (e) { toast.error(e.message || 'Could not delete the reseller.'); }
     setBusyId(null);
@@ -263,15 +270,31 @@ export default function PlatformAdminPage() {
                             <button onClick={() => setConfirmDelete(null)}
                               style={{ ...actionBtn, color: '#8A968C', marginLeft: 6 }}>Cancel</button>
                           </span>
+                        ) : purgeFor === t.id ? (
+                          <span style={{ marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                            <input
+                              value={purgeName}
+                              onChange={e => setPurgeName(e.target.value)}
+                              placeholder={`Type "${t.name}"`}
+                              style={{ padding: '4px 8px', border: '1px solid #E0A8A0', borderRadius: 6, fontSize: 12, width: 150 }}
+                            />
+                            <button
+                              onClick={() => deleteReseller(t, { deleteClients: true, confirmName: purgeName.trim() })}
+                              disabled={busyId === t.id || purgeName.trim() !== t.name}
+                              title={purgeName.trim() !== t.name ? 'Type the exact name to enable' : `Permanently delete ${t.name} and its ${t.clientCount} client compan${t.clientCount > 1 ? 'ies' : 'y'}`}
+                              style={{ ...actionBtn, color: purgeName.trim() === t.name ? '#B4482F' : '#C9C9C9', fontWeight: 700, cursor: purgeName.trim() === t.name ? 'pointer' : 'not-allowed' }}>
+                              Delete all
+                            </button>
+                            <button onClick={() => { setPurgeFor(null); setPurgeName(''); }}
+                              style={{ ...actionBtn, color: '#8A968C' }}>Cancel</button>
+                          </span>
                         ) : (
                           <button
-                            onClick={() => t.clientCount > 0
-                              ? toast.error('This reseller has clients — retire it instead, or remove its clients first.')
-                              : setConfirmDelete(t.id)}
+                            onClick={() => { if (t.clientCount > 0) { setPurgeName(''); setPurgeFor(t.id); } else setConfirmDelete(t.id); }}
                             disabled={busyId === t.id}
-                            title={t.clientCount > 0 ? 'Has clients — retire instead' : 'Delete permanently'}
-                            style={{ ...actionBtn, marginLeft: 8, color: t.clientCount > 0 ? '#C9C9C9' : '#B4482F', cursor: t.clientCount > 0 ? 'not-allowed' : 'pointer' }}>
-                            Delete
+                            title={t.clientCount > 0 ? `Permanently delete this reseller AND its ${t.clientCount} client compan${t.clientCount > 1 ? 'ies' : 'y'}` : 'Delete permanently'}
+                            style={{ ...actionBtn, marginLeft: 8, color: '#B4482F' }}>
+                            {t.clientCount > 0 ? 'Purge' : 'Delete'}
                           </button>
                         )}
                       </td>
