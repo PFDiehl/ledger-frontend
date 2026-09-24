@@ -71,7 +71,7 @@ export default function CustomersPage({ org, onNewInvoice }) {
 
   const filtered = customers.filter(c => {
     const q = search.toLowerCase();
-    return (c.name||'').toLowerCase().includes(q) || (c.company||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q);
+    return (c.name||'').toLowerCase().includes(q) || (c.company||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q) || (c.phone||'').toLowerCase().includes(q);
   });
   const allVisibleChecked = filtered.length > 0 && filtered.every(c => checkedIds.has(c.id));
   function toggleAllVisible() {

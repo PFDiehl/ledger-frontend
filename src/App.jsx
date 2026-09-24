@@ -42,6 +42,7 @@ import PrivacyPage from './pages/PrivacyPage';
 import DataDeletionPage from './pages/DataDeletionPage';
 import TermsPage from './pages/TermsPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import ApproveAccessPage from './pages/ApproveAccessPage';
 import SubscribeGate from './pages/SubscribeGate';
 import './styles.css';
 
@@ -50,6 +51,7 @@ const isPrivacy = window.location.pathname === '/privacy';
 const isDeleteData = window.location.pathname === '/delete-data';
 const isTerms = window.location.pathname === '/terms';
 const isReset = window.location.pathname === '/reset-password';
+const isApprove = window.location.pathname === '/approve-access';
 const API_BASE = import.meta.env.VITE_API_URL || 'https://ledger-accounting-production.up.railway.app/api';
 // When 'true', users without an active/trialing subscription are sent to the
 // SubscribeGate (card required). Off by default so existing users are never
@@ -190,6 +192,7 @@ export default function App() {
   }
 
   if (isReset) return <ResetPasswordPage />;
+  if (isApprove) return <ApproveAccessPage />;
   if (isPrivacy) return <PrivacyPage />;
   if (isDeleteData) return <DataDeletionPage />;
   if (isTerms) return <TermsPage />;

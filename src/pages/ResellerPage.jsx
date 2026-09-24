@@ -329,9 +329,14 @@ function Overview({ tenant, usage }) {
 function Clients({ tenantId, clients, reload }) {
   const toast = useToast();
   const [show, setShow]   = useState(false);
-  const [form, setForm]   = useState({ name: '', ownerName: '', email: '', plan: 'starter', currency: 'USD' });
+  const EMPTY_FORM = {
+    name: '', ownerName: '', email: '', plan: 'starter', currency: 'USD', scope: 'full',
+    phone: '', address: '', city: '', state: '', zip: '',
+    legalEntityType: '', taxId: '', dunsNumber: '', principals: '',
+  };
+  const [form, setForm]   = useState(EMPTY_FORM);
   const [busy, setBusy]   = useState(false);
-  const [created, setCreated] = useState(null); // { org, tempPassword }
+  const [created, setCreated] = useState(null); // { org, consentEmailSent, consentEmailTo }
 
   // Book-access grants, keyed by client org id, plus the per-row scope choice.
   const [grantByOrg, setGrantByOrg] = useState({});
@@ -352,18 +357,33 @@ function Clients({ tenantId, clients, reload }) {
   useEffect(() => { if (tenantId) loadGrants(); }, [tenantId, clients.length]);
 
   async function add() {
-    if (!form.name.trim() || !form.ownerName.trim() || !form.email.trim()) { toast.error('Name, owner, and email are required.'); return; }
+    if (!form.name.trim() || !form.ownerName.trim() || !form.email.trim()) { toast.error('Company, contact name, and email are required.'); return; }
     setBusy(true);
     try {
-      const r = await fetch(`${API}/tenants/${tenantId}/clients`, { method: 'POST', headers: H(), body: JSON.stringify(form) });
+      // Send only non-empty fields (all business details are optional).
+      const payload = {};
+      Object.entries(form).forEach(([k, v]) => { if (typeof v === 'string' ? v.trim() !== '' : v != null) payload[k] = typeof v === 'string' ? v.trim() : v; });
+      const r = await fetch(`${API}/tenants/${tenantId}/clients`, { method: 'POST', headers: H(), body: JSON.stringify(payload) });
       const j = await r.json();
       if (j.success !== false && j.data) {
         setCreated(j.data);
-        setForm({ name: '', ownerName: '', email: '', plan: 'starter', currency: 'USD' });
+        setForm(EMPTY_FORM);
         reload();
+        loadGrants();
       } else toast.error(j.message || 'Could not create the client.');
     } catch { toast.error('Cannot connect'); }
     finally { setBusy(false); }
+  }
+
+  async function resendConsent(orgId) {
+    setRowBusy(orgId);
+    try {
+      const r = await fetch(`${API}/tenants/${tenantId}/clients/${orgId}/resend-consent`, { method: 'POST', headers: H() });
+      const j = await r.json();
+      if (j.success !== false) { toast.success(`Approval email resent to ${j.data?.to || 'the client'}.`); loadGrants(); }
+      else toast.error(j.message || 'Could not resend.');
+    } catch { toast.error('Cannot connect'); }
+    finally { setRowBusy(''); }
   }
 
   async function requestAccess(orgId) {
@@ -429,7 +449,8 @@ function Clients({ tenantId, clients, reload }) {
     if (g?.status === 'pending') {
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#2564A8', background: '#EAF2FB', padding: '3px 9px', borderRadius: 20 }}>Awaiting client</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#2564A8', background: '#EAF2FB', padding: '3px 9px', borderRadius: 20 }}>Awaiting approval</span>
+          <button onClick={() => resendConsent(c.id)} style={linkBtn}>Resend</button>
           <button onClick={() => revokeAccess(g.id, c.id)} style={linkBtn}>Cancel</button>
         </div>
       );
@@ -461,7 +482,7 @@ function Clients({ tenantId, clients, reload }) {
         <div style={{ ...card, textAlign: 'center', padding: 40 }}>
           <div style={{ fontSize: 30, marginBottom: 8 }}>🗂️</div>
           <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>No client companies yet</p>
-          <p style={{ fontSize: 13, color: '#5E6B62', marginBottom: 16 }}>Add a client to create their company and owner login.</p>
+          <p style={{ fontSize: 13, color: '#5E6B62', marginBottom: 16 }}>Add a client to create their company and enter its business details. They just approve access with one click — no login required.</p>
           <button className="btn-primary" onClick={() => { setShow(true); setCreated(null); }}>Add your first client</button>
         </div>
       ) : (
@@ -508,7 +529,7 @@ function Clients({ tenantId, clients, reload }) {
 
       {show && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: '#ffffff', borderRadius: 14, padding: 26, width: 440, maxWidth: '94vw' }}>
+          <div style={{ background: '#ffffff', borderRadius: 14, padding: 26, width: 560, maxWidth: '94vw', maxHeight: '92vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h2 style={{ fontSize: 17, fontWeight: 600 }}>{created ? 'Client created' : 'Add client company'}</h2>
               <button onClick={() => { setShow(false); setCreated(null); }} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#5E6B62' }}>×</button>
@@ -516,22 +537,52 @@ function Clients({ tenantId, clients, reload }) {
 
             {created ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ fontSize: 13, color: '#5E6B62' }}>
-                  <strong style={{ color: '#1f2a24' }}>{created.org?.name}</strong> is set up. Share this temporary password with the owner — they should change it on first sign-in.
+                <div style={{ background: 'var(--brand-accent-light)', borderRadius: 8, padding: '16px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 30, marginBottom: 6 }}>✉️</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1f2a24', marginBottom: 4 }}>{created.org?.name} is set up</div>
+                  <div style={{ fontSize: 13, color: '#5E6B62' }}>
+                    {created.consentEmailSent !== false
+                      ? <>We emailed a one-click approval link to <strong style={{ color: '#1f2a24' }}>{created.consentEmailTo}</strong>. Once they approve, you'll be able to open their books.</>
+                      : <>The client was created, but the approval email couldn't be sent. Use <strong>Resend</strong> next to the client to try again.</>}
+                  </div>
                 </div>
-                <div style={{ background: 'var(--brand-accent-light)', borderRadius: 8, padding: '14px 16px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 11, color: '#5E6B62', marginBottom: 4 }}>TEMPORARY PASSWORD</div>
-                  <div style={{ fontFamily: 'monospace', fontSize: 18, fontWeight: 700, color: 'var(--brand-primary)' }}>{created.tempPassword}</div>
+                <div style={{ fontSize: 12, color: '#8A968C', lineHeight: 1.5 }}>
+                  The client doesn't need a login — their approval is all that's required. If they'd like to view their own books, they can set up a login after approving.
                 </div>
-                <button className="btn-secondary" onClick={() => { navigator.clipboard?.writeText(created.tempPassword); toast.success('Copied'); }}>Copy password</button>
                 <button className="btn-primary" onClick={() => { setShow(false); setCreated(null); }}>Done</button>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <Field label="Company name"><input style={box} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Acme LLC" /></Field>
-                <Field label="Owner name"><input style={box} value={form.ownerName} onChange={e => setForm(f => ({ ...f, ownerName: e.target.value }))} placeholder="Jane Smith" /></Field>
-                <Field label="Owner email"><input style={box} type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="jane@acme.com" /></Field>
+                <div style={{ fontSize: 12, color: '#8A968C', lineHeight: 1.5, marginBottom: 2 }}>
+                  Enter the company and its business details (from Sunbiz or state records). Only company, contact name, and email are required — you can fill the rest now or later. On save, the client gets a one-click approval email; no login is required of them.
+                </div>
+
+                <SectionLabel>Company & contact</SectionLabel>
+                <Field label="Company name *"><input style={box} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Acme LLC" /></Field>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Field label="Contact / owner name *"><input style={box} value={form.ownerName} onChange={e => setForm(f => ({ ...f, ownerName: e.target.value }))} placeholder="Jane Smith" /></Field>
+                  <Field label="Contact email *"><input style={box} type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="jane@acme.com" /></Field>
+                </div>
+                <Field label="Phone"><input style={box} value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="(555) 123-4567" /></Field>
+
+                <SectionLabel>Business address</SectionLabel>
+                <Field label="Street address"><input style={box} value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="123 Main St" /></Field>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12 }}>
+                  <Field label="City"><input style={box} value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} placeholder="Tampa" /></Field>
+                  <Field label="State"><input style={box} value={form.state} onChange={e => setForm(f => ({ ...f, state: e.target.value }))} placeholder="FL" /></Field>
+                  <Field label="ZIP"><input style={box} value={form.zip} onChange={e => setForm(f => ({ ...f, zip: e.target.value }))} placeholder="33601" /></Field>
+                </div>
+
+                <SectionLabel>Registration details</SectionLabel>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Field label="Legal entity type"><input style={box} value={form.legalEntityType} onChange={e => setForm(f => ({ ...f, legalEntityType: e.target.value }))} placeholder="LLC, S-Corp, Sole Prop…" /></Field>
+                  <Field label="Tax ID (EIN)"><input style={box} value={form.taxId} onChange={e => setForm(f => ({ ...f, taxId: e.target.value }))} placeholder="12-3456789" /></Field>
+                </div>
+                <Field label="DUNS number"><input style={box} value={form.dunsNumber} onChange={e => setForm(f => ({ ...f, dunsNumber: e.target.value }))} placeholder="Optional" /></Field>
+                <Field label="Principals / officers"><textarea style={{ ...box, minHeight: 60, resize: 'vertical', fontFamily: 'inherit' }} value={form.principals} onChange={e => setForm(f => ({ ...f, principals: e.target.value }))} placeholder="Names and titles of owners/officers" /></Field>
+
+                <SectionLabel>Plan & access</SectionLabel>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                   <Field label="Plan">
                     <select style={box} value={form.plan} onChange={e => setForm(f => ({ ...f, plan: e.target.value }))}>
                       {['starter', 'growth'].map(p => <option key={p} value={p}>{p}</option>)}
@@ -542,10 +593,17 @@ function Clients({ tenantId, clients, reload }) {
                       {['USD', 'EUR', 'GBP', 'CAD', 'AUD'].map(c => <option key={c}>{c}</option>)}
                     </select>
                   </Field>
+                  <Field label="Access to request">
+                    <select style={box} value={form.scope} onChange={e => setForm(f => ({ ...f, scope: e.target.value }))}>
+                      <option value="full">Full (view & edit)</option>
+                      <option value="view">View only</option>
+                    </select>
+                  </Field>
                 </div>
-                <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+
+                <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
                   <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setShow(false)}>Cancel</button>
-                  <button className="btn-primary" style={{ flex: 2 }} disabled={busy} onClick={add}>{busy ? 'Creating…' : 'Create client'}</button>
+                  <button className="btn-primary" style={{ flex: 2 }} disabled={busy} onClick={add}>{busy ? 'Creating…' : 'Create & send for approval'}</button>
                 </div>
               </div>
             )}
@@ -804,6 +862,14 @@ function Field({ label, children }) {
   return (
     <div>
       <label style={{ fontSize: 12, fontWeight: 500, color: '#5E6B62', display: 'block', marginBottom: 6 }}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function SectionLabel({ children }) {
+  return (
+    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', color: '#8A968C', marginTop: 6, marginBottom: -2, borderTop: '0.5px solid #EBF2E8', paddingTop: 12 }}>
       {children}
     </div>
   );

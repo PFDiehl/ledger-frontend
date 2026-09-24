@@ -178,6 +178,11 @@ export default function BankingPage() {
   const [rulePrompt, setRulePrompt] = useState(null);        // { match, category, description }
   const [newRule, setNewRule]     = useState({ match: '', category: '' });
 
+  // Per-row drafts for the QuickBooks-style "Add" flow on uncategorized lines:
+  // the user types a payee and picks a category, then clicks Add to post it.
+  const [payeeDraft, setPayeeDraft] = useState({}); // txnId -> payee string
+  const [catDraft, setCatDraft]     = useState({}); // txnId -> pending category name
+
   async function loadAccounts() {
     setLoading(true);
     try {
@@ -302,10 +307,12 @@ export default function BankingPage() {
     setImporting(false);
   }
 
-  async function categorize(txnId, category, txn) {
+  async function categorize(txnId, category, txn, payee) {
     try {
+      const body = { category };
+      if (payee !== undefined) body.payee = payee;
       const r = await fetch(`${API}/orgs/${orgId}/banking/accounts/${activeId}/transactions/${txnId}`, {
-        method: 'PATCH', headers, body: JSON.stringify({ category }),
+        method: 'PATCH', headers, body: JSON.stringify(body),
       }).then(r => r.json());
       if (r.success) {
         setTxns(prev => prev.map(t => t.id === txnId ? r.data : t));
@@ -315,6 +322,27 @@ export default function BankingPage() {
         }
       }
     } catch (e) { setMsg('Could not categorize.'); }
+  }
+
+  // Save just the payee/vendor name on a transaction (no ledger change).
+  async function savePayee(txnId, payee) {
+    try {
+      const r = await fetch(`${API}/orgs/${orgId}/banking/accounts/${activeId}/transactions/${txnId}`, {
+        method: 'PATCH', headers, body: JSON.stringify({ payee: payee || '' }),
+      }).then(r => r.json());
+      if (r.success) setTxns(prev => prev.map(t => t.id === txnId ? r.data : t));
+    } catch (e) { setMsg('Could not save the payee.'); }
+  }
+
+  // QuickBooks-style "Add": post an uncategorized line to the books using the
+  // drafted payee + category the user chose on that row.
+  async function addTxn(t) {
+    const category = catDraft[t.id];
+    if (!category) { setMsg('Pick a category before adding.'); return; }
+    const payee = payeeDraft[t.id] !== undefined ? payeeDraft[t.id] : (t.payee || '');
+    await categorize(t.id, category, t, payee);
+    setCatDraft(d => { const n = { ...d }; delete n[t.id]; return n; });
+    setPayeeDraft(d => { const n = { ...d }; delete n[t.id]; return n; });
   }
 
   async function createRule() {
@@ -475,8 +503,9 @@ export default function BankingPage() {
                   <tr style={{ borderBottom: '1px solid #D4DDCC' }}>
                     <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500, color: '#7A9A7A', width: 90 }}>Date</th>
                     <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500, color: '#7A9A7A' }}>Description</th>
+                    <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500, color: '#7A9A7A', width: 150 }}>Payee / vendor</th>
                     <th style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 500, color: '#7A9A7A', width: 110 }}>Amount</th>
-                    <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500, color: '#7A9A7A', width: 230 }}>Category</th>
+                    <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500, color: '#7A9A7A', width: 300 }}>Category</th>
                     <th style={{ width: 34 }}></th>
                   </tr>
                 </thead>
@@ -487,6 +516,19 @@ export default function BankingPage() {
                       <tr key={t.id} style={{ borderBottom: '0.5px solid #EBF2E8' }}>
                         <td style={{ padding: '9px 16px', color: '#7A9A7A', whiteSpace: 'nowrap' }}>{new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
                         <td style={{ padding: '9px 16px' }}>{t.description}</td>
+                        <td style={{ padding: '6px 16px' }}>
+                          {t.status === 'matched' ? (
+                            <span style={{ color: '#7A9A7A' }}>{t.payee || '—'}</span>
+                          ) : (
+                            <input
+                              value={payeeDraft[t.id] !== undefined ? payeeDraft[t.id] : (t.payee || '')}
+                              onChange={(e) => setPayeeDraft(d => ({ ...d, [t.id]: e.target.value }))}
+                              onBlur={(e) => { if ((t.payee || '') !== e.target.value) savePayee(t.id, e.target.value); }}
+                              placeholder="Payee / vendor"
+                              style={{ width: '100%', padding: '6px 8px', border: '1px solid #D4DDCC', borderRadius: 6, fontSize: 12.5, boxSizing: 'border-box', background: '#fff', color: 'var(--color-text-primary)' }}
+                            />
+                          )}
+                        </td>
                         <td style={{ padding: '9px 16px', textAlign: 'right', fontWeight: 500, color: inflow ? '#0F6E56' : 'var(--color-text-primary)', whiteSpace: 'nowrap' }}>
                           {inflow ? '+' : '−'}${fmtMoney(Math.abs(Number(t.amount)))}
                         </td>
@@ -498,10 +540,21 @@ export default function BankingPage() {
                               </span>
                               <button onClick={() => unmatch(t.id)} style={{ background: 'none', border: 'none', color: '#7A9A7A', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>undo</button>
                             </div>
-                          ) : (
+                          ) : t.status === 'categorized' ? (
+                            // Already added to the books — changing the category re-posts immediately.
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ fontSize: 11, fontWeight: 600, color: '#0F6E56', background: '#E1F5EE', padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>✓ Added</span>
                               <CategoryPicker value={t.category || ''} options={sortedChart}
                                 onPick={(name) => categorize(t.id, name, t)} />
+                            </div>
+                          ) : (
+                            // Uncategorized: pick a category, then click Add to post it.
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <CategoryPicker value={catDraft[t.id] || ''} options={sortedChart}
+                                onPick={(name) => setCatDraft(d => ({ ...d, [t.id]: name }))} />
+                              <button onClick={() => addTxn(t)} disabled={!catDraft[t.id]}
+                                title={catDraft[t.id] ? 'Add this transaction to the books' : 'Pick a category first'}
+                                style={{ background: catDraft[t.id] ? 'var(--brand-primary, #2D4A35)' : '#9BB39B', border: 'none', borderRadius: 6, color: '#fff', fontSize: 11, fontWeight: 600, padding: '6px 12px', cursor: catDraft[t.id] ? 'pointer' : 'default', whiteSpace: 'nowrap' }}>Add</button>
                               <button onClick={() => openMatch(t)} title="Match to an invoice, bill, or expense you already entered"
                                 style={{ background: 'none', border: '1px solid #D4DDCC', borderRadius: 6, color: 'var(--brand-primary, #2D4A35)', fontSize: 11, padding: '6px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Match</button>
                             </div>
