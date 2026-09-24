@@ -433,6 +433,24 @@ function Clients({ tenantId, clients, reload }) {
   }
 
   const [confirmOff, setConfirmOff] = useState('');
+  const [delFor, setDelFor]   = useState('');   // offboarded client id being permanently deleted
+  const [delName, setDelName] = useState('');    // typed name confirmation
+
+  async function hardDeleteClient(c) {
+    setRowBusy(c.id);
+    try {
+      const r = await fetch(`${API}/tenants/${tenantId}/clients/${c.id}`, {
+        method: 'DELETE', headers: H(), body: JSON.stringify({ confirmName: delName.trim() }),
+      });
+      const j = await r.json();
+      if (r.ok && j.success !== false) {
+        toast.success('Client permanently deleted.');
+        setDelFor(''); setDelName(''); reload(); loadGrants();
+      } else toast.error(j.message || 'Could not delete the client.');
+    } catch { toast.error('Cannot connect'); }
+    finally { setRowBusy(''); }
+  }
+
   async function offboard(orgId) {
     setRowBusy(orgId);
     try {
@@ -537,7 +555,20 @@ function Clients({ tenantId, clients, reload }) {
                   <td style={{ padding: '11px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                     {rowBusy === c.id ? <span style={{ fontSize: 12, color: '#8A968C' }}>…</span>
                      : c.planStatus === 'canceled'
-                       ? <button onClick={() => reactivate(c.id)} style={linkBtn}>Reactivate</button>
+                       ? (delFor === c.id
+                           ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+                               <input value={delName} onChange={e => setDelName(e.target.value)} placeholder={`Type "${c.name}"`}
+                                 style={{ ...box, width: 140, padding: '4px 8px', fontSize: 12 }} />
+                               <button onClick={() => hardDeleteClient(c)} disabled={delName.trim() !== c.name}
+                                 title={delName.trim() === c.name ? 'Permanently delete this client and all its books' : 'Type the exact name to enable'}
+                                 style={{ ...linkBtn, color: delName.trim() === c.name ? '#B4482F' : '#C9C9C9', fontWeight: 700, cursor: delName.trim() === c.name ? 'pointer' : 'not-allowed' }}>Delete all</button>
+                               <button onClick={() => { setDelFor(''); setDelName(''); }} style={{ ...linkBtn, color: '#8A968C' }}>Cancel</button>
+                             </span>
+                           : <span>
+                               <button onClick={() => reactivate(c.id)} style={linkBtn}>Reactivate</button>
+                               <button onClick={() => { setDelName(''); setDelFor(c.id); }} title="Permanently delete this offboarded client and all its books"
+                                 style={{ ...linkBtn, color: '#B4482F', marginLeft: 10 }}>Delete</button>
+                             </span>)
                        : confirmOff === c.id
                          ? <span><button onClick={() => offboard(c.id)} style={{ ...linkBtn, color: '#B4482F', fontWeight: 700 }}>Confirm</button><button onClick={() => setConfirmOff('')} style={{ ...linkBtn, color: '#8A968C', marginLeft: 8 }}>Cancel</button></span>
                          : <button onClick={() => setConfirmOff(c.id)} style={{ ...linkBtn, color: '#B4482F' }}>Offboard</button>}
