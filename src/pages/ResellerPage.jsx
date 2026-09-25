@@ -331,9 +331,10 @@ function Clients({ tenantId, clients, reload }) {
   const { refreshMe } = useAuth();
   const [show, setShow]   = useState(false);
   const EMPTY_FORM = {
-    name: '', ownerName: '', email: '', plan: 'starter', currency: 'USD', scope: 'full',
-    phone: '', address: '', city: '', state: '', zip: '',
+    name: '', legalName: '', ownerName: '', email: '', plan: 'starter', currency: 'USD', scope: 'full',
+    phone: '', website: '', address: '', city: '', state: '', zip: '',
     legalEntityType: '', taxId: '', dunsNumber: '', principals: '',
+    industry: '', accountingMethod: '', fiscalYearStart: '',
   };
   const [form, setForm]   = useState(EMPTY_FORM);
   const [busy, setBusy]   = useState(false);
@@ -615,12 +616,18 @@ function Clients({ tenantId, clients, reload }) {
                 </div>
 
                 <SectionLabel>Company & contact</SectionLabel>
-                <Field label="Company name *"><input style={box} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Acme LLC" /></Field>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Field label="Company name *"><input style={box} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Acme" /></Field>
+                  <Field label="Legal name"><input style={box} value={form.legalName} onChange={e => setForm(f => ({ ...f, legalName: e.target.value }))} placeholder="Acme LLC (official)" /></Field>
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <Field label="Contact / owner name *"><input style={box} value={form.ownerName} onChange={e => setForm(f => ({ ...f, ownerName: e.target.value }))} placeholder="Jane Smith" /></Field>
                   <Field label="Contact email *"><input style={box} type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="jane@acme.com" /></Field>
                 </div>
-                <Field label="Phone"><input style={box} value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="(555) 123-4567" /></Field>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Field label="Phone"><input style={box} value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="(555) 123-4567" /></Field>
+                  <Field label="Website"><input style={box} value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} placeholder="acme.com" /></Field>
+                </div>
 
                 <SectionLabel>Business address</SectionLabel>
                 <Field label="Street address"><input style={box} value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="123 Main St" /></Field>
@@ -635,8 +642,28 @@ function Clients({ tenantId, clients, reload }) {
                   <Field label="Legal entity type"><input style={box} value={form.legalEntityType} onChange={e => setForm(f => ({ ...f, legalEntityType: e.target.value }))} placeholder="LLC, S-Corp, Sole Prop…" /></Field>
                   <Field label="Tax ID (EIN)"><input style={box} value={form.taxId} onChange={e => setForm(f => ({ ...f, taxId: e.target.value }))} placeholder="12-3456789" /></Field>
                 </div>
-                <Field label="DUNS number"><input style={box} value={form.dunsNumber} onChange={e => setForm(f => ({ ...f, dunsNumber: e.target.value }))} placeholder="Optional" /></Field>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Field label="DUNS number"><input style={box} value={form.dunsNumber} onChange={e => setForm(f => ({ ...f, dunsNumber: e.target.value }))} placeholder="Optional" /></Field>
+                  <Field label="Industry"><input style={box} value={form.industry} onChange={e => setForm(f => ({ ...f, industry: e.target.value }))} placeholder="Construction, Retail…" /></Field>
+                </div>
                 <Field label="Principals / officers"><textarea style={{ ...box, minHeight: 60, resize: 'vertical', fontFamily: 'inherit' }} value={form.principals} onChange={e => setForm(f => ({ ...f, principals: e.target.value }))} placeholder="Names and titles of owners/officers" /></Field>
+
+                <SectionLabel>Bookkeeping</SectionLabel>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Field label="Accounting method">
+                    <select style={box} value={form.accountingMethod} onChange={e => setForm(f => ({ ...f, accountingMethod: e.target.value }))}>
+                      <option value="">Not set</option>
+                      <option value="cash">Cash</option>
+                      <option value="accrual">Accrual</option>
+                    </select>
+                  </Field>
+                  <Field label="Fiscal year starts">
+                    <select style={box} value={form.fiscalYearStart} onChange={e => setForm(f => ({ ...f, fiscalYearStart: e.target.value }))}>
+                      <option value="">Not set</option>
+                      {['January','February','March','April','May','June','July','August','September','October','November','December'].map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </Field>
+                </div>
 
                 <SectionLabel>Plan & access</SectionLabel>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
