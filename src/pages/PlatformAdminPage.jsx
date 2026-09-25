@@ -310,7 +310,7 @@ export default function PlatformAdminPage() {
         <div style={card}>
           <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px', color: '#1f2a24' }}>New reseller</h2>
           <p style={{ fontSize: 12, color: '#8A968C', margin: '0 0 14px' }}>
-            Creates a partner workspace and its owner login. The temporary password shows once.
+            Creates a partner workspace and emails the owner a secure link to set their own password.
           </p>
 
           {created ? (
@@ -318,13 +318,11 @@ export default function PlatformAdminPage() {
               <div style={{ fontSize: 13, fontWeight: 700, color: '#1E7A3D', marginBottom: 8 }}>✓ Reseller created</div>
               <div style={{ fontSize: 12, color: '#5E6B62', marginBottom: 4 }}>Owner login</div>
               <div style={{ fontSize: 13, color: '#1f2a24', marginBottom: 10, wordBreak: 'break-all' }}>{created.owner?.email}</div>
-              <div style={{ fontSize: 12, color: '#5E6B62', marginBottom: 4 }}>Temporary password</div>
-              <div style={{ fontSize: 15, fontWeight: 700, fontFamily: 'monospace', color: '#1f2a24', background: '#fff', border: '0.5px solid #D4DDCC', borderRadius: 8, padding: '8px 10px', letterSpacing: 1 }}>
-                {created.tempPassword}
+              <div style={{ fontSize: 12.5, color: '#5E6B62', marginBottom: 12, lineHeight: 1.5 }}>
+                {created.emailSent === false
+                  ? <>The reseller was created, but the set-password email couldn’t be sent. Have the owner use <strong>“Forgot password”</strong> on the sign-in page to get a link.</>
+                  : <>We emailed <strong>{created.owner?.email}</strong> a secure link to set their password (valid 7 days). No password to relay by hand.</>}
               </div>
-              <p style={{ fontSize: 11, color: '#B4482F', margin: '10px 0 12px' }}>
-                Copy this now — it can’t be shown again. Have them change it after first login.
-              </p>
               <button onClick={() => setCreated(null)}
                 style={{ width: '100%', padding: '9px', borderRadius: 8, border: 'none', background: '#2564A8', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                 Create another
