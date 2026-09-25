@@ -103,6 +103,8 @@ export default function AuthPage({ onSuccess, onBack, initialMode }) {
           return;
         }
       } else {
+        if (form.password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+        if (!/[a-zA-Z]/.test(form.password) || !/[0-9]/.test(form.password)) { setError('Password must include at least one letter and one number.'); return; }
         await register({ email: form.email, password: form.password, fullName: form.fullName, orgName: form.orgName });
       }
       onSuccess?.();
@@ -274,6 +276,9 @@ export default function AuthPage({ onSuccess, onBack, initialMode }) {
                 {showPw ? 'Hide' : 'Show'}
               </button>
             </div>
+            {mode === 'register' && (
+              <div style={{fontSize:'12px', color:MUTED, marginTop:'6px'}}>At least 8 characters, including a letter and a number.</div>
+            )}
           </div>
           )}
 

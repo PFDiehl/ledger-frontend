@@ -15,6 +15,7 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError('');
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) { setError('Password must include at least one letter and one number.'); return; }
     if (password !== confirm) { setError('Passwords do not match.'); return; }
     setLoading(true);
     try {
@@ -88,6 +89,7 @@ export default function ResetPasswordPage() {
                   {showPw ? 'Hide' : 'Show'}
                 </button>
               </div>
+              <div style={{fontSize:'12px', color:'#7A9A7A', marginTop:'6px'}}>At least 8 characters, including a letter and a number.</div>
             </div>
 
             <div style={{marginBottom:'28px'}}>
