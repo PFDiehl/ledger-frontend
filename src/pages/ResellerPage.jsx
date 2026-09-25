@@ -437,6 +437,53 @@ function Clients({ tenantId, clients, reload }) {
   const [delFor, setDelFor]   = useState('');   // offboarded client id being permanently deleted
   const [delName, setDelName] = useState('');    // typed name confirmation
 
+  // Edit-client modal state.
+  const [editFor, setEditFor]         = useState(null);   // org id being edited
+  const [editForm, setEditForm]       = useState(null);   // fetched business profile
+  const [editLoading, setEditLoading] = useState(false);
+  const [editBusy, setEditBusy]       = useState(false);
+  const [replaceTax, setReplaceTax]   = useState(false);  // reveal a new tax-ID input
+
+  async function openEdit(c) {
+    setEditFor(c.id); setEditForm(null); setReplaceTax(false); setEditLoading(true);
+    try {
+      const j = await fetch(`${API}/tenants/${tenantId}/clients/${c.id}`, { headers: H() }).then(r => r.json());
+      if (j.success !== false && j.data) {
+        const d = j.data;
+        setEditForm({
+          name: d.name || '', legalName: d.legalName || '', phone: d.phone || '', website: d.website || '',
+          address: d.address || '', city: d.city || '', state: d.state || '', zip: d.zip || '',
+          legalEntityType: d.legalEntityType || '', dunsNumber: d.dunsNumber || '', principals: d.principals || '',
+          industry: d.industry || '', accountingMethod: d.accountingMethod || '', fiscalYearStart: d.fiscalYearStart || '',
+          plan: d.plan || 'starter', currency: d.currency || 'USD',
+          email: d.email || '', hasTaxId: !!d.hasTaxId, taxIdMasked: d.taxIdMasked || '', taxId: '',
+        });
+      } else { toast.error(j.message || 'Could not load the client.'); setEditFor(null); }
+    } catch { toast.error('Cannot connect'); setEditFor(null); }
+    finally { setEditLoading(false); }
+  }
+
+  async function saveEdit() {
+    if (!editForm) return;
+    setEditBusy(true);
+    try {
+      const payload = {
+        name: editForm.name, legalName: editForm.legalName, phone: editForm.phone, website: editForm.website,
+        address: editForm.address, city: editForm.city, state: editForm.state, zip: editForm.zip,
+        legalEntityType: editForm.legalEntityType, dunsNumber: editForm.dunsNumber, principals: editForm.principals,
+        industry: editForm.industry, accountingMethod: editForm.accountingMethod, fiscalYearStart: editForm.fiscalYearStart,
+        plan: editForm.plan, currency: editForm.currency,
+      };
+      // Only send a new tax ID if the user chose to replace it and typed one.
+      if (replaceTax && editForm.taxId.trim()) payload.taxId = editForm.taxId.trim();
+      const r = await fetch(`${API}/tenants/${tenantId}/clients/${editFor}`, { method: 'PATCH', headers: H(), body: JSON.stringify(payload) });
+      const j = await r.json();
+      if (r.ok && j.success !== false) { toast.success('Client updated.'); setEditFor(null); setEditForm(null); reload(); }
+      else toast.error(j.message || 'Could not update the client.');
+    } catch { toast.error('Cannot connect'); }
+    finally { setEditBusy(false); }
+  }
+
   async function hardDeleteClient(c) {
     setRowBusy(c.id);
     try {
@@ -572,7 +619,7 @@ function Clients({ tenantId, clients, reload }) {
                              </span>)
                        : confirmOff === c.id
                          ? <span><button onClick={() => offboard(c.id)} style={{ ...linkBtn, color: '#B4482F', fontWeight: 700 }}>Confirm</button><button onClick={() => setConfirmOff('')} style={{ ...linkBtn, color: '#8A968C', marginLeft: 8 }}>Cancel</button></span>
-                         : <button onClick={() => setConfirmOff(c.id)} style={{ ...linkBtn, color: '#B4482F' }}>Offboard</button>}
+                         : <span><button onClick={() => openEdit(c)} style={{ ...linkBtn, color: '#2564A8', marginRight: 10 }}>Edit</button><button onClick={() => setConfirmOff(c.id)} style={{ ...linkBtn, color: '#B4482F' }}>Offboard</button></span>}
                   </td>
                 </tr>
               ))}
@@ -688,6 +735,106 @@ function Clients({ tenantId, clients, reload }) {
                 <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
                   <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setShow(false)}>Cancel</button>
                   <button className="btn-primary" style={{ flex: 2 }} disabled={busy} onClick={add}>{busy ? 'Creating…' : 'Create & send for approval'}</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {editFor && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: '#ffffff', borderRadius: 14, padding: 26, width: 560, maxWidth: '94vw', maxHeight: '92vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h2 style={{ fontSize: 17, fontWeight: 600 }}>Edit client details</h2>
+              <button onClick={() => { setEditFor(null); setEditForm(null); }} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#5E6B62' }}>×</button>
+            </div>
+
+            {editLoading || !editForm ? (
+              <div style={{ textAlign: 'center', padding: 30, color: '#5E6B62' }}>Loading…</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ fontSize: 12, color: '#8A968C', lineHeight: 1.5 }}>
+                  Update this client's business details. The contact email/login and the access level aren't changed here.
+                </div>
+
+                <SectionLabel>Company</SectionLabel>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Field label="Company name"><input style={box} value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} /></Field>
+                  <Field label="Legal name"><input style={box} value={editForm.legalName} onChange={e => setEditForm(f => ({ ...f, legalName: e.target.value }))} /></Field>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Field label="Phone"><input style={box} value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} /></Field>
+                  <Field label="Website"><input style={box} value={editForm.website} onChange={e => setEditForm(f => ({ ...f, website: e.target.value }))} /></Field>
+                </div>
+                <Field label="Contact email (change via the client's own Security settings)">
+                  <input style={{ ...box, background: '#F4F6F3', color: '#8A968C' }} value={editForm.email} readOnly />
+                </Field>
+
+                <SectionLabel>Business address</SectionLabel>
+                <Field label="Street address"><input style={box} value={editForm.address} onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))} /></Field>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12 }}>
+                  <Field label="City"><input style={box} value={editForm.city} onChange={e => setEditForm(f => ({ ...f, city: e.target.value }))} /></Field>
+                  <Field label="State"><input style={box} value={editForm.state} onChange={e => setEditForm(f => ({ ...f, state: e.target.value }))} /></Field>
+                  <Field label="ZIP"><input style={box} value={editForm.zip} onChange={e => setEditForm(f => ({ ...f, zip: e.target.value }))} /></Field>
+                </div>
+
+                <SectionLabel>Registration details</SectionLabel>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Field label="Legal entity type"><input style={box} value={editForm.legalEntityType} onChange={e => setEditForm(f => ({ ...f, legalEntityType: e.target.value }))} placeholder="LLC, S-Corp…" /></Field>
+                  <Field label="Industry"><input style={box} value={editForm.industry} onChange={e => setEditForm(f => ({ ...f, industry: e.target.value }))} /></Field>
+                </div>
+                <Field label="Tax ID (EIN)">
+                  {editForm.hasTaxId && !replaceTax ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ ...box, background: '#F4F6F3', color: '#5E6B62', letterSpacing: 1 }}>{editForm.taxIdMasked || 'On file'}</span>
+                      <button onClick={() => setReplaceTax(true)} style={{ ...linkBtn, color: '#2564A8', textDecoration: 'none', whiteSpace: 'nowrap' }}>Replace</button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <input style={box} value={editForm.taxId} onChange={e => setEditForm(f => ({ ...f, taxId: e.target.value }))} placeholder="12-3456789" />
+                      {editForm.hasTaxId && <button onClick={() => { setReplaceTax(false); setEditForm(f => ({ ...f, taxId: '' })); }} style={{ ...linkBtn, color: '#8A968C', textDecoration: 'none' }}>Cancel</button>}
+                    </div>
+                  )}
+                </Field>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Field label="DUNS number"><input style={box} value={editForm.dunsNumber} onChange={e => setEditForm(f => ({ ...f, dunsNumber: e.target.value }))} /></Field>
+                  <div />
+                </div>
+                <Field label="Principals / officers"><textarea style={{ ...box, minHeight: 60, resize: 'vertical', fontFamily: 'inherit' }} value={editForm.principals} onChange={e => setEditForm(f => ({ ...f, principals: e.target.value }))} /></Field>
+
+                <SectionLabel>Bookkeeping & plan</SectionLabel>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Field label="Accounting method">
+                    <select style={box} value={editForm.accountingMethod} onChange={e => setEditForm(f => ({ ...f, accountingMethod: e.target.value }))}>
+                      <option value="">Not set</option>
+                      <option value="cash">Cash</option>
+                      <option value="accrual">Accrual</option>
+                    </select>
+                  </Field>
+                  <Field label="Fiscal year starts">
+                    <select style={box} value={editForm.fiscalYearStart} onChange={e => setEditForm(f => ({ ...f, fiscalYearStart: e.target.value }))}>
+                      <option value="">Not set</option>
+                      {['January','February','March','April','May','June','July','August','September','October','November','December'].map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </Field>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Field label="Plan">
+                    <select style={box} value={editForm.plan} onChange={e => setEditForm(f => ({ ...f, plan: e.target.value }))}>
+                      {['starter', 'growth'].map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Currency">
+                    <select style={box} value={editForm.currency} onChange={e => setEditForm(f => ({ ...f, currency: e.target.value }))}>
+                      {['USD', 'EUR', 'GBP', 'CAD', 'AUD'].map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </Field>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+                  <button className="btn-secondary" style={{ flex: 1 }} onClick={() => { setEditFor(null); setEditForm(null); }}>Cancel</button>
+                  <button className="btn-primary" style={{ flex: 2 }} disabled={editBusy} onClick={saveEdit}>{editBusy ? 'Saving…' : 'Save changes'}</button>
                 </div>
               </div>
             )}
