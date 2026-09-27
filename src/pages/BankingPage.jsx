@@ -8,6 +8,22 @@ function getAuth() {
   return { orgId: org.id, token };
 }
 
+// Load Plaid's Link script once (used to open the secure bank-connect popup).
+let plaidScriptLoaded = false;
+function loadPlaidScript() {
+  if (plaidScriptLoaded && window.Plaid) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[data-plaid-link]');
+    if (existing) { existing.addEventListener('load', () => resolve()); if (window.Plaid) resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
+    s.setAttribute('data-plaid-link', '1');
+    s.onload  = () => { plaidScriptLoaded = true; resolve(); };
+    s.onerror = () => reject(new Error('Could not load Plaid. Check your connection and try again.'));
+    document.head.appendChild(s);
+  });
+}
+
 const TYPE_ORDER = { Asset: 1, Liability: 2, Equity: 3, Revenue: 4, Expense: 5 };
 const fmtMoney = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const toAmount = (s) => { const n = Number(String(s ?? '').replace(/[^0-9.\-]/g, '')); return Number.isFinite(n) ? n : 0; };
@@ -165,6 +181,9 @@ export default function BankingPage() {
   const [showAddAcct, setShowAddAcct] = useState(false);
   const [acctForm, setAcctForm]   = useState({ name: '', institutionName: '', mask: '' });
 
+  const [connecting, setConnecting] = useState(false);   // Plaid connect in progress
+  const [syncing, setSyncing]       = useState(false);   // Plaid sync in progress
+
   const [importData, setImportData] = useState(null); // { headerRow, rows, map }
   const [importing, setImporting]   = useState(false);
   const fileRef = useRef(null);
@@ -235,6 +254,59 @@ export default function BankingPage() {
       await fetch(`${API}/orgs/${orgId}/banking/accounts/${id}`, { method: 'DELETE', headers });
       await loadAccounts();
     } catch (e) { setMsg('Could not delete account.'); }
+  }
+
+  // ── Plaid: connect a bank and pull transactions automatically ──
+  async function connectBank() {
+    setConnecting(true); setMsg('');
+    try {
+      await loadPlaidScript();
+      const r = await fetch(`${API}/orgs/${orgId}/plaid/link-token`, { method: 'POST', headers }).then(r => r.json());
+      const linkToken = r?.data?.linkToken;
+      if (!linkToken) throw new Error(r?.message || 'Could not start the bank connection.');
+      await new Promise((resolve) => {
+        const handler = window.Plaid.create({
+          token: linkToken,
+          onSuccess: async (publicToken, metadata) => {
+            setMsg('Importing your accounts and transactions…');
+            try {
+              const ex = await fetch(`${API}/orgs/${orgId}/plaid/exchange`, {
+                method: 'POST', headers,
+                body: JSON.stringify({ publicToken, institutionName: metadata?.institution?.name }),
+              }).then(r => r.json());
+              if (!ex.success) throw new Error(ex.message || 'Connection failed.');
+              const d = ex.data || {};
+              setMsg(`Connected ${metadata?.institution?.name || 'your bank'} — ${d.accounts || 0} account${d.accounts === 1 ? '' : 's'}, ${d.imported || 0} transaction${d.imported === 1 ? '' : 's'} imported${d.autoCategorized ? `, ${d.autoCategorized} auto-categorized` : ''}.`);
+              await loadAccounts();
+            } catch (err) { setMsg(err.message || 'Connection failed.'); }
+            resolve();
+          },
+          onExit: (err) => {
+            if (err) setMsg(err.display_message || err.error_message || 'Bank connection was cancelled.');
+            resolve();
+          },
+        });
+        handler.open();
+      });
+    } catch (e) { setMsg(e.message || 'Could not connect your bank.'); }
+    setConnecting(false);
+  }
+
+  // Refresh transactions from the bank (all connected banks, or just one item).
+  async function syncBank(itemId) {
+    setSyncing(true); setMsg('Syncing…');
+    try {
+      const opts = { method: 'POST', headers };
+      if (itemId) opts.body = JSON.stringify({ itemId });
+      const r = await fetch(`${API}/orgs/${orgId}/plaid/sync`, opts).then(r => r.json());
+      if (r.success) {
+        const d = r.data || {};
+        setMsg(`Sync complete — ${d.imported || 0} new, ${d.updated || 0} updated${d.autoCategorized ? `, ${d.autoCategorized} auto-categorized` : ''}.`);
+        await loadAccounts();
+        await loadTxns(activeId);
+      } else setMsg(r.message || 'Sync failed.');
+    } catch (e) { setMsg('Sync failed.'); }
+    setSyncing(false);
   }
 
   // ── CSV import ──
@@ -425,6 +497,7 @@ export default function BankingPage() {
 
   const activeAcct = accounts.find(a => a.id === activeId);
   const uncategorized = txns.filter(t => t.status !== 'categorized' && t.status !== 'matched').length;
+  const hasPlaid = accounts.some(a => a.plaidItemId);
 
   return (
     <div className="page">
@@ -432,10 +505,15 @@ export default function BankingPage() {
         <div>
           <h1 className="page-title">Banking</h1>
           <p style={{ color: 'var(--color-text-secondary)', fontSize: 13, marginTop: 2 }}>
-            Import your bank &amp; credit-card activity from a CSV or .qbo/.qfx file, categorize it, and it posts to your ledger.
+            Connect your bank for automatic transactions, or import a CSV / .qbo / .qfx file. Categorize once and it posts to your ledger.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {hasPlaid && (
+            <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={() => syncBank()} disabled={syncing}>
+              ⟳ {syncing ? 'Syncing…' : 'Sync from bank'}
+            </button>
+          )}
           {accounts.length > 0 && (
             <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={() => fileRef.current?.click()} disabled={!activeId}>
               ⬆ Import statement
@@ -444,7 +522,10 @@ export default function BankingPage() {
           <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={() => setShowRules(true)}>
             ⚙ Rules{rules.length ? ` (${rules.length})` : ''}
           </button>
-          <button className="btn-primary" style={{ fontSize: 13 }} onClick={() => setShowAddAcct(true)}>+ Add account</button>
+          <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={() => setShowAddAcct(true)}>+ Add manually</button>
+          <button className="btn-primary" style={{ fontSize: 13 }} onClick={connectBank} disabled={connecting}>
+            🔗 {connecting ? 'Connecting…' : 'Connect a bank'}
+          </button>
         </div>
       </div>
       <input ref={fileRef} type="file" accept=".csv,.qbo,.qfx,.ofx,text/csv" style={{ display: 'none' }} onChange={onFile} />
@@ -456,11 +537,14 @@ export default function BankingPage() {
       ) : accounts.length === 0 ? (
         <div className="card" style={{ padding: 40, marginTop: 20, textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>🏦</div>
-          <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 8 }}>Add a bank or credit-card account</p>
+          <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 8 }}>Connect your bank or add an account manually</p>
           <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 20 }}>
-            Add an account, then import a statement (CSV or .qbo/.qfx) to bring in your transactions.
+            Connect your bank to pull transactions automatically, or add an account by hand and import a statement (CSV or .qbo/.qfx).
           </p>
-          <button className="btn-primary" onClick={() => setShowAddAcct(true)}>Add account</button>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button className="btn-primary" onClick={connectBank} disabled={connecting}>🔗 {connecting ? 'Connecting…' : 'Connect a bank'}</button>
+            <button className="btn-secondary" onClick={() => setShowAddAcct(true)}>Add manually</button>
+          </div>
         </div>
       ) : (
         <>
@@ -474,7 +558,7 @@ export default function BankingPage() {
                   background: a.id === activeId ? 'var(--brand-primary, #2D4A35)' : '#fff',
                   color: a.id === activeId ? '#fff' : 'var(--color-text-primary)', fontWeight: 500,
                 }}>
-                {a.name}{a.mask ? ` ••${a.mask}` : ''}
+                {a.plaidItemId ? '🔗 ' : ''}{a.name}{a.mask ? ` ••${a.mask}` : ''}
               </button>
             ))}
           </div>
@@ -484,8 +568,18 @@ export default function BankingPage() {
               <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>
                 {txns.length} transaction{txns.length === 1 ? '' : 's'}
                 {uncategorized > 0 && <span style={{ color: '#854F0B', fontWeight: 600 }}> · {uncategorized} to categorize</span>}
+                {activeAcct.plaidItemId && (
+                  <span style={{ color: '#0F6E56', fontWeight: 600 }}>
+                    {' '}· 🔗 Connected{activeAcct.lastSyncedAt ? ` · synced ${new Date(activeAcct.lastSyncedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
+                  </span>
+                )}
               </div>
-              <button onClick={() => deleteAccount(activeAcct.id)} style={{ background: 'none', border: 'none', color: '#A32D2D', fontSize: 12, cursor: 'pointer' }}>Delete account</button>
+              <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                {activeAcct.plaidItemId && (
+                  <button onClick={() => syncBank(activeAcct.plaidItemId)} disabled={syncing} style={{ background: 'none', border: 'none', color: 'var(--brand-primary, #2D4A35)', fontSize: 12, cursor: 'pointer' }}>{syncing ? 'Syncing…' : '⟳ Sync now'}</button>
+                )}
+                <button onClick={() => deleteAccount(activeAcct.id)} style={{ background: 'none', border: 'none', color: '#A32D2D', fontSize: 12, cursor: 'pointer' }}>Delete account</button>
+              </div>
             </div>
           )}
 
@@ -493,8 +587,12 @@ export default function BankingPage() {
             <div className="card" style={{ padding: 40, textAlign: 'center' }}>
               <div style={{ fontSize: 34, marginBottom: 12 }}>📄</div>
               <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>No transactions yet</p>
-              <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 18 }}>Import a statement (CSV or .qbo/.qfx) to bring in this account's activity.</p>
-              <button className="btn-primary" onClick={() => fileRef.current?.click()}>⬆ Import statement</button>
+              <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 18 }}>
+                {activeAcct?.plaidItemId ? 'Sync to pull this account’s latest activity from your bank.' : 'Import a statement (CSV or .qbo/.qfx) to bring in this account’s activity.'}
+              </p>
+              {activeAcct?.plaidItemId
+                ? <button className="btn-primary" onClick={() => syncBank(activeAcct.plaidItemId)} disabled={syncing}>{syncing ? 'Syncing…' : '⟳ Sync from bank'}</button>
+                : <button className="btn-primary" onClick={() => fileRef.current?.click()}>⬆ Import statement</button>}
             </div>
           ) : (
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
