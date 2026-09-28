@@ -264,10 +264,13 @@ export default function BankingPage() {
       const r = await fetch(`${API}/orgs/${orgId}/plaid/link-token`, { method: 'POST', headers }).then(r => r.json());
       const linkToken = r?.data?.linkToken;
       if (!linkToken) throw new Error(r?.message || 'Could not start the bank connection.');
+      // Persist the token so an OAuth bank redirect (Chase, etc.) can resume it on /plaid-oauth.
+      try { localStorage.setItem('plaid_link_token', linkToken); } catch {}
       await new Promise((resolve) => {
         const handler = window.Plaid.create({
           token: linkToken,
           onSuccess: async (publicToken, metadata) => {
+            try { localStorage.removeItem('plaid_link_token'); } catch {}
             setMsg('Importing your accounts and transactions…');
             try {
               const ex = await fetch(`${API}/orgs/${orgId}/plaid/exchange`, {
@@ -282,6 +285,7 @@ export default function BankingPage() {
             resolve();
           },
           onExit: (err) => {
+            try { localStorage.removeItem('plaid_link_token'); } catch {}
             if (err) setMsg(err.display_message || err.error_message || 'Bank connection was cancelled.');
             resolve();
           },

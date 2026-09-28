@@ -52,11 +52,67 @@ const isDeleteData = window.location.pathname === '/delete-data';
 const isTerms = window.location.pathname === '/terms';
 const isReset = window.location.pathname === '/reset-password';
 const isApprove = window.location.pathname === '/approve-access';
+const isPlaidOauth = window.location.pathname === '/plaid-oauth';
 const API_BASE = import.meta.env.VITE_API_URL || 'https://ledger-accounting-production.up.railway.app/api';
 // When 'true', users without an active/trialing subscription are sent to the
 // SubscribeGate (card required). Off by default so existing users are never
 // locked out during build/test — flipped on at launch.
 const BILLING_ENFORCED = import.meta.env.VITE_BILLING_ENFORCED === 'true';
+
+// Load Plaid's Link script once.
+function loadPlaidScript() {
+  if (window.Plaid) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[data-plaid-link]');
+    if (existing) { existing.addEventListener('load', () => resolve()); if (window.Plaid) resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
+    s.setAttribute('data-plaid-link', '1');
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Could not load Plaid.'));
+    document.head.appendChild(s);
+  });
+}
+
+// OAuth return page. Big banks (Chase, BofA, …) send the browser to their site and
+// back here; we resume Plaid Link with the saved token, finish the exchange, and
+// return to the app.
+function PlaidOAuthPage() {
+  const [msg, setMsg] = useState('Finishing your bank connection…');
+  useEffect(() => {
+    (async () => {
+      try {
+        const token     = localStorage.getItem('plaid_link_token');
+        const orgId     = (JSON.parse(localStorage.getItem('ledger_org') || '{}')).id;
+        const authToken = localStorage.getItem('accessToken');
+        if (!token || !orgId) { window.location.href = '/'; return; }
+        await loadPlaidScript();
+        const handler = window.Plaid.create({
+          token,
+          receivedRedirectUri: window.location.href,
+          onSuccess: async (publicToken, metadata) => {
+            try {
+              await fetch(`${API_BASE}/orgs/${orgId}/plaid/exchange`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+                body: JSON.stringify({ publicToken, institutionName: metadata?.institution?.name }),
+              });
+            } catch { /* the banking page will show the result on load */ }
+            localStorage.removeItem('plaid_link_token');
+            window.location.href = '/?bank_connected=1';
+          },
+          onExit: () => { localStorage.removeItem('plaid_link_token'); window.location.href = '/'; },
+        });
+        handler.open();
+      } catch {
+        setMsg('Could not finish the connection. Returning…');
+        setTimeout(() => { window.location.href = '/'; }, 2500);
+      }
+    })();
+  }, []);
+  const box = { minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16, fontFamily:'system-ui, sans-serif', padding:24, textAlign:'center' };
+  return <div style={box}><div style={{ fontSize:18, color:'#555' }}>{msg}</div></div>;
+}
 
 export default function App() {
   const { user, org, orgs, tenants, isPlatformOwner, loading, logout } = useAuth();
@@ -90,6 +146,17 @@ export default function App() {
     if (user && !prevUser.current) { setActiveNav(landingNav); setView({ type:'list' }); }
     prevUser.current = user;
   }, [user, landingNav]);
+
+  // Returning from a Plaid OAuth bank connection → land on Banking.
+  useEffect(() => {
+    if (!user) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('bank_connected')) {
+      window.history.replaceState({}, '', window.location.pathname);
+      setActiveNav('bank');
+      setView({ type:'list' });
+    }
+  }, [user]);
 
   // After Stripe redirects back from an INVOICE payment (/?paid=true&session_id=...)
   useEffect(() => {
@@ -191,6 +258,7 @@ export default function App() {
     </div>;
   }
 
+  if (isPlaidOauth) return <PlaidOAuthPage />;
   if (isReset) return <ResetPasswordPage />;
   if (isApprove) return <ApproveAccessPage />;
   if (isPrivacy) return <PrivacyPage />;
