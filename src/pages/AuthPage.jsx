@@ -253,8 +253,9 @@ export default function AuthPage({ onSuccess, onBack, initialMode }) {
           <div style={{marginBottom:'15px'}}>
             <label style={labelStyle}>Email</label>
             <input
-              type="email" value={form.email} onChange={e => setField('email', e.target.value)}
+              type="email" value={form.email} onChange={e => setField('email', e.target.value.toLowerCase())}
               placeholder="you@company.com" required
+              autoCapitalize="none" autoCorrect="off" spellCheck={false}
               style={inputStyle}
             />
           </div>

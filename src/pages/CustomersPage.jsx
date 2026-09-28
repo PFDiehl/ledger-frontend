@@ -205,7 +205,7 @@ export default function CustomersPage({ org, onNewInvoice }) {
         </div>
       ) : (
         <div style={{background:'var(--color-surface)',borderRadius:14,border:'1px solid var(--color-border)',overflowX:'auto'}}>
-          <table style={{width:'100%',minWidth:720,borderCollapse:'collapse',fontSize:14}}>
+          <table style={{width:'100%',minWidth:900,borderCollapse:'collapse',fontSize:14}}>
             <thead><tr style={{background:'var(--color-surface-secondary)'}}>
               <th style={{padding:'12px 16px',borderBottom:'1px solid var(--color-border)',width:36}}>
                 <input type="checkbox" checked={allVisibleChecked} onChange={toggleAllVisible} style={{cursor:'pointer',width:16,height:16}} title="Select all" />
@@ -223,10 +223,10 @@ export default function CustomersPage({ org, onNewInvoice }) {
                   <td style={{padding:'12px 16px'}} onClick={e=>e.stopPropagation()}>
                     <input type="checkbox" checked={checkedIds.has(c.id)} onChange={()=>toggleCheck(c.id)} style={{cursor:'pointer',width:16,height:16}} />
                   </td>
-                  <td style={{padding:'12px 16px'}}>
+                  <td style={{padding:'12px 16px',whiteSpace:'nowrap'}}>
                     <div style={{display:'flex',alignItems:'center',gap:12}}>
                       <Avatar name={c.company || c.name} />
-                      <span style={{fontWeight:600}}>{c.company || c.name}</span>
+                      <span style={{fontWeight:600,whiteSpace:'nowrap'}}>{c.company || c.name}</span>
                     </div>
                   </td>
                   <td style={{padding:'12px 16px'}}>{c.name||'-'}</td>
