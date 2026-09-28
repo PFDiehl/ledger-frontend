@@ -29,6 +29,7 @@ const ALL_NAV = [
   { id:'payroll',       icon:'users',         label:'Payroll',        level:1, section:'Money out' },
   { id:'recurring',     icon:'refresh',       label:'Recurring',      level:1, section:'Money in' },
   { id:'budgets',       icon:'trending-up',   label:'Budgets',        level:1, section:'Reports' },
+  { id:'companies',     icon:'building',      label:'My companies',   level:0, section:'More' },
   { id:'coa',           icon:'list',          label:'Chart of accounts',level:2, section:'Advanced' },
   { id:'journal',       icon:'book',          label:'Journal entries', level:2, section:'Advanced' },
   // Smart tools — built for real and fully self-contained (all computed on our own
