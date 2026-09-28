@@ -552,19 +552,36 @@ export default function BankingPage() {
         </div>
       ) : (
         <>
-          {/* Account tabs */}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '16px 0' }}>
-            {accounts.map(a => (
-              <button key={a.id} onClick={() => setActiveId(a.id)}
-                style={{
-                  padding: '8px 14px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
-                  border: a.id === activeId ? '1px solid var(--brand-primary, #2D4A35)' : '1px solid #D4DDCC',
-                  background: a.id === activeId ? 'var(--brand-primary, #2D4A35)' : '#fff',
-                  color: a.id === activeId ? '#fff' : 'var(--color-text-primary)', fontWeight: 500,
-                }}>
-                {a.plaidItemId ? '🔗 ' : ''}{a.name}{a.mask ? ` ••${a.mask}` : ''}
-              </button>
-            ))}
+          {/* Account balance cards (QuickBooks-style) — one per account, running
+              horizontally; click to select. "Sync from bank" (top right) refreshes all. */}
+          <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '16px 2px', margin: '0 0 4px' }}>
+            {accounts.map(a => {
+              const active = a.id === activeId;
+              const bal = Number(a.currentBalance || 0);
+              return (
+                <button key={a.id} onClick={() => setActiveId(a.id)}
+                  style={{
+                    flex: '0 0 auto', minWidth: 190, maxWidth: 260, textAlign: 'left', cursor: 'pointer',
+                    border: active ? '2px solid var(--brand-primary, #2D4A35)' : '1px solid #D4DDCC',
+                    borderRadius: 12, padding: '12px 16px', background: '#fff',
+                    boxShadow: active ? '0 2px 8px rgba(45,74,53,0.12)' : 'none',
+                  }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 6 }}>
+                    {a.plaidItemId ? '🔗 ' : '🏦 '}{a.name}
+                  </div>
+                  {a.plaidItemId ? (
+                    <div style={{ fontSize: 20, fontWeight: 700, color: bal < 0 ? '#A32D2D' : 'var(--color-text-primary)' }}>
+                      {bal < 0 ? '−' : ''}${fmtMoney(Math.abs(bal))}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text-tertiary, #9BB39B)' }}>—</div>
+                  )}
+                  <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {a.institutionName || 'Manual import'}{a.mask ? ` ••${a.mask}` : ''}
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
           {activeAcct && (
