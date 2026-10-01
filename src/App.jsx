@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth }               from './lib/AuthContext';
 import { api }                   from './lib/api';
 import AuthPage                  from './pages/AuthPage';
-import OnboardingPage            from './pages/OnboardingPage';
 import TopBar                    from './components/layout/TopBar';
 import Sidebar                   from './components/layout/Sidebar';
 import DashboardPage             from './pages/DashboardPage';
@@ -114,6 +113,33 @@ function PlaidOAuthPage() {
   return <div style={box}><div style={{ fontSize:18, color:'#555' }}>{msg}</div></div>;
 }
 
+// First-visit welcome bubble. Pops up once on the Dashboard to greet new users and
+// point them at Settings → Company to fill in their business details.
+function WelcomeBubble({ name, onAddCompany, onDismiss }) {
+  return (
+    <div style={{ position:'fixed', right:20, bottom:20, zIndex:1000, width:'min(340px, calc(100vw - 32px))',
+      background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-tertiary)',
+      borderRadius:14, boxShadow:'0 10px 34px rgba(0,0,0,0.18)', padding:'18px 20px' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
+        <div style={{ width:32, height:32, borderRadius:9, background:'#EBF2E8', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--brand-primary,#2D4A35)', fontSize:17, flexShrink:0 }}>
+          <i className="ti ti-sparkles" />
+        </div>
+        <div style={{ fontSize:15, fontWeight:600 }}>Welcome to MountainTop Ledger!</div>
+        <button onClick={onDismiss} aria-label="Dismiss" style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'var(--color-text-tertiary)', fontSize:16, lineHeight:1 }}>
+          <i className="ti ti-x" />
+        </button>
+      </div>
+      <div style={{ fontSize:13, color:'var(--color-text-secondary)', lineHeight:1.5, marginBottom:14 }}>
+        Glad you're here{ name ? `, ${name}` : '' }. A great place to start is adding your company information — it appears on your invoices and reports. You'll find it under <strong>Settings → Company</strong>.
+      </div>
+      <div style={{ display:'flex', gap:8 }}>
+        <button className="btn-primary" onClick={onAddCompany} style={{ fontSize:13 }}>Add company info</button>
+        <button className="btn-secondary" onClick={onDismiss} style={{ fontSize:13 }}>Maybe later</button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const { user, org, orgs, tenants, isPlatformOwner, loading, logout } = useAuth();
 
@@ -129,7 +155,7 @@ export default function App() {
                        : 'dashboard';
   const [activeNav, setActiveNav]  = useState('dashboard');
   const [view, setView]            = useState({ type:'list' });
-  const [onboarded, setOnboarded]  = useState(() => !!localStorage.getItem('onboarded'));
+  const [showWelcome, setShowWelcome] = useState(() => { try { return !localStorage.getItem('mtl_welcomed'); } catch { return false; } });
   const [showLanding, setShowLanding] = useState(true);
   const [authMode, setAuthMode]    = useState('login'); // 'login' | 'register' — which form AuthPage opens on
   const [showAI, setShowAI]        = useState(false);
@@ -275,11 +301,12 @@ export default function App() {
     if (subInfo && !subInfo.active) return <SubscribeGate org={org} selectedPlan={selectedPlan} apiBase={API_BASE} onLogout={logout} />;
   }
 
-  // Only run the company-setup wizard for users who actually have a company.
-  // Reseller owners (and a company-less platform owner) skip straight into the app.
-  if (!onboarded && hasOrg) return <OnboardingPage onComplete={() => { localStorage.setItem('onboarded','1'); setOnboarded(true); }} />;
-
   const nav = id => { setActiveNav(id); setView({ type:'list' }); };
+
+  // First-visit welcome bubble (shown once on the Dashboard). Replaces the old
+  // onboarding wizard — new users land straight on the Dashboard.
+  const dismissWelcome   = () => { try { localStorage.setItem('mtl_welcomed','1'); } catch {} setShowWelcome(false); };
+  const welcomeToCompany = () => { try { localStorage.setItem('mtl_welcomed','1'); localStorage.setItem('mtl_settings_tab','company'); } catch {} setShowWelcome(false); nav('settings'); };
 
   const renderPage = () => {
     // A reseller owner with no company can only reach their console, the platform
@@ -326,7 +353,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <TopBar orgName={org?.name ?? (isResellerOnly ? tenants?.[0]?.name : null) ?? 'My Company'} onLogout={logout} onAI={() => setShowAI(s => !s)} />
+      <TopBar orgName={org?.name ?? (isResellerOnly ? tenants?.[0]?.name : null) ?? 'My Company'} onLogout={logout} onAI={() => setShowAI(s => !s)} onNavigate={nav} />
       <div className="app-body">
         <Sidebar activeId={activeNav} onNavigate={item => nav(item.id)} hasOrg={hasOrg} isOrgAdmin={isOrgAdmin} isReseller={(tenants?.length || 0) > 0} isPlatformOwner={isPlatformOwner} />
         <main className="main-content">
@@ -335,6 +362,9 @@ export default function App() {
         </main>
       </div>
       {showAI && <AIInsightsPanel onClose={() => setShowAI(false)} />}
+      {showWelcome && hasOrg && activeNav === 'dashboard' && (
+        <WelcomeBubble name={user?.name ? String(user.name).split(' ')[0] : ''} onAddCompany={welcomeToCompany} onDismiss={dismissWelcome} />
+      )}
     </div>
   );
 }

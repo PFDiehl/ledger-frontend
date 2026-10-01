@@ -80,7 +80,7 @@ function CompanySettings() {
   const toast = useToast();
   const { org } = useAuth();
   const API = 'https://ledger-accounting-production.up.railway.app/api';
-  const [form, setForm] = useState({ name:'', email:'', phone:'', taxId:'', address:'', city:'', state:'', zip:'', country:'', website:'', currency:'USD', paymentTerms:'30', invoicePrefix:'INV-', invoiceNotes:'' });
+  const [form, setForm] = useState({ name:'', email:'', phone:'', taxId:'', address:'', city:'', state:'', zip:'', country:'', website:'', industry:'', currency:'USD', fiscalYearStart:'', defaultTaxRate:'', paymentTerms:'30', invoicePrefix:'INV-', invoiceNotes:'' });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -116,9 +116,17 @@ function CompanySettings() {
         </div>
         <div className="form-row two-col">
           <FieldRow label="Phone"><input value={form.phone||''} onChange={e => { const digits = e.target.value.replace(/\D/g,'').slice(0,10); let formatted = ''; if (digits.length > 0) formatted = '(' + digits.slice(0,3); if (digits.length >= 4) formatted += ') ' + digits.slice(3,6); if (digits.length >= 7) formatted += '-' + digits.slice(6,10); setForm(f=>({...f,phone:formatted})); }} placeholder="(555) 000-0000" /></FieldRow>
-          <FieldRow label="Tax ID / EIN"><input value={form.taxId||''} onChange={e => setForm(f=>({...f,taxId:e.target.value}))} placeholder="12-3456789" /></FieldRow>
+          <FieldRow label="Tax ID / EIN"><input value={form.taxId||''} onChange={e => { const d = e.target.value.replace(/\D/g,'').slice(0,9); setForm(f=>({...f, taxId: d.length < 3 ? d : d.slice(0,2) + '-' + d.slice(2) })); }} placeholder="12-3456789" /></FieldRow>
         </div>
-        <FieldRow label="Website"><input value={form.website||''} onChange={e => setForm(f=>({...f,website:e.target.value}))} placeholder="https://yourcompany.com" /></FieldRow>
+        <div className="form-row two-col">
+          <FieldRow label="Website"><input value={form.website||''} onChange={e => setForm(f=>({...f,website:e.target.value}))} placeholder="https://yourcompany.com" /></FieldRow>
+          <FieldRow label="Industry">
+            <select value={form.industry||''} onChange={e => setForm(f=>({...f,industry:e.target.value}))}>
+              <option value="">Select…</option>
+              {['Consulting','Software / Tech','Creative / Design','Legal','Healthcare','Real Estate','Retail','Manufacturing','Other'].map(i => <option key={i}>{i}</option>)}
+            </select>
+          </FieldRow>
+        </div>
       </div>
       <div style={{ borderTop:'0.5px solid var(--color-border-tertiary)', paddingTop:20 }}>
         <div style={{ fontSize:13, fontWeight:500, marginBottom:14 }}>Business address</div>
@@ -147,11 +155,22 @@ function CompanySettings() {
         </FieldRow>
       </div>
       <div style={{ borderTop:'0.5px solid var(--color-border-tertiary)', paddingTop:20 }}>
-        <div style={{ fontSize:13, fontWeight:500, marginBottom:14 }}>Regional</div>
-        <FieldRow label="Base currency">
-          <select value={form.currency||'USD'} onChange={e => setForm(f=>({...f,currency:e.target.value}))}>
-            {['USD','EUR','GBP','CAD','AUD','JPY'].map(c => <option key={c}>{c}</option>)}
-          </select>
+        <div style={{ fontSize:13, fontWeight:500, marginBottom:14 }}>Regional &amp; fiscal</div>
+        <div className="form-row two-col">
+          <FieldRow label="Base currency">
+            <select value={form.currency||'USD'} onChange={e => setForm(f=>({...f,currency:e.target.value}))}>
+              {['USD','EUR','GBP','CAD','AUD','JPY'].map(c => <option key={c}>{c}</option>)}
+            </select>
+          </FieldRow>
+          <FieldRow label="Fiscal year start">
+            <select value={form.fiscalYearStart||''} onChange={e => setForm(f=>({...f,fiscalYearStart:e.target.value}))}>
+              <option value="">Select…</option>
+              {['January','February','March','April','May','June','July','August','September','October','November','December'].map(m => <option key={m}>{m}</option>)}
+            </select>
+          </FieldRow>
+        </div>
+        <FieldRow label="Default tax rate (%)">
+          <input type="number" min="0" max="100" step="0.01" value={form.defaultTaxRate||''} onChange={e => setForm(f=>({...f,defaultTaxRate:e.target.value}))} placeholder="0" style={{ maxWidth:120 }} />
         </FieldRow>
       </div>
       <div>
@@ -1052,7 +1071,10 @@ function BrandingSettings() {
 }
 
 export default function SettingsPage() {
-  const [tab, setTab] = useState('appearance');
+  const [tab, setTab] = useState(() => {
+    try { const hint = localStorage.getItem('mtl_settings_tab'); if (hint) { localStorage.removeItem('mtl_settings_tab'); return hint; } } catch {}
+    return 'appearance';
+  });
 
   const renderContent = () => {
     switch(tab) {

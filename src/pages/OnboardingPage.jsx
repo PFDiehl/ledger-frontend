@@ -13,6 +13,21 @@ const STEPS = [
 
 const US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'];
 
+// Format a US phone number as (XXX) XXX-XXXX while typing.
+function formatPhone(v) {
+  const d = String(v).replace(/\D/g, '').slice(0, 10);
+  if (d.length < 4) return d;
+  if (d.length < 7) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
+  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+}
+
+// Format an EIN as XX-XXXXXXX while typing.
+function formatEIN(v) {
+  const d = String(v).replace(/\D/g, '').slice(0, 9);
+  if (d.length < 3) return d;
+  return `${d.slice(0, 2)}-${d.slice(2)}`;
+}
+
 function StepIndicator({ steps, current }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:0, marginBottom:32 }}>
@@ -69,7 +84,7 @@ function CompanyStep({ data, onChange }) {
       </div>
       <div className="form-field">
         <label>Phone (optional)</label>
-        <input type="tel" value={data.phone} onChange={e => onChange('phone', e.target.value)} placeholder="(555) 000-0000" />
+        <input type="tel" value={data.phone} onChange={e => onChange('phone', formatPhone(e.target.value))} placeholder="(555) 000-0000" />
       </div>
       <div className="form-row two-col">
         <div className="form-field">
@@ -86,7 +101,7 @@ function CompanyStep({ data, onChange }) {
       </div>
       <div className="form-field">
         <label>Tax ID / EIN (optional)</label>
-        <input value={data.taxId} onChange={e => onChange('taxId', e.target.value)} placeholder="12-3456789" />
+        <input value={data.taxId} onChange={e => onChange('taxId', formatEIN(e.target.value))} placeholder="12-3456789" />
       </div>
     </div>
   );
@@ -102,7 +117,7 @@ function CurrencyStep({ data, onChange }) {
       <div className="form-field">
         <label>Base currency</label>
         <select value={data.currency} onChange={e => onChange('currency', e.target.value)}>
-          {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
+          {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
       <div className="form-field">
@@ -177,68 +192,21 @@ function BankStep({ data, onChange }) {
   );
 }
 
-function TeamStep({ data, onChange }) {
-  const [email, setEmail] = useState('');
-  const [role,  setRole]  = useState('member');
-
-  function addInvite() {
-    if (!email) return;
-    const invites = [...(data.invites ?? []), { email, role }];
-    onChange('invites', invites);
-    setEmail('');
-  }
-
-  function removeInvite(i) {
-    onChange('invites', (data.invites ?? []).filter((_, idx) => idx !== i));
-  }
-
+function TeamStep() {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
       <div style={{ fontSize:22, fontWeight:500, marginBottom:4 }}>Invite your team</div>
       <div style={{ fontSize:14, color:'var(--color-text-secondary)', marginBottom:8 }}>
-        Add teammates so they can help manage your books. You can always do this later.
+        You can add teammates once your account is set up.
       </div>
 
-      <div className="form-row two-col">
-        <div className="form-field" style={{ flex:2 }}>
-          <label>Email address</label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-            placeholder="colleague@company.com"
-            onKeyDown={e => e.key === 'Enter' && addInvite()} />
-        </div>
-        <div className="form-field">
-          <label>Role</label>
-          <select value={role} onChange={e => setRole(e.target.value)}>
-            <option value="admin">Admin</option>
-            <option value="accountant">Accountant</option>
-            <option value="member">Member</option>
-            <option value="viewer">Viewer</option>
-          </select>
+      <div style={{ background:'var(--color-background-secondary)', borderRadius:10, padding:'16px 18px', display:'flex', gap:12, alignItems:'flex-start' }}>
+        <i className="ti ti-users" style={{ fontSize:20, color:'var(--brand-primary,#2D4A35)', marginTop:1, flexShrink:0 }} />
+        <div style={{ fontSize:13, color:'var(--color-text-secondary)', lineHeight:1.5 }}>
+          <div style={{ fontWeight:600, color:'var(--color-text-primary)', marginBottom:2 }}>Team invites are coming soon</div>
+          You'll be able to invite teammates and set their roles from <strong>Settings → Team</strong> after you finish setup. For now, just click <strong>Finish setup</strong> below to continue.
         </div>
       </div>
-      <button className="btn-secondary" onClick={addInvite} style={{ alignSelf:'flex-start' }}>
-        <i className="ti ti-plus" /> Add invite
-      </button>
-
-      {(data.invites ?? []).length > 0 && (
-        <div style={{ display:'flex', flexDirection:'column', gap:6, marginTop:4 }}>
-          {(data.invites ?? []).map((inv, i) => (
-            <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', background:'var(--color-background-secondary)', borderRadius:8, fontSize:13 }}>
-              <i className="ti ti-mail" style={{ fontSize:15, color:'var(--color-text-tertiary)' }} />
-              <span style={{ flex:1 }}>{inv.email}</span>
-              <span style={{ fontSize:11, fontWeight:600, padding:'2px 8px', borderRadius:20, background:'#EBF2E8', color:'var(--brand-primary,#2D4A35)' }}>{inv.role}</span>
-              <button onClick={() => removeInvite(i)} style={{ fontSize:14, color:'var(--color-text-tertiary)', background:'none', border:'none', cursor:'pointer' }}>
-                <i className="ti ti-x" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <button style={{ alignSelf:'flex-start', fontSize:13, color:'var(--color-text-tertiary)', background:'none', border:'none', cursor:'pointer' }}
-        onClick={() => onChange('skipTeam', true)}>
-        Skip — I'll invite people later
-      </button>
     </div>
   );
 }
@@ -324,7 +292,7 @@ export default function OnboardingPage({ onComplete }) {
     <div style={{ minHeight:'100vh', background:'var(--color-background-tertiary)', display:'flex', alignItems:'center', justifyContent:'center', padding:'24px 16px' }}>
       <div style={{ width:'100%', maxWidth:560 }}>
         <div style={{ fontSize:18, fontWeight:500, color:'var(--brand-primary,#2D4A35)', textAlign:'center', marginBottom:28, letterSpacing:'-.02em' }}>
-          Ledger
+          MountainTop Ledger
         </div>
 
         <div style={{ background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-tertiary)', borderRadius:16, padding:'32px 36px' }}>
@@ -333,7 +301,7 @@ export default function OnboardingPage({ onComplete }) {
           {step === 0 && <CompanyStep  data={data} onChange={setField} />}
           {step === 1 && <CurrencyStep data={data} onChange={setField} />}
           {step === 2 && <BankStep     data={data} onChange={setField} />}
-          {step === 3 && <TeamStep     data={data} onChange={setField} />}
+          {step === 3 && <TeamStep />}
           {step === 4 && <DoneStep     data={data} />}
 
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:28, paddingTop:20, borderTop:'0.5px solid var(--color-border-tertiary)' }}>

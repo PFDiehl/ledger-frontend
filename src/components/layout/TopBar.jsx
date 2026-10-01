@@ -2,12 +2,40 @@ import { useState } from 'react';
 import { useTheme, THEMES } from '../../lib/ThemeContext';
 import { useAuth }  from '../../lib/AuthContext';
 
-export default function TopBar({ onLogout, onAI }) {
+// Quick "jump to a page" destinations for the top-bar search. Each id matches a
+// case in App's renderPage(), so selecting one navigates straight there.
+const SEARCH_DESTINATIONS = [
+  { id:'dashboard', label:'Dashboard',          kw:'home overview' },
+  { id:'customers', label:'Customers',          kw:'clients money in' },
+  { id:'invoices',  label:'Invoices',           kw:'billing client money in' },
+  { id:'expenses',  label:'Expenses',           kw:'receipts spending money out' },
+  { id:'bank',      label:'Banking',            kw:'bank feed transactions reconcile plaid' },
+  { id:'vendors',   label:'Vendors',            kw:'suppliers money out' },
+  { id:'bills',     label:'Bills',              kw:'payables money out' },
+  { id:'reports',   label:'Reports',            kw:'profit loss p&l balance sheet cash flow' },
+  { id:'coa',       label:'Chart of accounts',  kw:'accounts ledger' },
+  { id:'journal',   label:'Journal entries',    kw:'journal adjusting' },
+  { id:'budgets',   label:'Budgets',            kw:'budget planning' },
+  { id:'recurring', label:'Recurring invoices', kw:'recurring subscriptions' },
+  { id:'companies', label:'My companies',       kw:'switch company businesses' },
+  { id:'billing',   label:'Billing',            kw:'subscription plan payment' },
+  { id:'settings',  label:'Settings',           kw:'company profile team security integrations branding export' },
+];
+
+export default function TopBar({ onLogout, onAI, onNavigate }) {
   const { org, orgs = [], user, selectOrg } = useAuth();
   const { themeId, setTheme } = useTheme();
   const [showThemes, setShowThemes] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [showOrgs, setShowOrgs] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [query, setQuery] = useState('');
+
+  const q = query.trim().toLowerCase();
+  const results = q
+    ? SEARCH_DESTINATIONS.filter(d => (d.label + ' ' + d.kw).toLowerCase().includes(q))
+    : SEARCH_DESTINATIONS;
+  function go(id) { onNavigate?.(id); setShowSearch(false); setQuery(''); }
 
   const initials = user?.fullName?.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() ?? 'U';
   const canSwitch = (orgs?.length || 0) > 1;
@@ -140,8 +168,11 @@ export default function TopBar({ onLogout, onAI }) {
           )}
         </div>
 
-        <button className="icon-btn" aria-label="Search"><i className="ti ti-search" /></button>
-        <button className="icon-btn" aria-label="Notifications"><i className="ti ti-bell" /></button>
+        <button className="icon-btn" aria-label="Search" title="Search" onClick={() => setShowSearch(true)}><i className="ti ti-search" /></button>
+        {/* Notifications bell hidden until there are real events to surface. Flip `false` to re-enable. */}
+        {false && (
+          <button className="icon-btn" aria-label="Notifications"><i className="ti ti-bell" /></button>
+        )}
 
         <div style={{ position:'relative' }}>
           <div
@@ -190,6 +221,34 @@ export default function TopBar({ onLogout, onAI }) {
           )}
         </div>
       </div>
+
+      {showSearch && (
+        <div onClick={() => { setShowSearch(false); setQuery(''); }}
+          style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,0.35)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'80px 16px' }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ width:'min(520px, 100%)', background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-secondary)', borderRadius:14, boxShadow:'0 20px 50px rgba(0,0,0,0.25)', overflow:'hidden' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'14px 16px', borderBottom:'0.5px solid var(--color-border-tertiary)' }}>
+              <i className="ti ti-search" style={{ fontSize:18, color:'var(--color-text-tertiary)' }} />
+              <input autoFocus value={query} onChange={e => setQuery(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Escape') { setShowSearch(false); setQuery(''); } if (e.key === 'Enter' && results[0]) go(results[0].id); }}
+                placeholder="Jump to a page…"
+                style={{ flex:1, border:'none', outline:'none', background:'transparent', fontSize:15, color:'var(--color-text-primary)' }} />
+              <kbd style={{ fontSize:10, color:'var(--color-text-tertiary)', border:'0.5px solid var(--color-border-tertiary)', borderRadius:4, padding:'1px 5px' }}>Esc</kbd>
+            </div>
+            <div style={{ maxHeight:320, overflowY:'auto', padding:6 }}>
+              {results.length === 0 ? (
+                <div style={{ padding:'16px', fontSize:13, color:'var(--color-text-tertiary)' }}>No pages match “{query}”.</div>
+              ) : results.map((d, i) => (
+                <button key={d.id} onClick={() => go(d.id)}
+                  style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:8, border:'none', cursor:'pointer', textAlign:'left', background: (i === 0 && q) ? 'var(--color-background-secondary)' : 'transparent', color:'var(--color-text-primary)', fontSize:14 }}>
+                  <i className="ti ti-arrow-right" style={{ fontSize:14, color:'var(--color-text-tertiary)' }} />
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }
