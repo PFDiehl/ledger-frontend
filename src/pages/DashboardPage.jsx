@@ -8,6 +8,7 @@ export default function DashboardPage() {
   const [expenses, setExpenses] = useState([]);
   const [bills, setBills] = useState([]);
   const [pnl, setPnl] = useState(null);
+  const [txns, setTxns] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,7 +16,7 @@ export default function DashboardPage() {
     async function load() {
       setLoading(true);
       try {
-        const [inv, exp, bil, pl] = await Promise.all([
+        const [inv, exp, bil, pl, bt] = await Promise.all([
           api.get(`/orgs/${org.id}/invoices`),
           api.get(`/orgs/${org.id}/expenses`),
           api.get(`/orgs/${org.id}/bills`),
@@ -23,11 +24,14 @@ export default function DashboardPage() {
           // transactions, so the Dashboard totals match the P&L report. Defaults
           // to the current calendar year. Tolerate failure so the rest still loads.
           api.get(`/orgs/${org.id}/reports/pl?basis=accrual`).catch(() => null),
+          // Recent bank-feed transactions (date desc) for the activity card.
+          api.get(`/orgs/${org.id}/banking/transactions`).catch(() => null),
         ]);
         setInvoices(inv.data?.data || inv.data || []);
         setExpenses(exp.data?.data || exp.data || []);
         setBills(bil.data?.data || bil.data || []);
         setPnl(pl?.data?.data || null);
+        setTxns(bt?.data?.data || bt?.data || []);
       } catch(e) { console.error(e); }
       setLoading(false);
     }
@@ -100,6 +104,23 @@ export default function DashboardPage() {
           {/* Recent Activity */}
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
 
+            {/* Recent bank activity — the live feed, since this is how the books are kept */}
+            <div className="card" style={{padding:20, gridColumn:'1 / -1'}}>
+              <h2 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'var(--brand-primary)'}}>Recent bank activity</h2>
+              {txns.slice(0,6).map(t => (
+                <div key={t.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid var(--color-border)'}}>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:500,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{t.payee || t.description}</div>
+                    <div style={{fontSize:11,color:'var(--color-text-secondary)'}}>{(t.category || 'Uncategorized')} · {new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
+                  </div>
+                  <div style={{fontSize:13,fontWeight:600,whiteSpace:'nowrap',marginLeft:12,color: Number(t.amount) >= 0 ? '#2D7A4A' : '#c0392b'}}>
+                    {Number(t.amount) >= 0 ? '+' : '−'}{fmt(Math.abs(Number(t.amount)))}
+                  </div>
+                </div>
+              ))}
+              {txns.length === 0 && <p style={{fontSize:13,color:'var(--color-text-secondary)'}}>No bank activity yet</p>}
+            </div>
+
             {/* Recent Invoices */}
             <div className="card" style={{padding:20}}>
               <h2 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'var(--brand-primary)'}}>Recent Invoices</h2>
@@ -116,36 +137,6 @@ export default function DashboardPage() {
                 </div>
               ))}
               {invoices.length === 0 && <p style={{fontSize:13,color:'var(--color-text-secondary)'}}>No invoices yet</p>}
-            </div>
-
-            {/* Recent Expenses */}
-            <div className="card" style={{padding:20}}>
-              <h2 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'var(--brand-primary)'}}>Recent Expenses</h2>
-              {expenses.slice(0,5).map(exp => (
-                <div key={exp.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid var(--color-border)'}}>
-                  <div>
-                    <div style={{fontSize:13,fontWeight:500}}>{exp.vendor}</div>
-                    <div style={{fontSize:11,color:'var(--color-text-secondary)'}}>{exp.category}</div>
-                  </div>
-                  <div style={{fontSize:13,fontWeight:600,color:'#c0392b'}}>{fmt(exp.amount)}</div>
-                </div>
-              ))}
-              {expenses.length === 0 && <p style={{fontSize:13,color:'var(--color-text-secondary)'}}>No expenses yet</p>}
-            </div>
-
-            {/* Recent Bills */}
-            <div className="card" style={{padding:20}}>
-              <h2 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'var(--brand-primary)'}}>Recent Bills</h2>
-              {bills.slice(0,5).map(bill => (
-                <div key={bill.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid var(--color-border)'}}>
-                  <div>
-                    <div style={{fontSize:13,fontWeight:500}}>{bill.vendor}</div>
-                    <div style={{fontSize:11,color:'var(--color-text-secondary)',textTransform:'capitalize'}}>{bill.status}</div>
-                  </div>
-                  <div style={{fontSize:13,fontWeight:600,color:'#c0392b'}}>{fmt(bill.amount)}</div>
-                </div>
-              ))}
-              {bills.length === 0 && <p style={{fontSize:13,color:'var(--color-text-secondary)'}}>No bills yet</p>}
             </div>
 
             {/* Quick Summary */}
