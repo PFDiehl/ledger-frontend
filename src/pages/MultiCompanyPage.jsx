@@ -12,7 +12,7 @@ const ROLE_COLORS = {
 };
 const CARD_COLORS = ['var(--brand-primary,#2D4A35)','#0F6E56','#993C1D','#185FA5','#854F0B','#5B3E8F'];
 
-function OrgCard({ org, index, active, onSwitch }) {
+function OrgCard({ org, index, active, onSwitch, onDelete }) {
   const rc    = ROLE_COLORS[org.role] ?? ROLE_COLORS.member;
   const color = CARD_COLORS[index % CARD_COLORS.length];
   return (
@@ -41,6 +41,16 @@ function OrgCard({ org, index, active, onSwitch }) {
           ? <span style={{ fontSize:11, fontWeight:600, color:color }}>Active</span>
           : <span style={{ fontSize:12, color:'var(--color-text-tertiary)' }}>Switch →</span>}
       </div>
+      {org.role === 'owner' && (
+        <div style={{ marginTop:12, paddingTop:10, borderTop:'0.5px solid var(--color-border-tertiary)', textAlign:'right' }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(org); }}
+            style={{ background:'none', border:'none', cursor:'pointer', color:'var(--color-text-tertiary)', fontSize:12, display:'inline-flex', alignItems:'center', gap:4 }}
+            title="Delete this company">
+            <i className="ti ti-trash" style={{ fontSize:13 }} /> Delete
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -51,8 +61,31 @@ export default function MultiCompanyPage() {
   const [showNew, setShowNew] = useState(false);
   const [newForm, setNewForm] = useState({ name:'', currency:'USD' });
   const [creating, setCreating] = useState(false);
+  const [deleteFor, setDeleteFor] = useState(null);   // company pending deletion
+  const [confirmText, setConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   const list = orgs || [];
+
+  function openDelete(o) { setDeleteFor(o); setConfirmText(''); }
+  function cancelDelete() { if (deleting) return; setDeleteFor(null); setConfirmText(''); }
+
+  async function confirmDelete() {
+    const target = deleteFor;
+    if (!target || confirmText.trim() !== target.name) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/companies/${target.id}?confirmName=${encodeURIComponent(target.name)}`);
+      const remaining = (orgs || []).filter(o => o.id !== target.id);
+      await refreshMe();
+      if (org?.id === target.id && remaining[0]) selectOrg(remaining[0]);
+      toast.success(`${target.name} deleted.`);
+      setDeleteFor(null); setConfirmText('');
+    } catch (e) {
+      toast.error(e.message || 'Could not delete the company.');
+    }
+    setDeleting(false);
+  }
 
   function handleSwitch(selected) {
     if (selected.id === org?.id) return;
@@ -124,8 +157,33 @@ export default function MultiCompanyPage() {
       ) : (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(300px,1fr))', gap:12 }}>
           {list.map((o, i) => (
-            <OrgCard key={o.id} org={o} index={i} active={o.id === org?.id} onSwitch={handleSwitch} />
+            <OrgCard key={o.id} org={o} index={i} active={o.id === org?.id} onSwitch={handleSwitch} onDelete={openDelete} />
           ))}
+        </div>
+      )}
+
+      {deleteFor && (
+        <div onClick={cancelDelete}
+          style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div onClick={e => e.stopPropagation()} className="card" style={{ maxWidth:460, width:'100%', padding:24 }}>
+            <div style={{ fontSize:16, fontWeight:700, marginBottom:8, color:'#B4482F' }}>Delete “{deleteFor.name}”?</div>
+            <p style={{ fontSize:13, color:'var(--color-text-secondary)', lineHeight:1.5, marginBottom:14 }}>
+              This permanently deletes this company and <strong>all of its books</strong> — transactions, invoices, bills, reports, and bank connections. This cannot be undone.
+            </p>
+            <label style={{ fontSize:12, color:'var(--color-text-secondary)' }}>Type <strong>{deleteFor.name}</strong> to confirm</label>
+            <input autoFocus value={confirmText} onChange={e => setConfirmText(e.target.value)} placeholder={deleteFor.name}
+              onKeyDown={e => { if (e.key === 'Enter') confirmDelete(); }}
+              style={{ width:'100%', marginTop:6, marginBottom:16 }} />
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
+              <button className="btn-secondary" onClick={cancelDelete} disabled={deleting}>Cancel</button>
+              <button onClick={confirmDelete} disabled={deleting || confirmText.trim() !== deleteFor.name}
+                style={{ background:'#B4482F', color:'#fff', border:'none', borderRadius:8, padding:'8px 16px', fontWeight:600,
+                  cursor: (confirmText.trim() === deleteFor.name && !deleting) ? 'pointer' : 'not-allowed',
+                  opacity: (confirmText.trim() === deleteFor.name && !deleting) ? 1 : 0.6 }}>
+                {deleting ? 'Deleting…' : 'Delete permanently'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
