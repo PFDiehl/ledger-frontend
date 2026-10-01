@@ -169,8 +169,12 @@ function CompanySettings() {
             </select>
           </FieldRow>
         </div>
-        <FieldRow label="Default tax rate (%)">
-          <input type="number" min="0" max="100" step="0.01" value={form.defaultTaxRate||''} onChange={e => setForm(f=>({...f,defaultTaxRate:e.target.value}))} placeholder="0" style={{ maxWidth:120 }} />
+        <FieldRow label="Default tax rate">
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <input type="number" min="0" max="100" step="0.01" value={form.defaultTaxRate||''} onChange={e => setForm(f=>({...f,defaultTaxRate:e.target.value}))} placeholder="8" style={{ maxWidth:90, textAlign:'right' }} />
+            <span style={{ fontSize:15, color:'var(--color-text-secondary)' }}>%</span>
+          </div>
+          <div style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:4 }}>Enter the percent — e.g. <strong>8</strong> for 8% (not 0.08).</div>
         </FieldRow>
       </div>
       <div>
