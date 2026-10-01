@@ -30,7 +30,7 @@ export default function DashboardPage() {
         setInvoices(inv.data?.data || inv.data || []);
         setExpenses(exp.data?.data || exp.data || []);
         setBills(bil.data?.data || bil.data || []);
-        setPnl(pl?.data?.data || null);
+        setPnl(pl?.data || null);
         setTxns(bt?.data?.data || bt?.data || []);
       } catch(e) { console.error(e); }
       setLoading(false);
