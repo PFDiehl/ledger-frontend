@@ -9,7 +9,21 @@ function getAuth() {
 }
 
 const TYPES = ['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'];
-const EMPTY_FORM = { code: '', name: '', type: 'Expense', subtype: '' };
+
+// Subtypes offered per account type. Picking from a list (instead of typing)
+// keeps the Subtype column clean and consistent — and the Expense list includes
+// "Rental Expense" and "Property Expense" so a rental business can split its
+// costs apart. The first option in each list is the default for a new account.
+const SUBTYPE_OPTIONS = {
+  Asset:     ['Current Asset', 'Bank', 'Accounts Receivable', 'Fixed Asset', 'Other Asset'],
+  Liability: ['Current Liability', 'Accounts Payable', 'Credit Card', 'Long-term Liability'],
+  Equity:    ['Equity'],
+  Revenue:   ['Income', 'Other Income'],
+  Expense:   ['Expense', 'Cost of Goods Sold', 'Rental Expense', 'Property Expense', 'Other Expense'],
+};
+const defaultSubtypeFor = (type) => (SUBTYPE_OPTIONS[type] && SUBTYPE_OPTIONS[type][0]) || '';
+
+const EMPTY_FORM = { code: '', name: '', type: 'Expense', subtype: defaultSubtypeFor('Expense'), description: '' };
 
 export default function ChartOfAccountsPage() {
   const { orgId, token } = getAuth();
@@ -47,7 +61,18 @@ export default function ChartOfAccountsPage() {
   }
 
   function openNew()  { setEditingId(null); setForm(EMPTY_FORM); setMsg(''); setShowForm(true); }
-  function openEdit(a){ setEditingId(a.id); setForm({ code: a.code, name: a.name, type: a.type, subtype: a.subtype || '' }); setMsg(''); setShowForm(true); }
+  function openEdit(a){ setEditingId(a.id); setForm({ code: a.code, name: a.name, type: a.type, subtype: a.subtype || defaultSubtypeFor(a.type), description: a.description || '' }); setMsg(''); setShowForm(true); }
+
+  // When the type changes, if the current subtype doesn't belong to the new type,
+  // snap it back to that type's default so the dropdown always shows a valid value.
+  function onTypeChange(e) {
+    const type = e.target.value;
+    setForm(f => {
+      const valid = SUBTYPE_OPTIONS[type] || [];
+      const subtype = valid.includes(f.subtype) ? f.subtype : defaultSubtypeFor(type);
+      return { ...f, type, subtype };
+    });
+  }
 
   async function save() {
     if (!form.code.trim() || !form.name.trim()) { setMsg('Code and name are required.'); return; }
@@ -145,6 +170,9 @@ export default function ChartOfAccountsPage() {
                       <td style={{ ...tdStyle, fontWeight:500 }}>
                         {a.name}
                         {a.isSystem && <span style={badge}>standard</span>}
+                        {a.description && (
+                          <div style={{ fontSize:11, fontWeight:400, color:'var(--color-text-secondary)', marginTop:2 }}>{a.description}</div>
+                        )}
                       </td>
                       <td style={{ ...tdStyle, color:'var(--color-text-secondary)' }}>{a.subtype || '—'}</td>
                       <td style={{ ...tdStyle, textAlign:'center', color:'var(--color-text-secondary)' }}>{normalBalanceFor(a.type)}</td>
@@ -181,15 +209,27 @@ export default function ChartOfAccountsPage() {
                 </Field>
               </div>
               <Field label="Type">
-                <select style={input} value={form.type} onChange={set('type')}>
+                <select style={input} value={form.type} onChange={onTypeChange}>
                   {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
                 <div style={{ fontSize:11, color:'var(--color-text-secondary)', marginTop:4 }}>
                   Normal balance: {normalBalanceFor(form.type) === 'Dr' ? 'Debit' : 'Credit'} (set automatically from the type)
                 </div>
               </Field>
-              <Field label="Subtype (optional)">
-                <input style={input} value={form.subtype} onChange={set('subtype')} placeholder="Expense" />
+              <Field label="Subtype">
+                <select style={input} value={form.subtype} onChange={set('subtype')}>
+                  {(SUBTYPE_OPTIONS[form.type] || []).map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                {form.type === 'Expense' && (
+                  <div style={{ fontSize:11, color:'var(--color-text-secondary)', marginTop:4 }}>
+                    Use “Rental Expense” and “Property Expense” to split a rental business’s costs apart.
+                  </div>
+                )}
+              </Field>
+              <Field label="Description / notes (optional)">
+                <textarea style={{ ...input, minHeight:60, resize:'vertical', fontFamily:'inherit' }}
+                  value={form.description} onChange={set('description')}
+                  placeholder="e.g. Coffee, cleaning supplies, towels for guests" />
               </Field>
               {msg && <div style={{ fontSize:12, color:'#B4472D' }}>{msg}</div>}
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:4 }}>
