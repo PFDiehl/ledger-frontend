@@ -27,6 +27,7 @@ function loadPlaidScript() {
 const TYPE_ORDER = { Asset: 1, Liability: 2, Equity: 3, Revenue: 4, Expense: 5 };
 const fmtMoney = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const toAmount = (s) => { const n = Number(String(s ?? '').replace(/[^0-9.\-]/g, '')); return Number.isFinite(n) ? n : 0; };
+const round2 = (n) => Math.round(n * 100) / 100;
 
 // Minimal delimited-text parser — handles quoted fields and embedded
 // delimiters/newlines. Delimiter defaults to comma but can be tab, pipe, etc.
@@ -201,6 +202,23 @@ export default function BankingPage() {
   // the user types a payee and picks a category, then clicks Add to post it.
   const [payeeDraft, setPayeeDraft] = useState({}); // txnId -> payee string
   const [catDraft, setCatDraft]     = useState({}); // txnId -> pending category name
+
+  // Manual "Add transaction" entry (used when there's no bank feed). Supports a
+  // split: one charge divided across two or more categories (e.g. rental vs. property).
+  const emptyTxnForm = () => ({
+    date: new Date().toISOString().slice(0, 10),
+    description: '', payee: '', direction: 'out', amount: '',
+    category: '', split: false,
+    lines: [{ category: '', amount: '' }, { category: '', amount: '' }],
+  });
+  const [showAddTxn, setShowAddTxn] = useState(false);
+  const [txnForm, setTxnForm]       = useState(emptyTxnForm());
+  const [savingTxn, setSavingTxn]   = useState(false);
+
+  // Splitting an EXISTING bank line (e.g. an imported Lowe's charge) across categories.
+  const [splitFor, setSplitFor]       = useState(null);  // the transaction being split
+  const [splitLines, setSplitLines]   = useState([{ category: '', amount: '' }, { category: '', amount: '' }]);
+  const [savingSplit, setSavingSplit] = useState(false);
 
   async function loadAccounts() {
     setLoading(true);
@@ -421,6 +439,103 @@ export default function BankingPage() {
     setPayeeDraft(d => { const n = { ...d }; delete n[t.id]; return n; });
   }
 
+  // ── Manual add (type a transaction in by hand, with optional split) ──
+  function openAddTxn() { setTxnForm(emptyTxnForm()); setShowAddTxn(true); }
+  const setTxn = (patch) => setTxnForm(f => ({ ...f, ...patch }));
+  function setLine(i, patch) {
+    setTxnForm(f => ({ ...f, lines: f.lines.map((l, idx) => idx === i ? { ...l, ...patch } : l) }));
+  }
+  function addSplitLine() { setTxnForm(f => ({ ...f, lines: [...f.lines, { category: '', amount: '' }] })); }
+  function removeSplitLine(i) { setTxnForm(f => ({ ...f, lines: f.lines.filter((_, idx) => idx !== i) })); }
+  // Fill the (first two) split lines with an even half of the total.
+  function splitEvenly() {
+    const half = round2(toAmount(txnForm.amount) / 2);
+    setTxnForm(f => ({ ...f, lines: [
+      { ...(f.lines[0] || { category: '' }), amount: half ? String(half) : '' },
+      { ...(f.lines[1] || { category: '' }), amount: half ? String(round2(toAmount(f.amount) - half)) : '' },
+      ...f.lines.slice(2),
+    ] }));
+  }
+
+  async function saveManualTxn() {
+    if (!activeId) { setMsg('Pick an account first.'); return; }
+    const f = txnForm;
+    const total = round2(Math.abs(toAmount(f.amount)));
+    if (!f.date || !f.description.trim() || !total) { setMsg('Enter a date, a description, and an amount.'); return; }
+    const sign = f.direction === 'in' ? 1 : -1;
+
+    let lines;
+    if (f.split) {
+      const ls = f.lines.filter(l => l.category && toAmount(l.amount) > 0);
+      if (ls.length < 2) { setMsg('A split needs at least two lines, each with a category and an amount.'); return; }
+      const sum = round2(ls.reduce((s, l) => s + Math.abs(toAmount(l.amount)), 0));
+      if (Math.abs(sum - total) > 0.01) {
+        setMsg(`Your split lines add up to $${fmtMoney(sum)}, but the total is $${fmtMoney(total)}. They need to match.`);
+        return;
+      }
+      lines = ls.map(l => ({
+        amount: round2(sign * Math.abs(toAmount(l.amount))),
+        category: l.category,
+        description: `${f.description.trim()} (split)`,
+      }));
+    } else {
+      if (!f.category) { setMsg('Pick a category (or turn on Split).'); return; }
+      lines = [{ amount: round2(sign * total), category: f.category, description: f.description.trim() }];
+    }
+
+    const transactions = lines.map(l => ({
+      date: f.date, description: l.description, payee: f.payee.trim(), amount: l.amount, category: l.category,
+    }));
+
+    setSavingTxn(true); setMsg('');
+    try {
+      const r = await fetch(`${API}/orgs/${orgId}/banking/accounts/${activeId}/transactions`, {
+        method: 'POST', headers, body: JSON.stringify({ transactions }),
+      }).then(r => r.json());
+      if (r.success) {
+        setShowAddTxn(false); setTxnForm(emptyTxnForm());
+        await loadTxns(activeId);
+        setMsg(f.split ? `Added as ${r.data.created} split lines.` : 'Transaction added.');
+      } else setMsg(r.message || 'Could not add the transaction.');
+    } catch (e) { setMsg('Could not add the transaction.'); }
+    setSavingTxn(false);
+  }
+
+  // ── Split an existing line across categories ──
+  function openSplit(t) { setSplitFor(t); setSplitLines([{ category: '', amount: '' }, { category: '', amount: '' }]); }
+  function setSplitLn(i, patch) { setSplitLines(ls => ls.map((l, idx) => idx === i ? { ...l, ...patch } : l)); }
+  function addSplitLn() { setSplitLines(ls => [...ls, { category: '', amount: '' }]); }
+  function removeSplitLn(i) { setSplitLines(ls => ls.filter((_, idx) => idx !== i)); }
+  function splitExistingEvenly() {
+    const tot = round2(Math.abs(Number(splitFor?.amount || 0)));
+    const half = round2(tot / 2);
+    setSplitLines(ls => [
+      { ...(ls[0] || { category: '' }), amount: String(half) },
+      { ...(ls[1] || { category: '' }), amount: String(round2(tot - half)) },
+      ...ls.slice(2),
+    ]);
+  }
+  async function saveSplit() {
+    if (!splitFor) return;
+    const tot = round2(Math.abs(Number(splitFor.amount || 0)));
+    const ls = splitLines.filter(l => l.category && toAmount(l.amount) > 0);
+    if (ls.length < 2) { setMsg('A split needs at least two lines, each with a category and an amount.'); return; }
+    const sum = round2(ls.reduce((s, l) => s + Math.abs(toAmount(l.amount)), 0));
+    if (Math.abs(sum - tot) > 0.01) {
+      setMsg(`Your split lines add up to $${fmtMoney(sum)}, but the transaction is $${fmtMoney(tot)}. They need to match.`);
+      return;
+    }
+    setSavingSplit(true); setMsg('');
+    try {
+      const r = await fetch(`${API}/orgs/${orgId}/banking/accounts/${activeId}/transactions/${splitFor.id}/split`, {
+        method: 'POST', headers, body: JSON.stringify({ lines: ls.map(l => ({ category: l.category, amount: toAmount(l.amount) })) }),
+      }).then(r => r.json());
+      if (r.success) { setSplitFor(null); await loadTxns(activeId); setMsg(`Split into ${r.data.created} lines.`); }
+      else setMsg(r.message || 'Could not split the transaction.');
+    } catch (e) { setMsg('Could not split the transaction.'); }
+    setSavingSplit(false);
+  }
+
   async function createRule() {
     if (!rulePrompt) return;
     const match = rulePrompt.match.trim();
@@ -523,6 +638,11 @@ export default function BankingPage() {
               ⬆ Import statement
             </button>
           )}
+          {accounts.length > 0 && (
+            <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={openAddTxn} disabled={!activeId}>
+              ✏ Add transaction
+            </button>
+          )}
           <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={() => setShowRules(true)}>
             ⚙ Rules{rules.length ? ` (${rules.length})` : ''}
           </button>
@@ -613,7 +733,12 @@ export default function BankingPage() {
               </p>
               {activeAcct?.plaidItemId
                 ? <button className="btn-primary" onClick={() => syncBank(activeAcct.plaidItemId)} disabled={syncing}>{syncing ? 'Syncing…' : '⟳ Sync from bank'}</button>
-                : <button className="btn-primary" onClick={() => fileRef.current?.click()}>⬆ Import statement</button>}
+                : (
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <button className="btn-primary" onClick={openAddTxn}>✏ Add a transaction</button>
+                    <button className="btn-secondary" onClick={() => fileRef.current?.click()}>⬆ Import statement</button>
+                  </div>
+                )}
             </div>
           ) : (
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -665,6 +790,8 @@ export default function BankingPage() {
                               <span style={{ fontSize: 11, fontWeight: 600, color: '#0F6E56', background: '#E1F5EE', padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>✓ Added</span>
                               <CategoryPicker value={t.category || ''} options={sortedChart}
                                 onPick={(name) => categorize(t.id, name, t)} />
+                              <button onClick={() => openSplit(t)} title="Split this charge across two or more categories (e.g. rental vs. property)"
+                                style={{ background: 'none', border: 'none', color: 'var(--brand-primary, #2D4A35)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline', whiteSpace: 'nowrap' }}>Split</button>
                             </div>
                           ) : (
                             // Uncategorized: pick a category, then click Add to post it.
@@ -676,6 +803,8 @@ export default function BankingPage() {
                                 style={{ background: catDraft[t.id] ? 'var(--brand-primary, #2D4A35)' : '#9BB39B', border: 'none', borderRadius: 6, color: '#fff', fontSize: 11, fontWeight: 600, padding: '6px 12px', cursor: catDraft[t.id] ? 'pointer' : 'default', whiteSpace: 'nowrap' }}>Add</button>
                               <button onClick={() => openMatch(t)} title="Match to an invoice, bill, or expense you already entered"
                                 style={{ background: 'none', border: '1px solid #D4DDCC', borderRadius: 6, color: 'var(--brand-primary, #2D4A35)', fontSize: 11, padding: '6px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Match</button>
+                              <button onClick={() => openSplit(t)} title="Split this charge across two or more categories (e.g. rental vs. property)"
+                                style={{ background: 'none', border: '1px solid #D4DDCC', borderRadius: 6, color: 'var(--brand-primary, #2D4A35)', fontSize: 11, padding: '6px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Split</button>
                             </div>
                           )}
                         </td>
@@ -715,6 +844,187 @@ export default function BankingPage() {
           </div>
         </div>
       )}
+
+      {/* Add transaction (manual entry, with optional split) modal */}
+      {showAddTxn && (() => {
+        const total    = round2(Math.abs(toAmount(txnForm.amount)));
+        const splitSum = round2(txnForm.lines.reduce((s, l) => s + Math.abs(toAmount(l.amount)), 0));
+        const matches  = total > 0 && Math.abs(splitSum - total) < 0.01;
+        const catOpts  = sortedChart.map(a => <option key={a.id} value={a.name}>{a.code} · {a.name}</option>);
+        const pill = (active) => ({
+          flex: 1, padding: '9px 10px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+          border: active ? '2px solid var(--brand-primary, #2D4A35)' : '1px solid #D4DDCC',
+          background: active ? '#EBF2E8' : '#fff', color: active ? 'var(--brand-primary, #2D4A35)' : '#5E6B62',
+        });
+        return (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 26, width: 540, maxWidth: '95vw', maxHeight: '92vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 600 }}>Add transaction</h2>
+              <button onClick={() => setShowAddTxn(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer' }}>×</button>
+            </div>
+            <p style={{ fontSize: 12.5, color: '#7A9A7A', lineHeight: 1.5, marginBottom: 16 }}>
+              Type a transaction into <strong>{activeAcct?.name || 'this account'}</strong> by hand. Turn on <strong>Split</strong> to divide one charge across categories — for example rental vs. property.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>DATE</label>
+                <input type="date" value={txnForm.date} onChange={e => setTxn({ date: e.target.value })} style={inputStyle} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>PAYEE / VENDOR (optional)</label>
+                <input value={txnForm.payee} onChange={e => setTxn({ payee: e.target.value })} placeholder="Lowe's" style={inputStyle} />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={labelStyle}>DESCRIPTION</label>
+              <input value={txnForm.description} onChange={e => setTxn({ description: e.target.value })} placeholder="Lowe's Home Improvement" style={inputStyle} />
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginBottom: 14, alignItems: 'flex-end' }}>
+              <div style={{ flex: 1.3 }}>
+                <label style={labelStyle}>DIRECTION</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="button" onClick={() => setTxn({ direction: 'out' })} style={pill(txnForm.direction === 'out')}>Money out</button>
+                  <button type="button" onClick={() => setTxn({ direction: 'in' })} style={pill(txnForm.direction === 'in')}>Money in</button>
+                </div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>AMOUNT</label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#7A9A7A', fontSize: 14 }}>$</span>
+                  <input value={txnForm.amount} onChange={e => setTxn({ amount: e.target.value })} inputMode="decimal" placeholder="267.04"
+                    style={{ ...inputStyle, paddingLeft: 22 }} />
+                </div>
+              </div>
+            </div>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#3C473A', marginBottom: 14, cursor: 'pointer' }}>
+              <input type="checkbox" checked={txnForm.split} onChange={e => setTxn({ split: e.target.checked })} />
+              Split this charge across categories (e.g. rental vs. property)
+            </label>
+
+            {!txnForm.split ? (
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>CATEGORY</label>
+                <select value={txnForm.category} onChange={e => setTxn({ category: e.target.value })} style={inputStyle}>
+                  <option value="">Select a category…</option>
+                  {catOpts}
+                </select>
+              </div>
+            ) : (
+              <div style={{ border: '1px solid #EBF2E8', borderRadius: 10, padding: 14, marginBottom: 16, background: '#FBFCFA' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#5E6B62' }}>Split lines</span>
+                  <button type="button" onClick={splitEvenly} disabled={!total}
+                    style={{ background: 'none', border: '1px solid #D4DDCC', borderRadius: 6, color: total ? 'var(--brand-primary,#2D4A35)' : '#9BB39B', fontSize: 12, padding: '4px 10px', cursor: total ? 'pointer' : 'default' }}>
+                    Split 50 / 50
+                  </button>
+                </div>
+                {txnForm.lines.map((l, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                    <select value={l.category} onChange={e => setLine(i, { category: e.target.value })} style={{ ...inputStyle, flex: 2 }}>
+                      <option value="">Category…</option>
+                      {catOpts}
+                    </select>
+                    <div style={{ position: 'relative', flex: 1 }}>
+                      <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#7A9A7A', fontSize: 13 }}>$</span>
+                      <input value={l.amount} onChange={e => setLine(i, { amount: e.target.value })} inputMode="decimal" placeholder="0.00"
+                        style={{ ...inputStyle, paddingLeft: 20 }} />
+                    </div>
+                    {txnForm.lines.length > 2
+                      ? <button type="button" onClick={() => removeSplitLine(i)} title="Remove line" style={{ background: 'none', border: 'none', color: '#A32D2D', fontSize: 16, cursor: 'pointer', width: 20 }}>×</button>
+                      : <span style={{ width: 20 }} />}
+                  </div>
+                ))}
+                <button type="button" onClick={addSplitLine} style={{ background: 'none', border: 'none', color: 'var(--brand-primary,#2D4A35)', fontSize: 12.5, cursor: 'pointer', padding: '2px 0' }}>+ Add another line</button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, paddingTop: 10, borderTop: '1px solid #EBF2E8', fontSize: 13 }}>
+                  <span style={{ color: '#5E6B62' }}>Lines add up to</span>
+                  <span style={{ fontWeight: 700, color: matches ? '#0F6E56' : '#A32D2D' }}>
+                    ${fmtMoney(splitSum)}{total ? ` of $${fmtMoney(total)}` : ''}{total && !matches ? ' — must match' : ''}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowAddTxn(false)} disabled={savingTxn} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #D4DDCC', background: '#fff', cursor: 'pointer', fontSize: 14 }}>Cancel</button>
+              <button onClick={saveManualTxn} disabled={savingTxn}
+                style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: '#2D4A35', color: '#A8D4A8', cursor: savingTxn ? 'default' : 'pointer', fontSize: 14, fontWeight: 600 }}>
+                {savingTxn ? 'Adding…' : (txnForm.split ? 'Add split transaction' : 'Add transaction')}
+              </button>
+            </div>
+          </div>
+        </div>
+        );
+      })()}
+
+      {/* Split an existing line across categories */}
+      {splitFor && (() => {
+        const tot     = round2(Math.abs(Number(splitFor.amount || 0)));
+        const sum     = round2(splitLines.reduce((s, l) => s + Math.abs(toAmount(l.amount)), 0));
+        const matches = tot > 0 && Math.abs(sum - tot) < 0.01;
+        const catOpts = sortedChart.map(a => <option key={a.id} value={a.name}>{a.code} · {a.name}</option>);
+        return (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 115, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 26, width: 520, maxWidth: '95vw', maxHeight: '92vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 600 }}>Split transaction</h2>
+              <button onClick={() => setSplitFor(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer' }}>×</button>
+            </div>
+            <div style={{ fontSize: 13, color: '#333', marginBottom: 2 }}>{splitFor.description}</div>
+            <div style={{ fontSize: 13, color: '#7A9A7A', marginBottom: 12 }}>
+              {new Date(splitFor.date).toLocaleDateString('en-US')} · ${fmtMoney(tot)}
+            </div>
+            <p style={{ fontSize: 12.5, color: '#7A9A7A', lineHeight: 1.5, marginBottom: 14 }}>
+              Divide this charge across categories — for example Rental Expense and Property Expense. The lines must add up to <strong>${fmtMoney(tot)}</strong>. This replaces the single line with the split lines.
+            </p>
+
+            <div style={{ border: '1px solid #EBF2E8', borderRadius: 10, padding: 14, marginBottom: 16, background: '#FBFCFA' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+                <button type="button" onClick={splitExistingEvenly}
+                  style={{ background: 'none', border: '1px solid #D4DDCC', borderRadius: 6, color: 'var(--brand-primary,#2D4A35)', fontSize: 12, padding: '4px 10px', cursor: 'pointer' }}>
+                  Split 50 / 50
+                </button>
+              </div>
+              {splitLines.map((l, i) => (
+                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                  <select value={l.category} onChange={e => setSplitLn(i, { category: e.target.value })} style={{ ...inputStyle, flex: 2 }}>
+                    <option value="">Category…</option>
+                    {catOpts}
+                  </select>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#7A9A7A', fontSize: 13 }}>$</span>
+                    <input value={l.amount} onChange={e => setSplitLn(i, { amount: e.target.value })} inputMode="decimal" placeholder="0.00"
+                      style={{ ...inputStyle, paddingLeft: 20 }} />
+                  </div>
+                  {splitLines.length > 2
+                    ? <button type="button" onClick={() => removeSplitLn(i)} title="Remove line" style={{ background: 'none', border: 'none', color: '#A32D2D', fontSize: 16, cursor: 'pointer', width: 20 }}>×</button>
+                    : <span style={{ width: 20 }} />}
+                </div>
+              ))}
+              <button type="button" onClick={addSplitLn} style={{ background: 'none', border: 'none', color: 'var(--brand-primary,#2D4A35)', fontSize: 12.5, cursor: 'pointer', padding: '2px 0' }}>+ Add another line</button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, paddingTop: 10, borderTop: '1px solid #EBF2E8', fontSize: 13 }}>
+                <span style={{ color: '#5E6B62' }}>Lines add up to</span>
+                <span style={{ fontWeight: 700, color: matches ? '#0F6E56' : '#A32D2D' }}>
+                  ${fmtMoney(sum)} of ${fmtMoney(tot)}{!matches ? ' — must match' : ''}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setSplitFor(null)} disabled={savingSplit} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #D4DDCC', background: '#fff', cursor: 'pointer', fontSize: 14 }}>Cancel</button>
+              <button onClick={saveSplit} disabled={savingSplit || !matches}
+                style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: matches ? '#2D4A35' : '#9BB39B', color: '#A8D4A8', cursor: (savingSplit || !matches) ? 'default' : 'pointer', fontSize: 14, fontWeight: 600 }}>
+                {savingSplit ? 'Splitting…' : 'Save split'}
+              </button>
+            </div>
+          </div>
+        </div>
+        );
+      })()}
 
       {/* Match / reconcile modal */}
       {matchFor && (
