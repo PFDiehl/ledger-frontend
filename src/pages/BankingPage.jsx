@@ -909,10 +909,9 @@ export default function BankingPage() {
             {!txnForm.split ? (
               <div style={{ marginBottom: 16 }}>
                 <label style={labelStyle}>CATEGORY</label>
-                <select value={txnForm.category} onChange={e => setTxn({ category: e.target.value })} style={inputStyle}>
-                  <option value="">Select a category…</option>
-                  {catOpts}
-                </select>
+                <div style={{ display: 'flex' }}>
+                  <CategoryPicker value={txnForm.category} options={sortedChart} onPick={(name) => setTxn({ category: name })} />
+                </div>
               </div>
             ) : (
               <div style={{ border: '1px solid #EBF2E8', borderRadius: 10, padding: 14, marginBottom: 16, background: '#FBFCFA' }}>
@@ -925,10 +924,9 @@ export default function BankingPage() {
                 </div>
                 {txnForm.lines.map((l, i) => (
                   <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                    <select value={l.category} onChange={e => setLine(i, { category: e.target.value })} style={{ ...inputStyle, flex: 2 }}>
-                      <option value="">Category…</option>
-                      {catOpts}
-                    </select>
+                    <div style={{ flex: 2, minWidth: 0, display: 'flex' }}>
+                      <CategoryPicker value={l.category} options={sortedChart} onPick={(name) => setLine(i, { category: name })} />
+                    </div>
                     <div style={{ position: 'relative', flex: 1 }}>
                       <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#7A9A7A', fontSize: 13 }}>$</span>
                       <input value={l.amount} onChange={e => setLine(i, { amount: e.target.value })} inputMode="decimal" placeholder="0.00"
@@ -969,7 +967,7 @@ export default function BankingPage() {
         const catOpts = sortedChart.map(a => <option key={a.id} value={a.name}>{a.code} · {a.name}</option>);
         return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 115, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 14, padding: 26, width: 520, maxWidth: '95vw', maxHeight: '92vh', overflowY: 'auto' }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 26, width: 520, maxWidth: '95vw', maxHeight: '92vh', overflow: 'visible' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <h2 style={{ fontSize: 18, fontWeight: 600 }}>Split transaction</h2>
               <button onClick={() => setSplitFor(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer' }}>×</button>
@@ -991,10 +989,9 @@ export default function BankingPage() {
               </div>
               {splitLines.map((l, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                  <select value={l.category} onChange={e => setSplitLn(i, { category: e.target.value })} style={{ ...inputStyle, flex: 2 }}>
-                    <option value="">Category…</option>
-                    {catOpts}
-                  </select>
+                  <div style={{ flex: 2, minWidth: 0, display: 'flex' }}>
+                    <CategoryPicker value={l.category} options={sortedChart} onPick={(name) => setSplitLn(i, { category: name })} />
+                  </div>
                   <div style={{ position: 'relative', flex: 1 }}>
                     <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#7A9A7A', fontSize: 13 }}>$</span>
                     <input value={l.amount} onChange={e => setSplitLn(i, { amount: e.target.value })} inputMode="decimal" placeholder="0.00"
