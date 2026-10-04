@@ -55,17 +55,25 @@ export default function PlatformAdminPage() {
   const [purgeFor, setPurgeFor]   = useState(null);   // reseller id being purged (has clients)
   const [purgeName, setPurgeName] = useState('');      // typed name confirmation
 
+  // All companies on the platform (for cleaning up duplicates / stray companies)
+  const [companies, setCompanies]     = useState([]);
+  const [companyQuery, setCompanyQuery] = useState('');
+  const [delCompany, setDelCompany]   = useState(null); // company pending deletion
+  const [delCompanyName, setDelCompanyName] = useState('');
+
   async function loadAll() {
     setLoading(true);
     try {
-      const [s, t, f] = await Promise.all([
-        fetch(`${API}/tenants/admin/stats`, { headers: H() }).then(r => r.json()),
-        fetch(`${API}/tenants`,             { headers: H() }).then(r => r.json()),
-        fetch(`${API}/platform-fees/admin`, { headers: H() }).then(r => r.json()),
+      const [s, t, f, c] = await Promise.all([
+        fetch(`${API}/tenants/admin/stats`,     { headers: H() }).then(r => r.json()),
+        fetch(`${API}/tenants`,                 { headers: H() }).then(r => r.json()),
+        fetch(`${API}/platform-fees/admin`,     { headers: H() }).then(r => r.json()),
+        fetch(`${API}/tenants/admin/companies`, { headers: H() }).then(r => r.json()),
       ]);
       setStats(s.data || null);
       setTenants(Array.isArray(t.data) ? t.data : []);
       setFees(f.data || null);
+      setCompanies(Array.isArray(c.data) ? c.data : []);
     } catch {
       toast.error('Could not load the platform admin data.');
     }
@@ -160,6 +168,21 @@ export default function PlatformAdminPage() {
       else toast.error(`${t.name}: charge ${d.status || 'did not complete'} — check the card.`);
       loadAll();
     } catch (e) { toast.error(e.message || 'Could not charge the reseller.'); }
+    setBusyId(null);
+  }
+
+  async function deleteCompany(c) {
+    setBusyId(c.id);
+    try {
+      const res = await fetch(`${API}/tenants/admin/companies/${c.id}?confirmName=${encodeURIComponent(c.name)}`, {
+        method: 'DELETE', headers: H(),
+      });
+      const j = await res.json();
+      if (!res.ok || j.success === false) throw new Error(j.message || 'Could not delete the company.');
+      toast.success(`${c.name} deleted.`);
+      setDelCompany(null); setDelCompanyName('');
+      loadAll();
+    } catch (e) { toast.error(e.message || 'Could not delete the company.'); }
     setBusyId(null);
   }
 
@@ -360,6 +383,96 @@ export default function PlatformAdminPage() {
           )}
         </div>
       </div>
+
+      {/* All companies — platform-wide, for cleaning up duplicates / stray companies */}
+      <div style={{ ...card, marginTop: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+          <div>
+            <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: '#1f2a24' }}>All companies</h2>
+            <p style={{ fontSize: 12, color: '#8A968C', margin: '2px 0 0' }}>
+              Every company on the platform. Use this to remove a duplicate or stray company that no one owns.
+            </p>
+          </div>
+          <input value={companyQuery} onChange={e => setCompanyQuery(e.target.value)} placeholder="Search companies…"
+            style={{ ...box, width: 220 }} />
+        </div>
+        {loading ? (
+          <p style={{ fontSize: 13, color: '#8A968C' }}>Loading…</p>
+        ) : (() => {
+          const ql = companyQuery.trim().toLowerCase();
+          const list = ql
+            ? companies.filter(c => (c.name || '').toLowerCase().includes(ql) || (c.owner?.email || '').toLowerCase().includes(ql) || (c.reseller?.name || '').toLowerCase().includes(ql))
+            : companies;
+          if (companies.length === 0) return <p style={{ fontSize: 13, color: '#8A968C' }}>No companies yet.</p>;
+          if (list.length === 0)      return <p style={{ fontSize: 13, color: '#8A968C' }}>No companies match “{companyQuery}”.</p>;
+          return (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', color: '#8A968C', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                    <th style={{ padding: '6px 8px' }}>Company</th>
+                    <th style={{ padding: '6px 8px' }}>Owner</th>
+                    <th style={{ padding: '6px 8px' }}>Bookkeeping firm</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'center' }}>Members</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'center' }}>Transactions</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {list.map(c => (
+                    <tr key={c.id} style={{ borderTop: '0.5px solid #EBF2E8' }}>
+                      <td style={{ padding: '9px 8px', fontWeight: 600, color: '#1f2a24' }}>{c.name}</td>
+                      <td style={{ padding: '9px 8px', color: '#5E6B62' }}>
+                        {c.owner ? (
+                          <div>
+                            <div>{c.owner.fullName}</div>
+                            <div style={{ fontSize: 11, color: '#8A968C' }}>{c.owner.email}</div>
+                          </div>
+                        ) : <span style={{ color: '#8A968C' }}>no owner</span>}
+                      </td>
+                      <td style={{ padding: '9px 8px', color: '#5E6B62' }}>{c.reseller?.name || '—'}</td>
+                      <td style={{ padding: '9px 8px', textAlign: 'center', color: '#1f2a24' }}>{c.memberCount}</td>
+                      <td style={{ padding: '9px 8px', textAlign: 'center', color: '#1f2a24' }}>{c.txnCount}</td>
+                      <td style={{ padding: '9px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <button onClick={() => { setDelCompany(c); setDelCompanyName(''); }} disabled={busyId === c.id}
+                          style={{ ...actionBtn, color: '#B4482F' }}>Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* Delete-company confirmation (typed name) */}
+      {delCompany && (
+        <div onClick={() => { if (busyId !== delCompany.id) { setDelCompany(null); setDelCompanyName(''); } }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ ...card, maxWidth: 460, width: '100%' }}>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: '#B4482F' }}>Delete “{delCompany.name}”?</div>
+            <p style={{ fontSize: 13, color: '#5E6B62', lineHeight: 1.5, marginBottom: 14 }}>
+              This permanently deletes this company and <strong>all of its books</strong> — transactions, invoices, bills, reports, and bank connections. This cannot be undone.
+              {delCompany.txnCount > 0 && <> It currently has <strong>{delCompany.txnCount} transaction{delCompany.txnCount === 1 ? '' : 's'}</strong>.</>}
+            </p>
+            <label style={label}>Type <strong>{delCompany.name}</strong> to confirm</label>
+            <input autoFocus value={delCompanyName} onChange={e => setDelCompanyName(e.target.value)}
+              placeholder={delCompany.name} style={{ ...box, marginTop: 6, marginBottom: 16 }}
+              onKeyDown={e => { if (e.key === 'Enter' && delCompanyName.trim() === delCompany.name) deleteCompany(delCompany); }} />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button onClick={() => { setDelCompany(null); setDelCompanyName(''); }} disabled={busyId === delCompany.id}
+                style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid #D4DDCC', background: '#fff', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+              <button onClick={() => deleteCompany(delCompany)} disabled={busyId === delCompany.id || delCompanyName.trim() !== delCompany.name}
+                style={{ padding: '9px 16px', borderRadius: 8, border: 'none', background: '#B4482F', color: '#fff', fontWeight: 600,
+                  cursor: (delCompanyName.trim() === delCompany.name && busyId !== delCompany.id) ? 'pointer' : 'not-allowed',
+                  opacity: (delCompanyName.trim() === delCompany.name && busyId !== delCompany.id) ? 1 : 0.6 }}>
+                {busyId === delCompany.id ? 'Deleting…' : 'Delete permanently'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
