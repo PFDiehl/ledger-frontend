@@ -188,6 +188,8 @@ export default function BankingPage() {
   const [importData, setImportData] = useState(null); // { headerRow, rows, map }
   const [importing, setImporting]   = useState(false);
   const fileRef = useRef(null);
+  const pdfRef  = useRef(null);                        // statement-PDF (AI reader) picker
+  const [parsingPdf, setParsingPdf] = useState(false); // AI reading a statement PDF
 
   const [matchFor, setMatchFor]       = useState(null);  // txn being reconciled
   const [matchCands, setMatchCands]   = useState([]);
@@ -364,6 +366,39 @@ export default function BankingPage() {
     };
     reader.readAsText(file);
     e.target.value = '';
+  }
+
+  // ── Statement PDF import (AI reader) ──
+  // Send the PDF to the backend, which asks Claude to pull out the purchases as
+  // { date, description, amount } rows. The rows then drop into the SAME import
+  // review modal the CSV/.qbo flow uses — review, then import (which de-dupes).
+  function onPdfFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!activeId) { setMsg('Pick an account above first, then import a statement.'); return; }
+    setParsingPdf(true);
+    setMsg('Reading your statement… this takes a few seconds.');
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const result = String(reader.result || '');
+        const base64 = result.includes(',') ? result.split(',')[1] : result;   // strip the data: prefix
+        const r = await fetch(`${API}/orgs/${orgId}/ai/parse-statement`, {
+          method: 'POST', headers, body: JSON.stringify({ pdfBase64: base64 }),
+        }).then(r => r.json());
+        if (r.success) {
+          const rows = r.data?.transactions || [];
+          if (!rows.length) { setMsg('No purchases were found in that statement. If it’s a scanned image, try a clearer copy.'); }
+          else { setImportData({ preParsed: true, parsedRows: rows, source: 'ai' }); setMsg(''); }
+        } else {
+          setMsg(r.message || 'Could not read that statement.');
+        }
+      } catch (err) { setMsg('Could not read that statement.'); }
+      setParsingPdf(false);
+    };
+    reader.onerror = () => { setMsg('Could not read that file.'); setParsingPdf(false); };
+    reader.readAsDataURL(file);
   }
 
   function mappedRows(data) {
@@ -646,6 +681,11 @@ export default function BankingPage() {
             </button>
           )}
           {accounts.length > 0 && (
+            <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={() => pdfRef.current?.click()} disabled={!activeId || parsingPdf}>
+              ✨ {parsingPdf ? 'Reading…' : 'Import statement PDF'}
+            </button>
+          )}
+          {accounts.length > 0 && (
             <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={openAddTxn} disabled={!activeId}>
               ✏ Add transaction
             </button>
@@ -660,6 +700,7 @@ export default function BankingPage() {
         </div>
       </div>
       <input ref={fileRef} type="file" accept=".csv,.qbo,.qfx,.ofx,text/csv" style={{ display: 'none' }} onChange={onFile} />
+      <input ref={pdfRef} type="file" accept="application/pdf,.pdf" style={{ display: 'none' }} onChange={onPdfFile} />
 
       {msg && <div style={{ margin: '10px 0', fontSize: 13, color: 'var(--brand-primary)' }}>{msg}</div>}
 
@@ -1154,7 +1195,8 @@ export default function BankingPage() {
         const colOpts = [<option key="none" value="">— none —</option>, ...headerRow.map((h, i) => <option key={i} value={i}>{h || `Column ${i + 1}`}</option>)];
         const setMap = (patch) => setImportData(d => ({ ...d, map: { ...d.map, ...patch } }));
         const allValid = mappedRows(importData);
-        const preview = allValid.slice(0, 6);
+        const fromAI = importData.source === 'ai';
+        const preview = allValid.slice(0, fromAI ? 100 : 6);
         const validCount = allValid.length;
         return (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -1165,7 +1207,11 @@ export default function BankingPage() {
               </div>
               {preParsed ? (
                 <div style={{ background: '#F1F6EE', border: '1px solid #DCEAD4', borderRadius: 8, padding: '12px 14px', marginBottom: 16, fontSize: 13, color: '#2D4A35' }}>
-                  Read <strong>{validCount}</strong> transaction{validCount === 1 ? '' : 's'} from your bank file (.qbo/.qfx). No column mapping needed — review below and import.
+                  {fromAI ? (
+                    <>Read <strong>{validCount}</strong> transaction{validCount === 1 ? '' : 's'} from your statement PDF — purchases and fees only (card payments were skipped). Look them over, then import. Re-importing the same statement won’t create duplicates.</>
+                  ) : (
+                    <>Read <strong>{validCount}</strong> transaction{validCount === 1 ? '' : 's'} from your bank file (.qbo/.qfx). No column mapping needed — review below and import.</>
+                  )}
                 </div>
               ) : (
                 <>
