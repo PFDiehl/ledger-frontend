@@ -580,6 +580,13 @@ export default function BankingPage() {
   }
 
   async function deleteTxn(txnId) {
+    // Confirm first — deleting a transaction can't be undone, and if it's already
+    // categorized it also removes the matching entry from the books.
+    const t = txns.find(x => x.id === txnId);
+    const label  = t ? `"${t.payee || t.description || 'this transaction'}" (${Number(t.amount) >= 0 ? '+' : '−'}$${fmtMoney(Math.abs(Number(t.amount)))})` : 'this transaction';
+    const posted = t && t.status === 'categorized';
+    const confirmMsg = `Delete ${label}?` + (posted ? ' This also removes it from your books.' : '') + ' This cannot be undone.';
+    if (!window.confirm(confirmMsg)) return;
     try {
       await fetch(`${API}/orgs/${orgId}/banking/accounts/${activeId}/transactions/${txnId}`, { method: 'DELETE', headers });
       setTxns(prev => prev.filter(t => t.id !== txnId));
