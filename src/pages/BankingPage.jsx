@@ -109,6 +109,7 @@ function CategoryPicker({ value, options, onPick }) {
   const [open, setOpen]     = useState(false);
   const [q, setQ]           = useState('');
   const [active, setActive] = useState(0);
+  const [dropUp, setDropUp] = useState(false);   // open upward when the row is near the bottom
   const boxRef   = useRef(null);
   const inputRef = useRef(null);
 
@@ -118,7 +119,15 @@ function CategoryPicker({ value, options, onPick }) {
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, [open]);
-  useEffect(() => { if (open) { setQ(''); setActive(0); setTimeout(() => inputRef.current?.focus(), 0); } }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    setQ(''); setActive(0);
+    // Decide which way to open: if there isn't room for the menu below the field
+    // (near the bottom of the screen) and there's more room above, flip it upward.
+    const r = boxRef.current?.getBoundingClientRect();
+    if (r) { const spaceBelow = window.innerHeight - r.bottom; setDropUp(spaceBelow < 300 && r.top > spaceBelow); }
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }, [open]);
 
   const ql = q.trim().toLowerCase();
   const filtered = ql
@@ -143,7 +152,7 @@ function CategoryPicker({ value, options, onPick }) {
         <span style={{ color: '#9BB39B', fontSize: 10 }}>▼</span>
       </button>
       {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 50, width: 270, background: '#fff', border: '1px solid #D4DDCC', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.14)', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', ...(dropUp ? { bottom: 'calc(100% + 4px)' } : { top: 'calc(100% + 4px)' }), left: 0, zIndex: 50, width: 270, background: '#fff', border: '1px solid #D4DDCC', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.14)', overflow: 'hidden' }}>
           <input ref={inputRef} value={q} onChange={e => { setQ(e.target.value); setActive(0); }} onKeyDown={onKey}
             placeholder="Type to filter… (T → Travel)"
             style={{ width: '100%', border: 'none', borderBottom: '1px solid #EBF2E8', padding: '9px 12px', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
@@ -789,7 +798,7 @@ export default function BankingPage() {
                 )}
             </div>
           ) : (
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div className="card" style={{ padding: 0, overflow: 'visible' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #D4DDCC' }}>
