@@ -786,14 +786,15 @@ export default function BankingPage() {
               <div style={{ fontSize: 34, marginBottom: 12 }}>📄</div>
               <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>No transactions yet</p>
               <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 18 }}>
-                {activeAcct?.plaidItemId ? 'Sync to pull this account’s latest activity from your bank.' : 'Import a statement (CSV or .qbo/.qfx) to bring in this account’s activity.'}
+                {activeAcct?.plaidItemId ? 'Sync to pull this account’s latest activity from your bank.' : 'Upload a statement PDF and let AI read it, or import a CSV / .qbo / .qfx file — or add a transaction by hand.'}
               </p>
               {activeAcct?.plaidItemId
                 ? <button className="btn-primary" onClick={() => syncBank(activeAcct.plaidItemId)} disabled={syncing}>{syncing ? 'Syncing…' : '⟳ Sync from bank'}</button>
                 : (
                   <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                    <button className="btn-primary" onClick={openAddTxn}>✏ Add a transaction</button>
-                    <button className="btn-secondary" onClick={() => fileRef.current?.click()}>⬆ Import statement</button>
+                    <button className="btn-primary" onClick={() => pdfRef.current?.click()} disabled={parsingPdf}>✨ {parsingPdf ? 'Reading…' : 'Import statement PDF'}</button>
+                    <button className="btn-secondary" onClick={() => fileRef.current?.click()}>⬆ Import statement (CSV / .qbo)</button>
+                    <button className="btn-secondary" onClick={openAddTxn}>✏ Add a transaction</button>
                   </div>
                 )}
             </div>
