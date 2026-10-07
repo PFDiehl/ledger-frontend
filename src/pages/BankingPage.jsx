@@ -105,8 +105,8 @@ function defaultMatch(desc) {
 
 // Searchable category picker: click to open, type to filter (so "T" jumps to
 // Travel), arrow keys + Enter to choose. Value is the chart-account NAME.
-function CategoryPicker({ value, options, onPick }) {
-  const [open, setOpen]     = useState(false);
+function CategoryPicker({ value, options, onPick, autoOpen }) {
+  const [open, setOpen]     = useState(!!autoOpen);   // autoOpen: start in "type to filter" mode
   const [q, setQ]           = useState('');
   const [active, setActive] = useState(0);
   const [dropUp, setDropUp] = useState(false);   // open upward when the row is near the bottom
@@ -569,7 +569,15 @@ export default function BankingPage() {
   }
 
   // ── Split an existing line across categories ──
-  function openSplit(t) { setSplitFor(t); setSplitLines([{ category: '', amount: '' }, { category: '', amount: '' }]); }
+  // Open with the amounts already split 50/50 (the common duplex rental/property case),
+  // so you just pick the two categories and Save. Edit the amounts or re-click
+  // "Split 50 / 50" for an uneven split.
+  function openSplit(t) {
+    setSplitFor(t);
+    const tot  = round2(Math.abs(Number(t?.amount || 0)));
+    const half = round2(tot / 2);
+    setSplitLines([{ category: '', amount: String(half) }, { category: '', amount: String(round2(tot - half)) }]);
+  }
   function setSplitLn(i, patch) { setSplitLines(ls => ls.map((l, idx) => idx === i ? { ...l, ...patch } : l)); }
   function addSplitLn() { setSplitLines(ls => [...ls, { category: '', amount: '' }]); }
   function removeSplitLn(i) { setSplitLines(ls => ls.filter((_, idx) => idx !== i)); }
@@ -687,6 +695,18 @@ export default function BankingPage() {
   const sortedChart = [...chart]
     .filter(a => a.code !== '1000')   // don't categorize cash into cash
     .sort((a, b) => (TYPE_ORDER[a.type] || 9) - (TYPE_ORDER[b.type] || 9) || String(a.code).localeCompare(String(b.code)));
+
+  // Split lines (created by the Split button) carry a "(split)" suffix and share the
+  // same date + payee + base description. This key lets the register draw one box
+  // around each group of sibling split lines so they read as one original charge.
+  const SPLIT_BORDER = '#9DB293';
+  const SPLIT_BG     = '#F5F8F2';
+  const splitKey = (x) => {
+    const d = String(x?.description || '');
+    if (!/\(split\)\s*$/i.test(d)) return null;
+    const base = d.replace(/\s*\(split\)\s*$/i, '').trim().toLowerCase();
+    return `${new Date(x.date).toISOString().slice(0, 10)}|${(x.payee || '').trim().toLowerCase()}|${base}`;
+  };
 
   const activeAcct = accounts.find(a => a.id === activeId);
   const uncategorized = txns.filter(t => t.status !== 'categorized' && t.status !== 'matched').length;
@@ -852,11 +872,24 @@ export default function BankingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {txns.map(t => {
+                  {txns.map((t, idx) => {
                     const inflow = Number(t.amount) > 0;
+                    // Outline a contiguous group of sibling split lines (they're adjacent
+                    // because the register is sorted by date). Top border on the first of
+                    // the group, bottom on the last, side borders on the edge cells.
+                    const key   = splitKey(t);
+                    const isSplit = !!key;
+                    const isTop = isSplit && key !== splitKey(txns[idx - 1]);
+                    const isBot = isSplit && key !== splitKey(txns[idx + 1]);
+                    const sideL = isSplit ? { borderLeft: `2px solid ${SPLIT_BORDER}` } : null;
+                    const sideR = isSplit ? { borderRight: `2px solid ${SPLIT_BORDER}` } : null;
                     return (
-                      <tr key={t.id} style={{ borderBottom: '0.5px solid #EBF2E8' }}>
-                        <td style={{ padding: '9px 16px', color: '#7A9A7A', whiteSpace: 'nowrap' }}>{new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
+                      <tr key={t.id} style={{
+                        background: isSplit ? SPLIT_BG : undefined,
+                        borderTop: isTop ? `2px solid ${SPLIT_BORDER}` : undefined,
+                        borderBottom: isBot ? `2px solid ${SPLIT_BORDER}` : '0.5px solid #EBF2E8',
+                      }}>
+                        <td style={{ padding: '9px 16px', color: '#7A9A7A', whiteSpace: 'nowrap', ...sideL }}>{new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
                         <td style={{ padding: '9px 16px' }}>{t.description}</td>
                         <td style={{ padding: '6px 16px' }}>
                           {t.status === 'matched' ? (
@@ -906,7 +939,7 @@ export default function BankingPage() {
                             </div>
                           )}
                         </td>
-                        <td style={{ padding: '9px 8px', textAlign: 'center' }}>
+                        <td style={{ padding: '9px 8px', textAlign: 'center', ...sideR }}>
                           <button onClick={() => deleteTxn(t.id)} title="Delete" style={{ background: 'none', border: 'none', color: 'var(--color-text-tertiary, #999)', cursor: 'pointer', fontSize: 14 }}>×</button>
                         </td>
                       </tr>
@@ -1061,7 +1094,8 @@ export default function BankingPage() {
       {splitFor && (() => {
         const tot     = round2(Math.abs(Number(splitFor.amount || 0)));
         const sum     = round2(splitLines.reduce((s, l) => s + Math.abs(toAmount(l.amount)), 0));
-        const matches = tot > 0 && Math.abs(sum - tot) < 0.01;
+        const readyLines = splitLines.filter(l => l.category && toAmount(l.amount) > 0).length;
+        const matches = tot > 0 && Math.abs(sum - tot) < 0.01 && readyLines >= 2;
         const catOpts = sortedChart.map(a => <option key={a.id} value={a.name}>{a.code} · {a.name}</option>);
         return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 115, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -1088,7 +1122,7 @@ export default function BankingPage() {
               {splitLines.map((l, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
                   <div style={{ flex: 2, minWidth: 0, display: 'flex' }}>
-                    <CategoryPicker value={l.category} options={sortedChart} onPick={(name) => setSplitLn(i, { category: name })} />
+                    <CategoryPicker value={l.category} options={sortedChart} onPick={(name) => setSplitLn(i, { category: name })} autoOpen={i === 0} />
                   </div>
                   <div style={{ position: 'relative', flex: 1 }}>
                     <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#7A9A7A', fontSize: 13 }}>$</span>
