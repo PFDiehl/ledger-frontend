@@ -105,7 +105,7 @@ export default function ReportsPage() {
           path = `/orgs/${org.id}/reports/trial-balance?asOf=${asOfDate}`;
         } else if (tab === 'General Ledger') {
           if (!glAccountId) { if (!cancelled) setData(null); return; }
-          path = `/orgs/${org.id}/reports/ledger?accountId=${glAccountId}&from=${from}&to=${to}`;
+          path = `/orgs/${org.id}/reports/ledger?accountId=${glAccountId}&from=${from}&to=${to}${plBankAccountId ? `&bankAccountId=${plBankAccountId}` : ''}`;
         } else {
           const base  = tab === 'Cash Flow' ? 'cash-flow' : 'pl';
           const acctQ = (tab === 'P&L' && plBankAccountId) ? `&bankAccountId=${plBankAccountId}` : '';
@@ -218,8 +218,8 @@ export default function ReportsPage() {
             <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} style={dateInput} />
           </span>
         )}
-        {tab === 'P&L' && bankAccounts.length > 0 && (
-          <select value={plBankAccountId} onChange={e => setPlBankAccountId(e.target.value)} title="Show the P&L for just one bank account"
+        {(tab === 'P&L' || tab === 'General Ledger') && bankAccounts.length > 0 && (
+          <select value={plBankAccountId} onChange={e => setPlBankAccountId(e.target.value)} title="Limit to just one bank account"
             style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #D4DDCC',
               background: plBankAccountId ? '#f0f7f0' : '#fff', color: GREEN, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             <option value="">All accounts</option>
@@ -451,7 +451,7 @@ export default function ReportsPage() {
             <>
               <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4, color: GREEN }}>General Ledger</h2>
               <div style={{ fontSize: 12, color: '#999', marginBottom: 12 }}>
-                {data.account?.code} {data.account?.name} · {safeISO(data.from)} → {safeISO(data.to)}
+                {data.account?.code} {data.account?.name} · {safeISO(data.from)} → {safeISO(data.to)}{scopeNote}
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 620 }}>
