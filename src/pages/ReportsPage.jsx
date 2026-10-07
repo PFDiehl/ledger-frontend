@@ -71,6 +71,8 @@ export default function ReportsPage() {
   const [error, setError]   = useState('');
   const [accounts, setAccounts]       = useState([]);
   const [glAccountId, setGlAccountId] = useState('');
+  const [bankAccounts, setBankAccounts]       = useState([]);
+  const [plBankAccountId, setPlBankAccountId] = useState('');   // scope the P&L to one bank account
   const [customFrom, setCustomFrom]   = useState(`${now.getFullYear()}-01-01`);
   const [customTo, setCustomTo]       = useState(safeISO(now));
   const [asOfDate, setAsOfDate]       = useState(safeISO(now));
@@ -83,6 +85,7 @@ export default function ReportsPage() {
   useEffect(() => {
     if (!org) return;
     api.get(`/orgs/${org.id}/accounts`).then(r => setAccounts(r?.data || [])).catch(() => {});
+    api.get(`/orgs/${org.id}/banking/accounts`).then(r => setBankAccounts(r?.data || [])).catch(() => {});
   }, [org]);
 
   useEffect(() => {
@@ -105,7 +108,8 @@ export default function ReportsPage() {
           path = `/orgs/${org.id}/reports/ledger?accountId=${glAccountId}&from=${from}&to=${to}`;
         } else {
           const base  = tab === 'Cash Flow' ? 'cash-flow' : 'pl';
-          const extra = tab === 'P&L' ? `&basis=${basis}` : '';
+          const acctQ = (tab === 'P&L' && plBankAccountId) ? `&bankAccountId=${plBankAccountId}` : '';
+          const extra = tab === 'P&L' ? `&basis=${basis}${acctQ}` : '';
           path = `/orgs/${org.id}/reports/${base}?from=${from}&to=${to}${extra}`;
         }
         const res = await api.get(path);
@@ -119,7 +123,7 @@ export default function ReportsPage() {
         if (tab === 'P&L' && compare !== 'none') {
           const pr = priorRange(from, to, compare);
           if (pr) {
-            const res2 = await api.get(`/orgs/${org.id}/reports/pl?from=${pr.from}&to=${pr.to}&basis=${basis}`);
+            const res2 = await api.get(`/orgs/${org.id}/reports/pl?from=${pr.from}&to=${pr.to}&basis=${basis}${plBankAccountId ? `&bankAccountId=${plBankAccountId}` : ''}`);
             const p2 = res2?.data ?? null;
             if (!cancelled) setData2((p2 && !Array.isArray(p2)) ? { ...p2, _range: pr } : null);
           }
@@ -132,7 +136,7 @@ export default function ReportsPage() {
     }
     load();
     return () => { cancelled = true; };
-  }, [org, tab, year, period, basis, glAccountId, customFrom, customTo, asOfDate, compare]);
+  }, [org, tab, year, period, basis, glAccountId, plBankAccountId, customFrom, customTo, asOfDate, compare]);
 
   const line = (label, value, opts = {}) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: '1px solid #f0f0f0' }}>
@@ -166,6 +170,9 @@ export default function ReportsPage() {
       </tr>
     );
   };
+
+  const plAcctName = bankAccounts.find(a => a.id === plBankAccountId)?.name || '';
+  const scopeNote  = (data && data.scopedToAccount && plAcctName) ? ` · ${plAcctName} only` : '';
 
   return (
     <div className="page">
@@ -211,6 +218,14 @@ export default function ReportsPage() {
             <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} style={dateInput} />
           </span>
         )}
+        {tab === 'P&L' && bankAccounts.length > 0 && (
+          <select value={plBankAccountId} onChange={e => setPlBankAccountId(e.target.value)} title="Show the P&L for just one bank account"
+            style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #D4DDCC',
+              background: plBankAccountId ? '#f0f7f0' : '#fff', color: GREEN, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            <option value="">All accounts</option>
+            {bankAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        )}
         {(tab === 'Balance Sheet' || tab === 'Trial Balance') && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 12, color: '#999' }}>As of</span>
@@ -251,7 +266,7 @@ export default function ReportsPage() {
             <>
               <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4, color: GREEN }}>Profit &amp; Loss</h2>
               <div style={{ fontSize: 12, color: '#999', marginBottom: 12 }}>
-                {safeISO(data.from)} → {safeISO(data.to)} · {data.basis || basis} basis
+                {safeISO(data.from)} → {safeISO(data.to)} · {data.basis || basis} basis{scopeNote}
               </div>
               {sectionHead('Revenue')}
               {(data.revenueByCategory || []).map(r => line(r.category, r.amount, { indent: true }))}
@@ -270,7 +285,7 @@ export default function ReportsPage() {
             <>
               <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4, color: GREEN }}>Profit &amp; Loss</h2>
               <div style={{ fontSize: 12, color: '#999', marginBottom: 12 }}>
-                {safeISO(data.from)} → {safeISO(data.to)} vs {safeISO(data2._range?.from)} → {safeISO(data2._range?.to)} · {data.basis || basis} basis
+                {safeISO(data.from)} → {safeISO(data.to)} vs {safeISO(data2._range?.from)} → {safeISO(data2._range?.to)} · {data.basis || basis} basis{scopeNote}
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 540 }}>
