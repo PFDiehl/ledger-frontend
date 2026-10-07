@@ -199,6 +199,8 @@ export default function BankingPage() {
   const fileRef = useRef(null);
   const pdfRef  = useRef(null);                        // statement-PDF (AI reader) picker
   const [parsingPdf, setParsingPdf] = useState(false); // AI reading a statement PDF
+  const [dragIdx, setDragIdx] = useState(null);        // account card being dragged
+  const [overIdx, setOverIdx] = useState(null);        // account card being dragged over
 
   const [matchFor, setMatchFor]       = useState(null);  // txn being reconciled
   const [matchCands, setMatchCands]   = useState([]);
@@ -340,6 +342,27 @@ export default function BankingPage() {
       } else setMsg(r.message || 'Sync failed.');
     } catch (e) { setMsg('Sync failed.'); }
     setSyncing(false);
+  }
+
+  // ── Drag-to-reorder the account cards ──
+  // Save the new order to the server so it sticks (per company). Order is cosmetic,
+  // so a failed save is silently ignored — the cards still show the new order locally.
+  async function saveAccountOrder(ordered) {
+    try {
+      await fetch(`${API}/orgs/${orgId}/banking/accounts/reorder`, {
+        method: 'PATCH', headers, body: JSON.stringify({ orderedIds: ordered.map(a => a.id) }),
+      });
+    } catch (e) { /* ignore — order is a convenience */ }
+  }
+  function moveAccount(from, to) {
+    if (from == null || to == null || from === to) return;
+    setAccounts(prev => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      saveAccountOrder(next);
+      return next;
+    });
   }
 
   // ── CSV import ──
@@ -732,16 +755,28 @@ export default function BankingPage() {
           {/* Account balance cards (QuickBooks-style) — one per account, running
               horizontally; click to select. "Sync from bank" (top right) refreshes all. */}
           <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '16px 2px', margin: '0 0 4px' }}>
-            {accounts.map(a => {
+            {accounts.map((a, i) => {
               const active = a.id === activeId;
               const bal = Number(a.currentBalance || 0);
+              const isDragging   = dragIdx === i;
+              const isDropTarget = dragIdx != null && overIdx === i && dragIdx !== i;
               return (
                 <button key={a.id} onClick={() => setActiveId(a.id)}
+                  draggable
+                  onDragStart={(e) => { setDragIdx(i); e.dataTransfer.effectAllowed = 'move'; }}
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (overIdx !== i) setOverIdx(i); }}
+                  onDrop={(e) => { e.preventDefault(); moveAccount(dragIdx, i); setDragIdx(null); setOverIdx(null); }}
+                  onDragEnd={() => { setDragIdx(null); setOverIdx(null); }}
+                  title="Drag to reorder"
                   style={{
-                    flex: '0 0 auto', minWidth: 190, maxWidth: 260, textAlign: 'left', cursor: 'pointer',
-                    border: active ? '2px solid var(--brand-primary, #2D4A35)' : '1px solid #D4DDCC',
+                    flex: '0 0 auto', minWidth: 190, maxWidth: 260, textAlign: 'left',
+                    cursor: dragIdx != null ? 'grabbing' : 'grab',
+                    border: isDropTarget ? '2px dashed var(--brand-primary, #2D4A35)'
+                          : active ? '2px solid var(--brand-primary, #2D4A35)' : '1px solid #D4DDCC',
                     borderRadius: 12, padding: '12px 16px', background: '#fff',
-                    boxShadow: active ? '0 2px 8px rgba(45,74,53,0.12)' : 'none',
+                    opacity: isDragging ? 0.4 : 1,
+                    boxShadow: (active && !isDropTarget) ? '0 2px 8px rgba(45,74,53,0.12)' : 'none',
+                    transition: 'opacity .12s, border-color .12s',
                   }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 6 }}>
                     {a.plaidItemId ? '🔗 ' : '🏦 '}{a.name}
@@ -760,6 +795,11 @@ export default function BankingPage() {
               );
             })}
           </div>
+          {accounts.length > 1 && (
+            <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', margin: '0 2px 8px' }}>
+              Tip: drag a card to reorder — the order is saved for this company.
+            </div>
+          )}
 
           {activeAcct && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
