@@ -201,6 +201,8 @@ export default function BankingPage() {
   const fileRef = useRef(null);
   const pdfRef  = useRef(null);                        // statement-PDF (AI reader) picker
   const [parsingPdf, setParsingPdf] = useState(false); // AI reading a statement PDF
+  const venmoRef = useRef(null);                       // Venmo/Cash App export picker
+  const [parsingVenmo, setParsingVenmo] = useState(false);
   const [dragIdx, setDragIdx] = useState(null);        // account card being dragged
   const [overIdx, setOverIdx] = useState(null);        // account card being dragged over
   const [resyncing, setResyncing] = useState(false);   // re-posting categorized txns to the books
@@ -479,6 +481,45 @@ export default function BankingPage() {
     };
     reader.onerror = () => { setMsg('Could not read that file.'); setParsingPdf(false); };
     reader.readAsDataURL(file);
+  }
+
+  // ── Venmo / Cash App import (AI reader) ──
+  // Accepts a CSV export (most common) or a PDF. AI parses it into clean transactions
+  // and decodes the cryptic username/note lines into readable payees, then drops them
+  // into the same review-and-import flow as statements.
+  function onVenmoFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!activeId) { setMsg('Pick an account above first, then import.'); return; }
+    const isPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
+    setParsingVenmo(true);
+    setMsg('Reading your Venmo / Cash App export… this takes a few seconds.');
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        let body;
+        if (isPdf) {
+          const result = String(reader.result || '');
+          body = { pdfBase64: result.includes(',') ? result.split(',')[1] : result, source: 'venmo' };
+        } else {
+          body = { csvText: String(reader.result || ''), source: 'venmo' };
+        }
+        const r = await fetch(`${API}/orgs/${orgId}/ai/parse-statement`, {
+          method: 'POST', headers, body: JSON.stringify(body),
+        }).then(r => r.json());
+        if (r.success) {
+          const rows = r.data?.transactions || [];
+          if (!rows.length) { setMsg('No transfers were found in that export.'); }
+          else { setImportData({ preParsed: true, parsedRows: rows, source: 'venmo' }); setMsg(''); }
+        } else {
+          setMsg(r.message || 'Could not read that export.');
+        }
+      } catch (err) { setMsg('Could not read that export.'); }
+      setParsingVenmo(false);
+    };
+    reader.onerror = () => { setMsg('Could not read that file.'); setParsingVenmo(false); };
+    if (isPdf) reader.readAsDataURL(file); else reader.readAsText(file);
   }
 
   function mappedRows(data) {
@@ -786,6 +827,11 @@ export default function BankingPage() {
             </button>
           )}
           {accounts.length > 0 && (
+            <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={() => venmoRef.current?.click()} disabled={!activeId || parsingVenmo}>
+              💸 {parsingVenmo ? 'Reading…' : 'Import Venmo / Cash App'}
+            </button>
+          )}
+          {accounts.length > 0 && (
             <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={openAddTxn} disabled={!activeId}>
               ✏ Add transaction
             </button>
@@ -805,6 +851,7 @@ export default function BankingPage() {
       </div>
       <input ref={fileRef} type="file" accept=".csv,.qbo,.qfx,.ofx,text/csv" style={{ display: 'none' }} onChange={onFile} />
       <input ref={pdfRef} type="file" accept="application/pdf,.pdf" style={{ display: 'none' }} onChange={onPdfFile} />
+      <input ref={venmoRef} type="file" accept=".csv,text/csv,application/pdf,.pdf" style={{ display: 'none' }} onChange={onVenmoFile} />
 
       {msg && <div style={{ margin: '10px 0', fontSize: 13, color: 'var(--brand-primary)' }}>{msg}</div>}
 
@@ -1401,7 +1448,8 @@ export default function BankingPage() {
         const colOpts = [<option key="none" value="">— none —</option>, ...headerRow.map((h, i) => <option key={i} value={i}>{h || `Column ${i + 1}`}</option>)];
         const setMap = (patch) => setImportData(d => ({ ...d, map: { ...d.map, ...patch } }));
         const allValid = mappedRows(importData);
-        const fromAI = importData.source === 'ai';
+        const fromVenmo = importData.source === 'venmo';
+        const fromAI = importData.source === 'ai' || fromVenmo;
         const preview = allValid.slice(0, fromAI ? 100 : 6);
         const validCount = allValid.length;
         return (
@@ -1413,7 +1461,9 @@ export default function BankingPage() {
               </div>
               {preParsed ? (
                 <div style={{ background: '#F1F6EE', border: '1px solid #DCEAD4', borderRadius: 8, padding: '12px 14px', marginBottom: 16, fontSize: 13, color: '#2D4A35' }}>
-                  {fromAI ? (
+                  {fromVenmo ? (
+                    <>Read <strong>{validCount}</strong> transfer{validCount === 1 ? '' : 's'} from your Venmo / Cash App export — names decoded where possible, your own bank transfers skipped. Review and import; after importing, use <strong>AI Categorize</strong> to assign categories. Re-importing the same export won’t create duplicates.</>
+                  ) : fromAI ? (
                     <>Read <strong>{validCount}</strong> transaction{validCount === 1 ? '' : 's'} from your statement PDF — purchases and fees only (card payments were skipped). Look them over, then import. Re-importing the same statement won’t create duplicates.</>
                   ) : (
                     <>Read <strong>{validCount}</strong> transaction{validCount === 1 ? '' : 's'} from your bank file (.qbo/.qfx). No column mapping needed — review below and import.</>
