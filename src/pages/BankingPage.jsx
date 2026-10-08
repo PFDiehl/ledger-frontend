@@ -538,7 +538,7 @@ export default function BankingPage() {
   function mappedRows(data) {
     if (data.preParsed) return data.parsedRows
       .filter(r => r.date && !isNaN(new Date(r.date)) && r.amount !== 0)
-      .map(r => ({ date: r.date, description: r.description, amount: r.amount }));   // strip edit-only fields
+      .map(r => ({ date: r.date, description: r.description, amount: r.amount, ...(r.payee ? { payee: r.payee } : {}) }));   // keep payee (Venmo), strip edit-only fields
     const { rows, map } = data;
     return rows.map(cols => {
       const date = map.date !== '' ? cols[map.date] : '';

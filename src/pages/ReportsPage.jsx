@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { api } from '../lib/api';
 
-const TABS = ['P&L', 'Balance Sheet', 'Cash Flow', 'Aged A/R', 'Trial Balance', 'General Ledger'];
+const TABS = ['P&L', 'Balance Sheet', 'Cash Flow', 'Aged A/R', 'Trial Balance', 'General Ledger', 'Contractors (1099)'];
 const PERIODS = [
   { key: 'full',   label: 'Full year' },
   { key: 'q1',     label: 'Q1' },
@@ -106,6 +106,9 @@ export default function ReportsPage() {
         } else if (tab === 'General Ledger') {
           if (!glAccountId) { if (!cancelled) setData(null); return; }
           path = `/orgs/${org.id}/reports/ledger?accountId=${glAccountId}&from=${from}&to=${to}${plBankAccountId ? `&bankAccountId=${plBankAccountId}` : ''}`;
+        } else if (tab === 'Contractors (1099)') {
+          const yr = computeRange(year, 'full');   // 1099s are annual
+          path = `/orgs/${org.id}/reports/contractors?from=${yr.from}&to=${yr.to}`;
         } else {
           const base  = tab === 'Cash Flow' ? 'cash-flow' : 'pl';
           const acctQ = (tab === 'P&L' && plBankAccountId) ? `&bankAccountId=${plBankAccountId}` : '';
@@ -201,7 +204,7 @@ export default function ReportsPage() {
 
       {/* Controls: period / dates + basis + compare */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap', alignItems: 'center' }}>
-        {['P&L', 'Cash Flow', 'General Ledger'].includes(tab) && (
+        {['P&L', 'Cash Flow', 'General Ledger', 'Contractors (1099)'].includes(tab) && (
           <select value={year} onChange={e => setYear(Number(e.target.value))} style={{
             padding: '6px 10px', borderRadius: 8, border: '1px solid #D4DDCC', background: '#fff',
             color: GREEN, fontSize: 13, fontWeight: 600, cursor: 'pointer',
@@ -270,7 +273,7 @@ export default function ReportsPage() {
           {tab === 'General Ledger' && !glAccountId ? 'Select an account above to view its ledger.' : 'No data for this period yet.'}
         </div>
       ) : (
-        <div className="card" style={{ padding: 24, maxWidth: ['Aged A/R', 'Trial Balance', 'General Ledger'].includes(tab) ? 920 : 640 }}>
+        <div className="card" style={{ padding: 24, maxWidth: ['Aged A/R', 'Trial Balance', 'General Ledger', 'Contractors (1099)'].includes(tab) ? 920 : 640 }}>
 
           {tab === 'P&L' && !data2 && (
             <>
@@ -500,6 +503,48 @@ export default function ReportsPage() {
                       <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 700, color: GREEN }}>{fmt(data.closing)}</td>
                     </tr>
                   </tfoot>
+                </table>
+              </div>
+            </>
+          )}
+
+          {tab === 'Contractors (1099)' && data.rows && (
+            <>
+              <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4, color: GREEN }}>Contractors &amp; 1099</h2>
+              <div style={{ fontSize: 12, color: '#999', marginBottom: 10 }}>Year {year} · money paid out, grouped by payee</div>
+              <div style={{ fontSize: 12.5, color: '#5E6B62', background: '#F6F9F4', border: '1px solid #E6EFE8', borderRadius: 8, padding: '10px 12px', marginBottom: 14, lineHeight: 1.5 }}>
+                Review which of these you paid for <strong>services</strong>. Anyone paid <strong>${data.threshold}+</strong> for services this year likely needs a <strong>1099-NEC</strong> (and a W-9). A ⚠ payroll flag means someone was paid like an employee (recurring, same amount) — that may belong on payroll. A guide to review, not tax advice.
+              </div>
+              {(data.flaggedCount > 0 || data.payrollRiskCount > 0) && (
+                <div style={{ fontSize: 13, marginBottom: 10, color: '#8A3B12', fontWeight: 600 }}>
+                  {data.flaggedCount} over ${data.threshold}{data.payrollRiskCount ? ` · ${data.payrollRiskCount} possible payroll` : ''}
+                </div>
+              )}
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 560 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #D4DDCC' }}>
+                      <th style={{ textAlign: 'left',  padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Payee</th>
+                      <th style={{ textAlign: 'right', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Paid</th>
+                      <th style={{ textAlign: 'right', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Payments</th>
+                      <th style={{ textAlign: 'left',  padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Flags</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.rows.length === 0 ? (
+                      <tr><td colSpan={4} style={{ padding: '16px 6px', color: '#7A9A7A' }}>No payments to named payees this year yet. Import Venmo/Cash App or set a payee on transactions, and they'll total up here.</td></tr>
+                    ) : data.rows.map((r, i) => (
+                      <tr key={i} style={{ borderBottom: '0.5px solid #EBF2E8', background: r.needs1099 ? '#FFFBF2' : undefined }}>
+                        <td style={{ padding: '9px 6px', fontWeight: 500 }}>{r.payee}</td>
+                        <td style={{ padding: '9px 6px', textAlign: 'right', fontWeight: 600 }}>{fmt(r.total)}</td>
+                        <td style={{ padding: '9px 6px', textAlign: 'right', color: '#7A9A7A' }}>{r.count}</td>
+                        <td style={{ padding: '9px 6px' }}>
+                          {r.needs1099 && <span style={{ fontSize: 11, fontWeight: 700, color: '#8A3B12', background: '#FBE9D8', padding: '2px 8px', borderRadius: 20, marginRight: 6, whiteSpace: 'nowrap' }}>⚠ $600+ → 1099/W-9</span>}
+                          {r.payrollRisk && <span style={{ fontSize: 11, fontWeight: 700, color: '#7A3A8A', background: '#F0E6F6', padding: '2px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>⚠ payroll?</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
                 </table>
               </div>
             </>
