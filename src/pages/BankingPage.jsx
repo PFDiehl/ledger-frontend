@@ -204,6 +204,8 @@ export default function BankingPage() {
   const [dragIdx, setDragIdx] = useState(null);        // account card being dragged
   const [overIdx, setOverIdx] = useState(null);        // account card being dragged over
   const [resyncing, setResyncing] = useState(false);   // re-posting categorized txns to the books
+  const [unposted, setUnposted]   = useState([]);      // categorized txns that aren't in the books
+  const [showUnposted, setShowUnposted] = useState(false);
 
   const [matchFor, setMatchFor]       = useState(null);  // txn being reconciled
   const [matchCands, setMatchCands]   = useState([]);
@@ -236,6 +238,16 @@ export default function BankingPage() {
   const [splitLines, setSplitLines]   = useState([{ category: '', amount: '' }, { category: '', amount: '' }]);
   const [savingSplit, setSavingSplit] = useState(false);
 
+  // Load the list of categorized transactions that aren't in the books (orphans) so
+  // we can show a "needs attention" banner and a fix-them-all-in-one-place list.
+  async function loadUnposted() {
+    try {
+      const r = await fetch(`${API}/orgs/${orgId}/banking/unposted`, { headers }).then(r => r.json());
+      setUnposted(r?.data?.items || []);
+    } catch (e) { /* non-critical */ }
+  }
+  useEffect(() => { if (orgId) loadUnposted(); }, [orgId]);
+
   // Re-post every categorized transaction to the books. Fixes any that were
   // categorized but never posted (e.g. a company that had no cash account yet).
   async function resyncBooks() {
@@ -245,11 +257,28 @@ export default function BankingPage() {
       const r = await fetch(`${API}/orgs/${orgId}/banking/resync-ledger`, { method: 'POST', headers }).then(r => r.json());
       if (r.success) {
         const d = r.data || {};
-        setMsg(`Re-synced to the books: ${d.posted} of ${d.checked} posted${d.missed ? ` · ${d.missed} couldn’t post (their category doesn’t match a chart-of-accounts account — re-pick a category for those)` : ' — all set'}.`);
+        setMsg(`Re-synced to the books: ${d.posted} of ${d.checked} posted${d.missed ? ` · ${d.missed} still need a category fix — click "Review" to see them` : ' — all set'}.`);
         await loadTxns(activeId);
+        await loadUnposted();
       } else setMsg(r.message || 'Could not re-sync to the books.');
     } catch (e) { setMsg('Could not re-sync to the books.'); }
     setResyncing(false);
+  }
+
+  // Re-pick a category on an orphaned transaction, from the review list. Posts it and
+  // drops it from the list. Works org-wide (the server finds the txn by id).
+  async function fixUnposted(txn, category) {
+    if (!category) return;
+    try {
+      const acctId = txn.accountId || activeId;
+      const r = await fetch(`${API}/orgs/${orgId}/banking/accounts/${acctId}/transactions/${txn.id}`, {
+        method: 'PATCH', headers, body: JSON.stringify({ category }),
+      }).then(r => r.json());
+      if (r.success) {
+        setUnposted(prev => prev.filter(t => t.id !== txn.id));
+        if (txn.accountId === activeId) await loadTxns(activeId);
+      } else setMsg(r.message || 'Could not fix that transaction.');
+    } catch (e) { setMsg('Could not fix that transaction.'); }
   }
 
   async function loadAccounts() {
@@ -779,6 +808,19 @@ export default function BankingPage() {
 
       {msg && <div style={{ margin: '10px 0', fontSize: 13, color: 'var(--brand-primary)' }}>{msg}</div>}
 
+      {unposted.length > 0 && (
+        <div style={{ margin: '10px 0', padding: '10px 14px', background: '#FFF4EC', border: '1px solid #E8894B', borderRadius: 8,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 13, color: '#8A3B12' }}>
+            ⚠ <strong>{unposted.length}</strong> categorized transaction{unposted.length === 1 ? '' : 's'} {unposted.length === 1 ? 'is' : 'are'} not in your books — their category was renamed or removed. Re-pick a category to post {unposted.length === 1 ? 'it' : 'them'}.
+          </span>
+          <button onClick={() => setShowUnposted(true)}
+            style={{ background: '#C4662B', border: 'none', borderRadius: 6, color: '#fff', fontSize: 12.5, fontWeight: 600, padding: '7px 14px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            Review &amp; fix
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40, color: '#7A9A7A' }}>Loading…</div>
       ) : accounts.length === 0 ? (
@@ -1290,6 +1332,62 @@ export default function BankingPage() {
 
             <div style={{ marginTop:18, textAlign:'right' }}>
               <button onClick={() => setShowRules(false)} style={{ padding:'9px 16px', borderRadius:8, border:'1px solid #D4DDCC', background:'#fff', cursor:'pointer', fontSize:13 }}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* "Not in your books" — fix orphaned (renamed-category) transactions in one place */}
+      {showUnposted && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 24, width: 700, maxWidth: '96vw', maxHeight: '88vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 600 }}>Transactions not in your books</h2>
+              <button onClick={() => setShowUnposted(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer' }}>×</button>
+            </div>
+            <p style={{ fontSize: 12.5, color: '#7A9A7A', marginBottom: 14, lineHeight: 1.5 }}>
+              These were categorized, but their category was later renamed or removed, so they never posted to the books. Pick a current category for each and it posts right away.
+            </p>
+            {unposted.length === 0 ? (
+              <div style={{ padding: 28, textAlign: 'center', color: '#0F6E56', fontSize: 14, fontWeight: 600 }}>✓ All caught up — nothing left to fix.</div>
+            ) : (
+              <div style={{ overflowY: 'auto', border: '1px solid #EBF2E8', borderRadius: 8 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+                  <thead>
+                    <tr style={{ background: '#F6F9F4', position: 'sticky', top: 0 }}>
+                      <th style={{ padding: '7px 10px', textAlign: 'left', color: '#7A9A7A' }}>Date</th>
+                      <th style={{ padding: '7px 10px', textAlign: 'left', color: '#7A9A7A' }}>Description</th>
+                      <th style={{ padding: '7px 10px', textAlign: 'right', color: '#7A9A7A' }}>Amount</th>
+                      <th style={{ padding: '7px 10px', textAlign: 'left', color: '#7A9A7A', width: 240 }}>Pick a category</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {unposted.map(t => (
+                      <tr key={t.id} style={{ borderTop: '0.5px solid #EBF2E8' }}>
+                        <td style={{ padding: '7px 10px', whiteSpace: 'nowrap', color: '#7A9A7A' }}>{new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}</td>
+                        <td style={{ padding: '7px 10px' }}>
+                          {t.description}
+                          <div style={{ fontSize: 11, color: '#A3692B' }}>was: {t.category}</div>
+                        </td>
+                        <td style={{ padding: '7px 10px', textAlign: 'right', whiteSpace: 'nowrap', color: Number(t.amount) > 0 ? '#0F6E56' : 'var(--color-text-primary)' }}>
+                          {Number(t.amount) > 0 ? '+' : '−'}${fmtMoney(Math.abs(Number(t.amount)))}
+                        </td>
+                        <td style={{ padding: '7px 10px' }}>
+                          <select defaultValue="" onChange={(e) => { if (e.target.value) fixUnposted(t, e.target.value); }}
+                            style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1px solid #D4DDCC', fontSize: 12.5, background: '#fff', color: 'var(--color-text-primary)', cursor: 'pointer' }}>
+                            <option value="" disabled>Pick a category…</option>
+                            {sortedChart.map(a => <option key={a.id} value={a.name}>{a.code} — {a.name}</option>)}
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+              <span style={{ fontSize: 12, color: '#7A9A7A' }}>{unposted.length} left</span>
+              <button onClick={() => setShowUnposted(false)} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid #D4DDCC', background: '#fff', cursor: 'pointer', fontSize: 14 }}>Done</button>
             </div>
           </div>
         </div>
