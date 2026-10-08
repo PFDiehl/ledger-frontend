@@ -139,11 +139,21 @@ export default function ReportsPage() {
   }, [org, tab, year, period, basis, glAccountId, plBankAccountId, customFrom, customTo, asOfDate, compare]);
 
   const line = (label, value, opts = {}) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: '1px solid #f0f0f0' }}>
-      <span style={{ fontSize: 14, color: opts.strong ? '#222' : '#555', fontWeight: opts.strong ? 600 : 400, paddingLeft: opts.indent ? 14 : 0 }}>{label}</span>
+    <div onClick={opts.onClick}
+      title={opts.onClick ? 'View the transactions behind this' : undefined}
+      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: '1px solid #f0f0f0', cursor: opts.onClick ? 'pointer' : 'default' }}>
+      <span style={{ fontSize: 14, color: opts.strong ? '#222' : (opts.onClick ? GREEN : '#555'), fontWeight: opts.strong ? 600 : 400, paddingLeft: opts.indent ? 14 : 0,
+        textDecoration: opts.onClick ? 'underline dotted' : 'none', textUnderlineOffset: 3 }}>{label}</span>
       <span style={{ fontSize: 14, fontWeight: opts.strong ? 700 : 600, color: opts.color || '#333' }}>{fmt(value)}</span>
     </div>
   );
+  // Jump from a report line to that category's transactions in the General Ledger.
+  function drillToCategory(name) {
+    const acct = accounts.find(a => (a.name || '').toLowerCase() === String(name || '').toLowerCase());
+    if (!acct) return;
+    setGlAccountId(acct.id);
+    setTab('General Ledger');
+  }
   const sectionHead = t => (
     <h3 style={{ fontSize: 12, fontWeight: 700, color: '#7A9A7A', margin: '18px 0 4px', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t}</h3>
   );
@@ -269,10 +279,10 @@ export default function ReportsPage() {
                 {safeISO(data.from)} → {safeISO(data.to)} · {data.basis || basis} basis{scopeNote}
               </div>
               {sectionHead('Revenue')}
-              {(data.revenueByCategory || []).map(r => line(r.category, r.amount, { indent: true }))}
+              {(data.revenueByCategory || []).map(r => line(r.category, r.amount, { indent: true, onClick: () => drillToCategory(r.category) }))}
               {line('Total revenue', data.revenue, { strong: true, color: GREEN })}
               {sectionHead('Expenses')}
-              {(data.expenseByCategory || []).map(r => line(r.category, r.amount, { indent: true, color: RED }))}
+              {(data.expenseByCategory || []).map(r => line(r.category, r.amount, { indent: true, color: RED, onClick: () => drillToCategory(r.category) }))}
               {line('Total expenses', data.expenses, { strong: true, color: RED })}
               <div style={{ borderTop: '2px solid ' + GREEN, marginTop: 10, paddingTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 16, fontWeight: 700 }}>Net income</span>
@@ -318,15 +328,15 @@ export default function ReportsPage() {
               <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4, color: GREEN }}>Balance Sheet</h2>
               <div style={{ fontSize: 12, color: '#999', marginBottom: 12 }}>As of {safeISO(data.asOf)} · from the general ledger</div>
               {sectionHead('Assets')}
-              {(data.assets.lines || []).map(l => line(`${l.code} · ${l.name}`, l.amount, { indent: true }))}
+              {(data.assets.lines || []).map(l => line(`${l.code} · ${l.name}`, l.amount, { indent: true, onClick: () => drillToCategory(l.name) }))}
               {(data.assets.lines || []).length === 0 && line('—', 0, { indent: true, color: '#999' })}
               {line('Total assets', data.assets.total, { strong: true, color: GREEN })}
               {sectionHead('Liabilities')}
-              {(data.liabilities.lines || []).map(l => line(`${l.code} · ${l.name}`, l.amount, { indent: true, color: RED }))}
+              {(data.liabilities.lines || []).map(l => line(`${l.code} · ${l.name}`, l.amount, { indent: true, color: RED, onClick: () => drillToCategory(l.name) }))}
               {(data.liabilities.lines || []).length === 0 && line('—', 0, { indent: true, color: '#999' })}
               {line('Total liabilities', data.liabilities.total, { strong: true, color: RED })}
               {sectionHead('Equity')}
-              {(data.equity.lines || []).map(l => line(`${l.code} · ${l.name}`, l.amount, { indent: true }))}
+              {(data.equity.lines || []).map(l => line(`${l.code} · ${l.name}`, l.amount, { indent: true, onClick: () => drillToCategory(l.name) }))}
               {Number(data.equity.retainedEarnings) !== 0 && line('Retained earnings (prior years)', data.equity.retainedEarnings, { indent: true })}
               {line('Net income (current earnings)', data.equity.netIncome, { indent: true })}
               {line('Total equity', data.equity.total, { strong: true })}

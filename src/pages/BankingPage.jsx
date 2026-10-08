@@ -472,7 +472,7 @@ export default function BankingPage() {
         if (r.success) {
           const rows = r.data?.transactions || [];
           if (!rows.length) { setMsg('No purchases were found in that statement. If it’s a scanned image, try a clearer copy.'); }
-          else { setImportData({ preParsed: true, parsedRows: rows, source: 'ai' }); setMsg(''); }
+          else { setImportData({ preParsed: true, parsedRows: rows.map((r, i) => ({ ...r, _id: `s${Date.now()}_${i}` })), source: 'ai' }); setMsg(''); }
         } else {
           setMsg(r.message || 'Could not read that statement.');
         }
@@ -511,7 +511,7 @@ export default function BankingPage() {
         if (r.success) {
           const rows = r.data?.transactions || [];
           if (!rows.length) { setMsg('No transfers were found in that export.'); }
-          else { setImportData({ preParsed: true, parsedRows: rows, source: 'venmo' }); setMsg(''); }
+          else { setImportData({ preParsed: true, parsedRows: rows.map((r, i) => ({ ...r, _id: `v${Date.now()}_${i}` })), source: 'venmo' }); setMsg(''); }
         } else {
           setMsg(r.message || 'Could not read that export.');
         }
@@ -522,8 +522,23 @@ export default function BankingPage() {
     if (isPdf) reader.readAsDataURL(file); else reader.readAsText(file);
   }
 
+  // Edit / remove a parsed row in the review step (AI statement & Venmo imports),
+  // before anything is imported.
+  function setImportRow(i, patch) {
+    setImportData(d => {
+      const rows = [...(d.parsedRows || [])];
+      rows[i] = { ...rows[i], ...patch };
+      return { ...d, parsedRows: rows };
+    });
+  }
+  function removeImportRow(i) {
+    setImportData(d => ({ ...d, parsedRows: (d.parsedRows || []).filter((_, idx) => idx !== i) }));
+  }
+
   function mappedRows(data) {
-    if (data.preParsed) return data.parsedRows.filter(r => r.date && !isNaN(new Date(r.date)) && r.amount !== 0);
+    if (data.preParsed) return data.parsedRows
+      .filter(r => r.date && !isNaN(new Date(r.date)) && r.amount !== 0)
+      .map(r => ({ date: r.date, description: r.description, amount: r.amount }));   // strip edit-only fields
     const { rows, map } = data;
     return rows.map(cols => {
       const date = map.date !== '' ? cols[map.date] : '';
@@ -1505,27 +1520,73 @@ export default function BankingPage() {
                 </>
               )}
 
-              <div style={{ fontSize: 12, color: '#7A9A7A', marginBottom: 6 }}>Preview ({validCount} valid row{validCount === 1 ? '' : 's'})</div>
-              <div style={{ border: '1px solid #EBF2E8', borderRadius: 8, overflow: 'hidden', marginBottom: 18 }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                  <thead><tr style={{ background: '#F6F9F4' }}>
-                    <th style={{ padding: '7px 10px', textAlign: 'left', color: '#7A9A7A' }}>Date</th>
-                    <th style={{ padding: '7px 10px', textAlign: 'left', color: '#7A9A7A' }}>Description</th>
-                    <th style={{ padding: '7px 10px', textAlign: 'right', color: '#7A9A7A' }}>Amount</th>
-                  </tr></thead>
-                  <tbody>
-                    {preview.length === 0 ? (
-                      <tr><td colSpan={3} style={{ padding: 14, textAlign: 'center', color: '#A32D2D' }}>No valid rows with this mapping.</td></tr>
-                    ) : preview.map((r, i) => (
-                      <tr key={i} style={{ borderTop: '0.5px solid #EBF2E8' }}>
-                        <td style={{ padding: '7px 10px' }}>{new Date(r.date).toLocaleDateString('en-US')}</td>
-                        <td style={{ padding: '7px 10px' }}>{r.description}</td>
-                        <td style={{ padding: '7px 10px', textAlign: 'right', color: r.amount > 0 ? '#0F6E56' : '#333' }}>{r.amount > 0 ? '+' : '−'}${fmtMoney(Math.abs(r.amount))}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {fromAI ? (
+                // Editable review: fix a description or amount, or drop a row, before importing.
+                <>
+                  <div style={{ fontSize: 12, color: '#7A9A7A', marginBottom: 6 }}>
+                    Review &amp; edit — {validCount} will import. Click a description or amount to fix it, or ✕ to drop a row.
+                  </div>
+                  <div style={{ border: '1px solid #EBF2E8', borderRadius: 8, overflow: 'auto', maxHeight: '48vh', marginBottom: 18 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                      <thead><tr style={{ background: '#F6F9F4', position: 'sticky', top: 0 }}>
+                        <th style={{ padding: '7px 10px', textAlign: 'left', color: '#7A9A7A', width: 78 }}>Date</th>
+                        <th style={{ padding: '7px 10px', textAlign: 'left', color: '#7A9A7A' }}>Description</th>
+                        <th style={{ padding: '7px 10px', textAlign: 'right', color: '#7A9A7A', width: 110 }}>Amount</th>
+                        <th style={{ width: 28 }}></th>
+                      </tr></thead>
+                      <tbody>
+                        {(importData.parsedRows || []).length === 0 ? (
+                          <tr><td colSpan={4} style={{ padding: 14, textAlign: 'center', color: '#A32D2D' }}>No rows left.</td></tr>
+                        ) : (importData.parsedRows || []).map((r, i) => {
+                          const valid = r.date && !isNaN(new Date(r.date)) && Number(r.amount) !== 0;
+                          return (
+                          <tr key={r._id || i} style={{ borderTop: '0.5px solid #EBF2E8', opacity: valid ? 1 : 0.5 }}>
+                            <td style={{ padding: '5px 8px', color: '#7A9A7A', whiteSpace: 'nowrap' }}>{r.date ? new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}</td>
+                            <td style={{ padding: '5px 8px' }}>
+                              <input defaultValue={r.description}
+                                onFocus={e => { e.target.style.border = '1px solid #D4DDCC'; e.target.style.background = '#fff'; }}
+                                onBlur={e => { setImportRow(i, { description: e.target.value }); e.target.style.border = '1px solid transparent'; e.target.style.background = 'transparent'; }}
+                                style={{ width: '100%', padding: '4px 6px', border: '1px solid transparent', borderRadius: 5, fontSize: 12, background: 'transparent', color: 'var(--color-text-primary)' }} />
+                            </td>
+                            <td style={{ padding: '5px 8px', textAlign: 'right' }}>
+                              <input defaultValue={r.amount} inputMode="decimal" onBlur={e => setImportRow(i, { amount: toAmount(e.target.value) })}
+                                style={{ width: 90, padding: '4px 6px', border: '1px solid #EBF2E8', borderRadius: 5, fontSize: 12, textAlign: 'right', color: Number(r.amount) > 0 ? '#0F6E56' : '#333' }} />
+                            </td>
+                            <td style={{ padding: '5px 4px', textAlign: 'center' }}>
+                              <button onClick={() => removeImportRow(i)} title="Drop this row" style={{ background: 'none', border: 'none', color: '#A32D2D', fontSize: 14, cursor: 'pointer' }}>✕</button>
+                            </td>
+                          </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 12, color: '#7A9A7A', marginBottom: 6 }}>Preview ({validCount} valid row{validCount === 1 ? '' : 's'})</div>
+                  <div style={{ border: '1px solid #EBF2E8', borderRadius: 8, overflow: 'hidden', marginBottom: 18 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                      <thead><tr style={{ background: '#F6F9F4' }}>
+                        <th style={{ padding: '7px 10px', textAlign: 'left', color: '#7A9A7A' }}>Date</th>
+                        <th style={{ padding: '7px 10px', textAlign: 'left', color: '#7A9A7A' }}>Description</th>
+                        <th style={{ padding: '7px 10px', textAlign: 'right', color: '#7A9A7A' }}>Amount</th>
+                      </tr></thead>
+                      <tbody>
+                        {preview.length === 0 ? (
+                          <tr><td colSpan={3} style={{ padding: 14, textAlign: 'center', color: '#A32D2D' }}>No valid rows with this mapping.</td></tr>
+                        ) : preview.map((r, i) => (
+                          <tr key={i} style={{ borderTop: '0.5px solid #EBF2E8' }}>
+                            <td style={{ padding: '7px 10px' }}>{new Date(r.date).toLocaleDateString('en-US')}</td>
+                            <td style={{ padding: '7px 10px' }}>{r.description}</td>
+                            <td style={{ padding: '7px 10px', textAlign: 'right', color: r.amount > 0 ? '#0F6E56' : '#333' }}>{r.amount > 0 ? '+' : '−'}${fmtMoney(Math.abs(r.amount))}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
 
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={() => setImportData(null)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #D4DDCC', background: '#fff', cursor: 'pointer', fontSize: 14 }}>Cancel</button>
