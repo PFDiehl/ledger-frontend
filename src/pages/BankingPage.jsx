@@ -201,6 +201,7 @@ export default function BankingPage() {
   const [parsingPdf, setParsingPdf] = useState(false); // AI reading a statement PDF
   const [dragIdx, setDragIdx] = useState(null);        // account card being dragged
   const [overIdx, setOverIdx] = useState(null);        // account card being dragged over
+  const [resyncing, setResyncing] = useState(false);   // re-posting categorized txns to the books
 
   const [matchFor, setMatchFor]       = useState(null);  // txn being reconciled
   const [matchCands, setMatchCands]   = useState([]);
@@ -232,6 +233,22 @@ export default function BankingPage() {
   const [splitFor, setSplitFor]       = useState(null);  // the transaction being split
   const [splitLines, setSplitLines]   = useState([{ category: '', amount: '' }, { category: '', amount: '' }]);
   const [savingSplit, setSavingSplit] = useState(false);
+
+  // Re-post every categorized transaction to the books. Fixes any that were
+  // categorized but never posted (e.g. a company that had no cash account yet).
+  async function resyncBooks() {
+    if (resyncing) return;
+    setResyncing(true); setMsg('Re-posting your categorized transactions to the books…');
+    try {
+      const r = await fetch(`${API}/orgs/${orgId}/banking/resync-ledger`, { method: 'POST', headers }).then(r => r.json());
+      if (r.success) {
+        const d = r.data || {};
+        setMsg(`Re-synced to the books: ${d.posted} of ${d.checked} posted${d.missed ? ` · ${d.missed} couldn’t post (their category doesn’t match a chart-of-accounts account — re-pick a category for those)` : ' — all set'}.`);
+        await loadTxns(activeId);
+      } else setMsg(r.message || 'Could not re-sync to the books.');
+    } catch (e) { setMsg('Could not re-sync to the books.'); }
+    setResyncing(false);
+  }
 
   async function loadAccounts() {
     setLoading(true);
@@ -742,6 +759,10 @@ export default function BankingPage() {
               ✏ Add transaction
             </button>
           )}
+          <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={resyncBooks} disabled={resyncing}
+            title="Re-post all categorized transactions to the books — fixes any that didn't make it into reports">
+            ⟲ {resyncing ? 'Re-syncing…' : 'Re-sync books'}
+          </button>
           <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={() => setShowRules(true)}>
             ⚙ Rules{rules.length ? ` (${rules.length})` : ''}
           </button>
