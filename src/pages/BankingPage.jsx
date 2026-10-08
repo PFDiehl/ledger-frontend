@@ -105,7 +105,7 @@ function defaultMatch(desc) {
 
 // Searchable category picker: click to open, type to filter (so "T" jumps to
 // Travel), arrow keys + Enter to choose. Value is the chart-account NAME.
-function CategoryPicker({ value, options, onPick, autoOpen }) {
+function CategoryPicker({ value, options, onPick, autoOpen, warn }) {
   const [open, setOpen]     = useState(!!autoOpen);   // autoOpen: start in "type to filter" mode
   const [q, setQ]           = useState('');
   const [active, setActive] = useState(0);
@@ -145,10 +145,12 @@ function CategoryPicker({ value, options, onPick, autoOpen }) {
   return (
     <div ref={boxRef} style={{ position: 'relative', flex: 1, minWidth: 0 }}>
       <button type="button" onClick={() => setOpen(o => !o)}
+        title={warn ? 'This category was renamed or removed — re-pick it so the charge posts to the books.' : undefined}
         style={{ ...inputStyle, padding: '6px 8px', textAlign: 'left', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6,
-          borderColor: hasValue ? '#D4DDCC' : '#F0C36D', background: hasValue ? '#fff' : '#FFFBF2',
-          color: hasValue ? 'var(--color-text-primary)' : '#854F0B', overflow: 'hidden' }}>
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || 'Uncategorized…'}</span>
+          borderColor: warn ? '#E8894B' : (hasValue ? '#D4DDCC' : '#F0C36D'),
+          background:  warn ? '#FFF4EC' : (hasValue ? '#fff' : '#FFFBF2'),
+          color:       warn ? '#8A3B12' : (hasValue ? 'var(--color-text-primary)' : '#854F0B'), overflow: 'hidden' }}>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{warn ? '⚠ ' : ''}{value || 'Uncategorized…'}</span>
         <span style={{ color: '#9BB39B', fontSize: 10 }}>▼</span>
       </button>
       {open && (
@@ -941,7 +943,8 @@ export default function BankingPage() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                               <span style={{ fontSize: 11, fontWeight: 600, color: '#0F6E56', background: '#E1F5EE', padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>✓ Added</span>
                               <CategoryPicker value={t.category || ''} options={sortedChart}
-                                onPick={(name) => categorize(t.id, name, t)} />
+                                onPick={(name) => categorize(t.id, name, t)}
+                                warn={!!t.category && !chart.some(a => (a.name || '').toLowerCase() === String(t.category).toLowerCase())} />
                               <button onClick={() => openSplit(t)} title="Split this charge across two or more categories (e.g. rental vs. property)"
                                 style={{ background: 'none', border: 'none', color: 'var(--brand-primary, #2D4A35)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline', whiteSpace: 'nowrap' }}>Split</button>
                             </div>
