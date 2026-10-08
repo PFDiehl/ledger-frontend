@@ -78,6 +78,7 @@ export default function ReportsPage() {
   const [asOfDate, setAsOfDate]       = useState(safeISO(now));
   const [compare, setCompare]         = useState('none');   // none | prev | prevyear
   const [data2, setData2]             = useState(null);      // comparison-period payload
+  const [contractorFilter, setContractorFilter] = useState('all');   // all | marked (1099 contractors only)
 
   const years = [];
   for (let y = now.getFullYear(); y >= now.getFullYear() - 6; y--) years.push(y);
@@ -150,6 +151,33 @@ export default function ReportsPage() {
       <span style={{ fontSize: 14, fontWeight: opts.strong ? 700 : 600, color: opts.color || '#333' }}>{fmt(value)}</span>
     </div>
   );
+  // Recompute a contractor row's flags from a given 1099 mark, so the badges and
+  // row shading update the instant the box is ticked (no refetch needed).
+  const deriveContractorRow = (r, is1099, threshold = 600) => {
+    const overThreshold = r.overThreshold ?? (Number(r.total || 0) >= threshold);
+    return {
+      ...r, is1099,
+      needs1099:   is1099 && overThreshold,
+      candidate:   !is1099 && overThreshold,
+      payrollRisk: is1099 && !!r.recurring && (r.count || 0) >= 3,
+    };
+  };
+  // Tick/untick a payee as a real 1099 contractor. Updates the row optimistically,
+  // saves it to the company (MTL remembers it), and reverts if the save fails.
+  async function markContractor(payee, is1099) {
+    const threshold = data?.threshold || 600;
+    setData(prev => prev && prev.rows
+      ? { ...prev, rows: prev.rows.map(r => r.payee === payee ? deriveContractorRow(r, is1099, threshold) : r) }
+      : prev);
+    try {
+      await api.post(`/orgs/${org.id}/reports/contractors/mark`, { payee, is1099 });
+    } catch (e) {
+      console.error(e);
+      setData(prev => prev && prev.rows
+        ? { ...prev, rows: prev.rows.map(r => r.payee === payee ? deriveContractorRow(r, !is1099, threshold) : r) }
+        : prev);
+    }
+  }
   // Jump from a report line to that category's transactions in the General Ledger.
   function drillToCategory(name) {
     const acct = accounts.find(a => (a.name || '').toLowerCase() === String(name || '').toLowerCase());
@@ -220,6 +248,14 @@ export default function ReportsPage() {
             <option value="">Select account…</option>
             {accounts.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
           </select>
+        )}
+        {tab === 'Contractors (1099)' && (
+          <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+            <span style={{ fontSize: 12, color: '#999' }}>Show:</span>
+            {[['all', 'All payees'], ['marked', '1099 contractors only']].map(([k, lbl]) => (
+              <button key={k} onClick={() => setContractorFilter(k)} style={ctrlBtn(contractorFilter === k)}>{lbl}</button>
+            ))}
+          </span>
         )}
         {(tab === 'P&L' || tab === 'Cash Flow') && PERIODS.map(p => (
           <button key={p.key} onClick={() => setPeriod(p.key)} style={ctrlBtn(period === p.key)}>{p.label}</button>
@@ -508,22 +544,34 @@ export default function ReportsPage() {
             </>
           )}
 
-          {tab === 'Contractors (1099)' && data.rows && (
+          {tab === 'Contractors (1099)' && data.rows && (() => {
+            const threshold    = data.threshold || 600;
+            const allRows      = data.rows;
+            const markedCount  = allRows.filter(r => r.is1099).length;
+            const flaggedCount = allRows.filter(r => r.needs1099).length;      // marked AND $600+
+            const candidateCt  = allRows.filter(r => r.candidate).length;      // $600+ but not yet confirmed
+            const payrollCount = allRows.filter(r => r.payrollRisk).length;
+            const shown        = contractorFilter === 'marked' ? allRows.filter(r => r.is1099) : allRows;
+            return (
             <>
               <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4, color: GREEN }}>Contractors &amp; 1099</h2>
               <div style={{ fontSize: 12, color: '#999', marginBottom: 10 }}>Year {year} · money paid out, grouped by payee</div>
               <div style={{ fontSize: 12.5, color: '#5E6B62', background: '#F6F9F4', border: '1px solid #E6EFE8', borderRadius: 8, padding: '10px 12px', marginBottom: 14, lineHeight: 1.5 }}>
-                Review which of these you paid for <strong>services</strong>. Anyone paid <strong>${data.threshold}+</strong> for services this year likely needs a <strong>1099-NEC</strong> (and a W-9). A ⚠ payroll flag means someone was paid like an employee (recurring, same amount) — that may belong on payroll. A guide to review, not tax advice.
+                Tick <strong>1099?</strong> for each payee you actually pay for <strong>services</strong> (a person or business — not a store, utility, or subscription). MTL remembers your picks. Once ticked, anyone paid <strong>${threshold}+</strong> this year is flagged as needing a <strong>1099-NEC</strong> and a W-9, and a ⚠ payroll flag warns if they were paid like an employee (same amount, over and over). A guide to review, not tax advice.
               </div>
-              {(data.flaggedCount > 0 || data.payrollRiskCount > 0) && (
-                <div style={{ fontSize: 13, marginBottom: 10, color: '#8A3B12', fontWeight: 600 }}>
-                  {data.flaggedCount} over ${data.threshold}{data.payrollRiskCount ? ` · ${data.payrollRiskCount} possible payroll` : ''}
+              {(flaggedCount > 0 || candidateCt > 0 || payrollCount > 0) && (
+                <div style={{ fontSize: 13, marginBottom: 10, color: '#5E6B62', fontWeight: 600, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                  {flaggedCount > 0 && <span style={{ color: '#8A3B12' }}>{flaggedCount} need a 1099/W-9</span>}
+                  {candidateCt > 0 && <span style={{ color: '#9A7B2A' }}>{candidateCt} over ${threshold} to review</span>}
+                  {payrollCount > 0 && <span style={{ color: '#7A3A8A' }}>{payrollCount} possible payroll</span>}
+                  {markedCount > 0 && <span style={{ color: '#7A9A7A' }}>{markedCount} marked as 1099</span>}
                 </div>
               )}
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 560 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 620 }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid #D4DDCC' }}>
+                      <th style={{ textAlign: 'center', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600, width: 54 }}>1099?</th>
                       <th style={{ textAlign: 'left',  padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Payee</th>
                       <th style={{ textAlign: 'right', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Paid</th>
                       <th style={{ textAlign: 'right', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Payments</th>
@@ -531,15 +579,23 @@ export default function ReportsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.rows.length === 0 ? (
-                      <tr><td colSpan={4} style={{ padding: '16px 6px', color: '#7A9A7A' }}>No payments to named payees this year yet. Import Venmo/Cash App or set a payee on transactions, and they'll total up here.</td></tr>
-                    ) : data.rows.map((r, i) => (
-                      <tr key={i} style={{ borderBottom: '0.5px solid #EBF2E8', background: r.needs1099 ? '#FFFBF2' : undefined }}>
+                    {allRows.length === 0 ? (
+                      <tr><td colSpan={5} style={{ padding: '16px 6px', color: '#7A9A7A' }}>No payments to named payees this year yet. Import Venmo/Cash App or set a payee on transactions, and they'll total up here.</td></tr>
+                    ) : shown.length === 0 ? (
+                      <tr><td colSpan={5} style={{ padding: '16px 6px', color: '#7A9A7A' }}>No payees marked as 1099 contractors yet. Switch to “All payees” and tick the real contractors.</td></tr>
+                    ) : shown.map((r, i) => (
+                      <tr key={r.payee} style={{ borderBottom: '0.5px solid #EBF2E8', background: r.needs1099 ? '#FFFBF2' : (r.is1099 ? '#F6FAF4' : undefined) }}>
+                        <td style={{ padding: '9px 6px', textAlign: 'center' }}>
+                          <input type="checkbox" checked={!!r.is1099} onChange={e => markContractor(r.payee, e.target.checked)}
+                            title="Mark this payee as a 1099 contractor" style={{ width: 16, height: 16, cursor: 'pointer', accentColor: GREEN }} />
+                        </td>
                         <td style={{ padding: '9px 6px', fontWeight: 500 }}>{r.payee}</td>
                         <td style={{ padding: '9px 6px', textAlign: 'right', fontWeight: 600 }}>{fmt(r.total)}</td>
                         <td style={{ padding: '9px 6px', textAlign: 'right', color: '#7A9A7A' }}>{r.count}</td>
                         <td style={{ padding: '9px 6px' }}>
                           {r.needs1099 && <span style={{ fontSize: 11, fontWeight: 700, color: '#8A3B12', background: '#FBE9D8', padding: '2px 8px', borderRadius: 20, marginRight: 6, whiteSpace: 'nowrap' }}>⚠ $600+ → 1099/W-9</span>}
+                          {r.is1099 && !r.needs1099 && <span style={{ fontSize: 11, fontWeight: 700, color: GREEN, background: '#E6F0E6', padding: '2px 8px', borderRadius: 20, marginRight: 6, whiteSpace: 'nowrap' }}>1099 contractor</span>}
+                          {r.candidate && <span style={{ fontSize: 11, fontWeight: 600, color: '#9A7B2A', background: '#FBF5E3', padding: '2px 8px', borderRadius: 20, marginRight: 6, whiteSpace: 'nowrap' }}>${threshold}+ · review?</span>}
                           {r.payrollRisk && <span style={{ fontSize: 11, fontWeight: 700, color: '#7A3A8A', background: '#F0E6F6', padding: '2px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>⚠ payroll?</span>}
                         </td>
                       </tr>
@@ -548,7 +604,8 @@ export default function ReportsPage() {
                 </table>
               </div>
             </>
-          )}
+            );
+          })()}
         </div>
       )}
 
