@@ -297,9 +297,12 @@ export default function App() {
   if (!user) return <AuthPage initialMode={authMode} onBack={() => setShowLanding(true)} onSuccess={() => {}} />;
 
   // Card-required gate: block access until the org has an active/trialing plan.
+  // Exemptions (never gated): the platform owner, and reseller/bookkeeper-managed
+  // client companies — those are billed through their reseller, not this paywall.
   if (BILLING_ENFORCED) {
     if (!subReady) return <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color:'var(--color-text-secondary)' }}>Loading…</div>;
-    if (subInfo && !subInfo.active) return <SubscribeGate org={org} selectedPlan={selectedPlan} apiBase={API_BASE} onLogout={logout} />;
+    const billingExempt = isPlatformOwner || subInfo?.exempt;
+    if (subInfo && !subInfo.active && !billingExempt) return <SubscribeGate org={org} selectedPlan={selectedPlan} apiBase={API_BASE} onLogout={logout} />;
   }
 
   const nav = id => { setActiveNav(id); setView({ type:'list' }); };
