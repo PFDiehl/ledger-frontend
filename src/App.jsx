@@ -161,6 +161,7 @@ export default function App() {
   const [showAI, setShowAI]        = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(null); // invoice payment
   const [subStatus, setSubStatus]  = useState(null);          // subscription (post-checkout verify)
+  const [subFreeUntil, setSubFreeUntil] = useState(null);     // real "no charge until" date from Stripe (trial + promo)
   const [selectedPlan, setSelectedPlan] = useState(() => localStorage.getItem('mtl_selected_plan') || null);
   const [subInfo, setSubInfo]   = useState(null);             // billing gate: current subscription
   const [subReady, setSubReady] = useState(!BILLING_ENFORCED); // gate open immediately when not enforced
@@ -215,7 +216,7 @@ export default function App() {
         body: JSON.stringify({ session_id: sessionId })
       })
         .then(r => r.json())
-        .then(data => setSubStatus(data.active ? 'active' : 'inactive'))
+        .then(data => { setSubStatus(data.active ? 'active' : 'inactive'); if (data.freeUntil) setSubFreeUntil(data.freeUntil); })
         .catch(() => setSubStatus('error'));
     }
   }, []);
@@ -273,7 +274,7 @@ export default function App() {
       return <div style={box}>
         <div style={{fontSize:48}}>🎉</div>
         <h1 style={{margin:0, fontSize:24}}>You're all set!</h1>
-        <p style={{color:'#555', maxWidth:380}}>Your first month is free — welcome to MountainTop Ledger. You won't be charged until next month.</p>
+        <p style={{color:'#555', maxWidth:380}}>Welcome to MountainTop Ledger! {subFreeUntil ? `You won't be charged until ${new Date(subFreeUntil).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}.` : "You won't be charged until your free period ends."}</p>
         <a href="/" style={{padding:'10px 20px', background:'#2D7A4A', color:'#fff', borderRadius:8, textDecoration:'none', fontWeight:600}}>Go to my dashboard</a>
       </div>;
     return <div style={box}>

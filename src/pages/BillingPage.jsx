@@ -26,6 +26,12 @@ const STATUS_LABEL = {
   trial:      'No active subscription',
 };
 
+// Friendly date, e.g. "February 8, 2027". Returns '' on anything unparseable.
+const fmtDate = iso => {
+  try { const d = new Date(iso); return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }); }
+  catch { return ''; }
+};
+
 export default function BillingPage() {
   const { org } = useAuth();
   const toast = useToast();
@@ -97,6 +103,11 @@ export default function BillingPage() {
           <div style={{ fontSize: 12, color: active ? '#0F6E56' : 'var(--color-text-secondary)', marginTop: 2 }}>
             {STATUS_LABEL[planStatus] || (active ? 'Active' : 'No active subscription')}
           </div>
+          {active && sub?.freeUntil && fmtDate(sub.freeUntil) && (
+            <div style={{ fontSize: 12.5, color: '#0F6E56', marginTop: 4, fontWeight: 600 }}>
+              No charge until {fmtDate(sub.freeUntil)}
+            </div>
+          )}
         </div>
         {sub?.hasCustomer && (
           <button className="btn-secondary" disabled={busy === 'portal'} onClick={openPortal}>
