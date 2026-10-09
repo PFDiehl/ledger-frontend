@@ -162,6 +162,12 @@ export default function BillingPage() {
         })}
       </div>
 
+      {!active && (
+        <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginTop: 14, background: 'var(--color-background-secondary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 8, padding: '9px 12px' }}>
+          <strong style={{ color: 'var(--color-text-primary)' }}>Have a promo code?</strong> You can enter it on the next screen, at checkout — just look for “Add promotion code.”
+        </div>
+      )}
+
       <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 16 }}>
         Payments are handled securely by Stripe. Card required; cancel anytime before your first month ends and you won't be charged.
       </div>
