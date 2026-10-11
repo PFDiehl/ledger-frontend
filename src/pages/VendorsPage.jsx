@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import VendorForm from './VendorForm';
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 const fmt = (n) => Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -15,8 +15,9 @@ function Avatar({ name }) {
   );
 }
 
-export default function VendorsPage({ org, onNewBill }) {
+export default function VendorsPage({ org, onNewBill, focusName }) {
   const [vendors, setVendors] = useState([]);
+  const focusConsumed = useRef(null);
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('list'); // 'list' | 'form' | 'detail'
@@ -25,6 +26,17 @@ export default function VendorsPage({ org, onNewBill }) {
   const [search, setSearch] = useState('');
 
   useEffect(() => { if (org) { loadVendors(); loadBills(); } }, [org]);
+
+  // Deep-link from the top-bar record search: filter to the name and open the
+  // matching vendor's detail once the list has loaded (once per search).
+  useEffect(() => {
+    if (!focusName) return;
+    setSearch(focusName);
+    if (focusConsumed.current === focusName || !vendors.length) return;
+    const qq = focusName.toLowerCase();
+    const match = vendors.find(v => [v.name, v.company, v.email].filter(Boolean).some(s => s.toLowerCase().includes(qq)));
+    if (match) { setSelected(match); setView('detail'); focusConsumed.current = focusName; }
+  }, [focusName, vendors]);
 
   async function loadVendors() {
     setLoading(true);

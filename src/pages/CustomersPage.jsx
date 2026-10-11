@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import CustomerForm from './CustomerForm';
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 const fmt = (n) => Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -16,8 +16,9 @@ function Avatar({ name }) {
 }
 
 
-export default function CustomersPage({ org, onNewInvoice }) {
+export default function CustomersPage({ org, onNewInvoice, focusName }) {
   const [customers, setCustomers] = useState([]);
+  const focusConsumed = useRef(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('list'); // 'list' | 'form' | 'detail'
   const [editing, setEditing] = useState(null);
@@ -40,6 +41,17 @@ export default function CustomersPage({ org, onNewInvoice }) {
   }
 
   useEffect(() => { if (org) loadCustomers(); }, [org]);
+
+  // Deep-link from the top-bar record search: filter to the name and open the
+  // matching customer's detail once the list has loaded (once per search).
+  useEffect(() => {
+    if (!focusName) return;
+    setSearch(focusName);
+    if (focusConsumed.current === focusName || !customers.length) return;
+    const qq = focusName.toLowerCase();
+    const match = customers.find(c => [c.name, c.company, c.email].filter(Boolean).some(s => s.toLowerCase().includes(qq)));
+    if (match) { setSelected(match); setView('detail'); focusConsumed.current = focusName; }
+  }, [focusName, customers]);
 
   async function loadCustomers() {
     setLoading(true);

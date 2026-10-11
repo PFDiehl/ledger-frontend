@@ -305,7 +305,14 @@ export default function App() {
     if (subInfo && !subInfo.active && !billingExempt) return <SubscribeGate org={org} selectedPlan={selectedPlan} apiBase={API_BASE} onLogout={logout} />;
   }
 
-  const nav = id => { setActiveNav(id); setView({ type:'list' }); };
+  const nav = (id, focus) => {
+    setActiveNav(id);
+    // Top-bar record search passes a focus payload to open the exact record.
+    if (focus?.invoice && id === 'invoices')          setView({ type:'detail', data: focus.invoice });
+    else if (focus?.presetVendor && id === 'bills')   setView({ type:'list', presetVendor: focus.presetVendor });
+    else if (focus?.focusName)                        setView({ type:'list', focusName: focus.focusName });
+    else                                              setView({ type:'list' });
+  };
 
   // First-visit welcome bubble (shown once on the Dashboard). Replaces the old
   // onboarding wizard — new users land straight on the Dashboard.
@@ -329,8 +336,8 @@ export default function App() {
         if (view.type==='detail') return <BillDetailPage bill={view.data} onBack={()=>setView({type:'list'})} onEdit={b=>setView({type:'form',data:b})} />;
         if (view.type==='form')   return <BillFormPage   bill={view.data} onBack={()=>setView(view.data?{type:'detail',data:view.data}:{type:'list'})} onSave={()=>setView({type:'list'})} />;
         return <BillsPage presetVendor={view.presetVendor} />;
-      case 'customers':   return <CustomersPage org={org} onNewInvoice={(c)=>{ setActiveNav('invoices'); setView({ type:'form', data:null, preset:c }); }} />;
-      case 'vendors':     return <VendorsPage org={org} onNewBill={(v)=>{ setActiveNav('bills'); setView({ type:'list', presetVendor:v }); }} />;
+      case 'customers':   return <CustomersPage org={org} focusName={view.focusName} onNewInvoice={(c)=>{ setActiveNav('invoices'); setView({ type:'form', data:null, preset:c }); }} />;
+      case 'vendors':     return <VendorsPage org={org} focusName={view.focusName} onNewBill={(v)=>{ setActiveNav('bills'); setView({ type:'list', presetVendor:v }); }} />;
       case 'expenses':    return <ExpensesPage />;
       case 'bank':        return <BankingPage />;
       case 'reports':     return <ReportsPage />;

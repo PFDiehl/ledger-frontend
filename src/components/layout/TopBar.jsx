@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme, THEMES } from '../../lib/ThemeContext';
 import { useAuth }  from '../../lib/AuthContext';
+import { api }      from '../../lib/api';
 
 // Quick "jump to a page" destinations for the top-bar search. Each id matches a
 // case in App's renderPage(), so selecting one navigates straight there.
@@ -30,12 +31,50 @@ export default function TopBar({ onLogout, onAI, onNavigate }) {
   const [showOrgs, setShowOrgs] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [query, setQuery] = useState('');
+  const [records, setRecords] = useState(null);     // backend record matches
+  const [searching, setSearching] = useState(false);
 
   const q = query.trim().toLowerCase();
-  const results = q
+  const term = query.trim();
+  const pageResults = q
     ? SEARCH_DESTINATIONS.filter(d => (d.label + ' ' + d.kw).toLowerCase().includes(q))
     : SEARCH_DESTINATIONS;
-  function go(id) { onNavigate?.(id); setShowSearch(false); setQuery(''); }
+
+  // Debounced record search across customers / vendors / invoices / bills / transactions.
+  useEffect(() => {
+    if (!org?.id || term.length < 2) { setRecords(null); setSearching(false); return; }
+    setSearching(true);
+    const t = setTimeout(async () => {
+      try { const r = await api.get(`/orgs/${org.id}/search`, { q: term }); setRecords(r?.data || null); }
+      catch { setRecords(null); }
+      finally { setSearching(false); }
+    }, 220);
+    return () => clearTimeout(t);
+  }, [term, org?.id]);
+
+  const money = n => '$' + Math.abs(Number(n || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // Flatten the record groups into a single ordered list of selectable rows, each
+  // carrying the nav target + focus payload App needs to open it.
+  const recordRows = [];
+  if (records) {
+    for (const c of records.customers || [])
+      recordRows.push({ key: 'c' + c.id, group: 'Customers', title: c.name || c.company || '—', sub: c.company && c.company !== c.name ? c.company : (c.email || ''), nav: 'customers', focus: { focusName: c.name || c.company } });
+    for (const v of records.vendors || [])
+      recordRows.push({ key: 'v' + v.id, group: 'Vendors', title: v.name || v.company || '—', sub: v.company && v.company !== v.name ? v.company : (v.email || ''), nav: 'vendors', focus: { focusName: v.name || v.company } });
+    for (const inv of records.invoices || [])
+      recordRows.push({ key: 'i' + inv.id, group: 'Invoices', title: `${inv.invoiceNumber || 'Invoice'} · ${money(inv.total)}`, sub: `${inv.contact?.company || inv.contact?.name || ''}${inv.status ? ' · ' + inv.status : ''}`.trim(), nav: 'invoices', focus: { invoice: inv } });
+    for (const b of records.bills || [])
+      recordRows.push({ key: 'b' + b.id, group: 'Bills', title: `${b.vendor || 'Bill'} · ${money(b.amount)}`, sub: b.status || '', nav: 'bills', focus: { presetVendor: b.vendor } });
+    for (const tx of records.transactions || [])
+      recordRows.push({ key: 't' + tx.id, group: 'Transactions', title: `${tx.payee || tx.description || '—'} · ${money(tx.amount)}`, sub: tx.category || (tx.payee && tx.description ? tx.description : ''), nav: 'bank', focus: {} });
+  }
+
+  function go(id, focus) { onNavigate?.(id, focus); setShowSearch(false); setQuery(''); setRecords(null); }
+  function selectFirst() {
+    if (recordRows[0]) go(recordRows[0].nav, recordRows[0].focus);
+    else if (q && pageResults[0]) go(pageResults[0].id);
+  }
 
   const initials = user?.fullName?.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() ?? 'U';
   const canSwitch = (orgs?.length || 0) > 1;
@@ -230,21 +269,63 @@ export default function TopBar({ onLogout, onAI, onNavigate }) {
             <div style={{ display:'flex', alignItems:'center', gap:10, padding:'14px 16px', borderBottom:'0.5px solid var(--color-border-tertiary)' }}>
               <i className="ti ti-search" style={{ fontSize:18, color:'var(--color-text-tertiary)' }} />
               <input autoFocus value={query} onChange={e => setQuery(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Escape') { setShowSearch(false); setQuery(''); } if (e.key === 'Enter' && results[0]) go(results[0].id); }}
-                placeholder="Jump to a page…"
+                onKeyDown={e => { if (e.key === 'Escape') { setShowSearch(false); setQuery(''); setRecords(null); } if (e.key === 'Enter') selectFirst(); }}
+                placeholder="Search customers, invoices, vendors, pages…"
                 style={{ flex:1, border:'none', outline:'none', background:'transparent', fontSize:15, color:'var(--color-text-primary)' }} />
               <kbd style={{ fontSize:10, color:'var(--color-text-tertiary)', border:'0.5px solid var(--color-border-tertiary)', borderRadius:4, padding:'1px 5px' }}>Esc</kbd>
             </div>
-            <div style={{ maxHeight:320, overflowY:'auto', padding:6 }}>
-              {results.length === 0 ? (
-                <div style={{ padding:'16px', fontSize:13, color:'var(--color-text-tertiary)' }}>No pages match “{query}”.</div>
-              ) : results.map((d, i) => (
-                <button key={d.id} onClick={() => go(d.id)}
-                  style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:8, border:'none', cursor:'pointer', textAlign:'left', background: (i === 0 && q) ? 'var(--color-background-secondary)' : 'transparent', color:'var(--color-text-primary)', fontSize:14 }}>
-                  <i className="ti ti-arrow-right" style={{ fontSize:14, color:'var(--color-text-tertiary)' }} />
-                  {d.label}
-                </button>
-              ))}
+            <div style={{ maxHeight:400, overflowY:'auto', padding:6 }}>
+              {/* Matching records */}
+              {term.length >= 2 && (
+                <>
+                  {searching && recordRows.length === 0 && (
+                    <div style={{ padding:'10px 12px', fontSize:12.5, color:'var(--color-text-tertiary)' }}>Searching records…</div>
+                  )}
+                  {(() => {
+                    let last = null; const out = [];
+                    recordRows.forEach((r, idx) => {
+                      if (r.group !== last) {
+                        out.push(
+                          <div key={'h' + r.group} style={{ fontSize:10, fontWeight:600, textTransform:'uppercase', letterSpacing:'.06em', color:'var(--color-text-tertiary)', padding:'8px 12px 4px' }}>{r.group}</div>
+                        );
+                        last = r.group;
+                      }
+                      out.push(
+                        <button key={r.key} onClick={() => go(r.nav, r.focus)}
+                          style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'9px 12px', borderRadius:8, border:'none', cursor:'pointer', textAlign:'left', background: idx === 0 ? 'var(--color-background-secondary)' : 'transparent', color:'var(--color-text-primary)' }}>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontSize:14, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{r.title}</div>
+                            {r.sub && <div style={{ fontSize:11.5, color:'var(--color-text-tertiary)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', textTransform:'capitalize' }}>{r.sub}</div>}
+                          </div>
+                          <i className="ti ti-corner-down-left" style={{ fontSize:12, color:'var(--color-text-tertiary)', flexShrink:0 }} />
+                        </button>
+                      );
+                    });
+                    return out;
+                  })()}
+                  {!searching && records && recordRows.length === 0 && (
+                    <div style={{ padding:'10px 12px', fontSize:12.5, color:'var(--color-text-tertiary)' }}>No records match “{term}”.</div>
+                  )}
+                </>
+              )}
+
+              {/* Pages */}
+              {pageResults.length > 0 && (
+                <>
+                  <div style={{ fontSize:10, fontWeight:600, textTransform:'uppercase', letterSpacing:'.06em', color:'var(--color-text-tertiary)', padding:'8px 12px 4px' }}>Pages</div>
+                  {pageResults.map(d => (
+                    <button key={d.id} onClick={() => go(d.id)}
+                      style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:8, border:'none', cursor:'pointer', textAlign:'left', background:'transparent', color:'var(--color-text-primary)', fontSize:14 }}>
+                      <i className="ti ti-arrow-right" style={{ fontSize:14, color:'var(--color-text-tertiary)' }} />
+                      {d.label}
+                    </button>
+                  ))}
+                </>
+              )}
+
+              {pageResults.length === 0 && recordRows.length === 0 && !searching && term.length >= 2 && (
+                <div style={{ padding:'16px', fontSize:13, color:'var(--color-text-tertiary)' }}>No matches for “{query}”.</div>
+              )}
             </div>
           </div>
         </div>
