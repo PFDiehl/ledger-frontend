@@ -155,9 +155,11 @@ export default function ReportsPage() {
   // row shading update the instant the box is ticked (no refetch needed).
   const deriveContractorRow = (r, is1099, threshold = 600) => {
     const overThreshold = r.overThreshold ?? (Number(r.total || 0) >= threshold);
+    const w9OnFile = is1099 ? !!r.w9OnFile : false;   // unmarking a contractor clears the W-9 relevance
     return {
-      ...r, is1099,
+      ...r, is1099, w9OnFile,
       needs1099:   is1099 && overThreshold,
+      needsW9:     is1099 && !w9OnFile,
       candidate:   !is1099 && overThreshold,
       payrollRisk: is1099 && !!r.recurring && (r.count || 0) >= 3,
     };
@@ -177,6 +179,45 @@ export default function ReportsPage() {
         ? { ...prev, rows: prev.rows.map(r => r.payee === payee ? deriveContractorRow(r, !is1099, threshold) : r) }
         : prev);
     }
+  }
+  // Tick/untick "W-9 on file" for a contractor. Having a W-9 implies they're a 1099
+  // contractor, so this also marks them. Optimistic + reverts on failure.
+  async function markW9(payee, w9) {
+    setData(prev => prev && prev.rows
+      ? { ...prev, rows: prev.rows.map(r => r.payee === payee ? { ...r, is1099: true, w9OnFile: w9, needsW9: !w9 } : r) }
+      : prev);
+    try {
+      await api.post(`/orgs/${org.id}/reports/contractors/w9`, { payee, w9 });
+    } catch (e) {
+      console.error(e);
+      setData(prev => prev && prev.rows
+        ? { ...prev, rows: prev.rows.map(r => r.payee === payee ? { ...r, w9OnFile: !w9, needsW9: w9 } : r) }
+        : prev);
+    }
+  }
+  // Download a year-end 1099 worksheet (CSV) of the marked contractors.
+  function exportContractorsCSV() {
+    const rows = (data?.rows || []).filter(r => r.is1099);
+    if (!rows.length) return;
+    const esc = v => { const s = String(v ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    const thr = data?.threshold || 600;
+    const header = ['Payee', 'Total paid', '# Payments', 'Last paid', `Needs 1099-NEC (>= $${thr})`, 'W-9 on file', 'Needs W-9'];
+    const lines = rows.map(r => [
+      r.payee,
+      Number(r.total || 0).toFixed(2),
+      r.count,
+      r.lastPaid ? safeISO(r.lastPaid) : '',
+      r.needs1099 ? 'YES' : 'no',
+      r.w9OnFile ? 'YES' : 'no',
+      r.needsW9 ? 'YES' : 'no',
+    ].map(esc).join(','));
+    const csv = [header.map(esc).join(','), ...lines].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `1099-worksheet-${year}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   // Jump from a report line to that category's transactions in the General Ledger.
   function drillToCategory(name) {
@@ -551,38 +592,47 @@ export default function ReportsPage() {
             const flaggedCount = allRows.filter(r => r.needs1099).length;      // marked AND $600+
             const candidateCt  = allRows.filter(r => r.candidate).length;      // $600+ but not yet confirmed
             const payrollCount = allRows.filter(r => r.payrollRisk).length;
+            const needsW9Ct    = allRows.filter(r => r.needsW9).length;        // marked, no W-9 yet
             const shown        = contractorFilter === 'marked' ? allRows.filter(r => r.is1099) : allRows;
             return (
             <>
               <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4, color: GREEN }}>Contractors &amp; 1099</h2>
               <div style={{ fontSize: 12, color: '#999', marginBottom: 10 }}>Year {year} · money paid out, grouped by payee</div>
               <div style={{ fontSize: 12.5, color: '#5E6B62', background: '#F6F9F4', border: '1px solid #E6EFE8', borderRadius: 8, padding: '10px 12px', marginBottom: 14, lineHeight: 1.5 }}>
-                Tick <strong>1099?</strong> for each payee you actually pay for <strong>services</strong> (a person or business — not a store, utility, or subscription). MTL remembers your picks. Once ticked, anyone paid <strong>${threshold}+</strong> this year is flagged as needing a <strong>1099-NEC</strong> and a W-9, and a ⚠ payroll flag warns if they were paid like an employee (same amount, over and over). A guide to review, not tax advice.
+                Tick <strong>1099?</strong> for each payee you actually pay for <strong>services</strong> (a person or business — not a store, utility, or subscription). MTL remembers your picks. Anyone ticked and paid <strong>${threshold}+</strong> this year is flagged as needing a <strong>1099-NEC</strong>; tick <strong>W-9?</strong> once you have their signed W-9 on file so you can see who's still outstanding. Hit <strong>Download 1099 worksheet</strong> to export your contractors for filing season. A ⚠ payroll flag warns if someone was paid like an employee (same amount, over and over). A guide to review, not tax advice.
               </div>
-              {(flaggedCount > 0 || candidateCt > 0 || payrollCount > 0) && (
-                <div style={{ fontSize: 13, marginBottom: 10, color: '#5E6B62', fontWeight: 600, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-                  {flaggedCount > 0 && <span style={{ color: '#8A3B12' }}>{flaggedCount} need a 1099/W-9</span>}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 10 }}>
+                <div style={{ fontSize: 13, color: '#5E6B62', fontWeight: 600, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                  {flaggedCount > 0 && <span style={{ color: '#8A3B12' }}>{flaggedCount} need a 1099-NEC</span>}
+                  {needsW9Ct > 0 && <span style={{ color: '#8A3B12' }}>{needsW9Ct} need a W-9</span>}
                   {candidateCt > 0 && <span style={{ color: '#9A7B2A' }}>{candidateCt} over ${threshold} to review</span>}
                   {payrollCount > 0 && <span style={{ color: '#7A3A8A' }}>{payrollCount} possible payroll</span>}
                   {markedCount > 0 && <span style={{ color: '#7A9A7A' }}>{markedCount} marked as 1099</span>}
                 </div>
-              )}
+                {markedCount > 0 && (
+                  <button onClick={exportContractorsCSV} title="Download a year-end 1099 worksheet (CSV) of your marked contractors"
+                    style={{ padding: '6px 13px', borderRadius: 8, border: `1px solid ${GREEN}`, background: '#fff', color: GREEN, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    ⬇ Download 1099 worksheet (CSV)
+                  </button>
+                )}
+              </div>
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 620 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 700 }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid #D4DDCC' }}>
                       <th style={{ textAlign: 'center', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600, width: 54 }}>1099?</th>
                       <th style={{ textAlign: 'left',  padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Payee</th>
                       <th style={{ textAlign: 'right', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Paid</th>
                       <th style={{ textAlign: 'right', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Payments</th>
+                      <th style={{ textAlign: 'center', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600, width: 60 }}>W-9?</th>
                       <th style={{ textAlign: 'left',  padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Flags</th>
                     </tr>
                   </thead>
                   <tbody>
                     {allRows.length === 0 ? (
-                      <tr><td colSpan={5} style={{ padding: '16px 6px', color: '#7A9A7A' }}>No payments to named payees this year yet. Import Venmo/Cash App or set a payee on transactions, and they'll total up here.</td></tr>
+                      <tr><td colSpan={6} style={{ padding: '16px 6px', color: '#7A9A7A' }}>No payments to named payees this year yet. Import Venmo/Cash App or set a payee on transactions, and they'll total up here.</td></tr>
                     ) : shown.length === 0 ? (
-                      <tr><td colSpan={5} style={{ padding: '16px 6px', color: '#7A9A7A' }}>No payees marked as 1099 contractors yet. Switch to “All payees” and tick the real contractors.</td></tr>
+                      <tr><td colSpan={6} style={{ padding: '16px 6px', color: '#7A9A7A' }}>No payees marked as 1099 contractors yet. Switch to “All payees” and tick the real contractors.</td></tr>
                     ) : shown.map((r, i) => (
                       <tr key={r.payee} style={{ borderBottom: '0.5px solid #EBF2E8', background: r.needs1099 ? '#FFFBF2' : (r.is1099 ? '#F6FAF4' : undefined) }}>
                         <td style={{ padding: '9px 6px', textAlign: 'center' }}>
@@ -592,8 +642,15 @@ export default function ReportsPage() {
                         <td style={{ padding: '9px 6px', fontWeight: 500 }}>{r.payee}</td>
                         <td style={{ padding: '9px 6px', textAlign: 'right', fontWeight: 600 }}>{fmt(r.total)}</td>
                         <td style={{ padding: '9px 6px', textAlign: 'right', color: '#7A9A7A' }}>{r.count}</td>
+                        <td style={{ padding: '9px 6px', textAlign: 'center' }}>
+                          {r.is1099
+                            ? <input type="checkbox" checked={!!r.w9OnFile} onChange={e => markW9(r.payee, e.target.checked)}
+                                title="W-9 on file for this contractor" style={{ width: 16, height: 16, cursor: 'pointer', accentColor: GREEN }} />
+                            : <span style={{ color: '#CBD5C0' }}>—</span>}
+                        </td>
                         <td style={{ padding: '9px 6px' }}>
-                          {r.needs1099 && <span style={{ fontSize: 11, fontWeight: 700, color: '#8A3B12', background: '#FBE9D8', padding: '2px 8px', borderRadius: 20, marginRight: 6, whiteSpace: 'nowrap' }}>⚠ $600+ → 1099/W-9</span>}
+                          {r.needs1099 && <span style={{ fontSize: 11, fontWeight: 700, color: '#8A3B12', background: '#FBE9D8', padding: '2px 8px', borderRadius: 20, marginRight: 6, whiteSpace: 'nowrap' }}>⚠ $600+ → 1099-NEC</span>}
+                          {r.needsW9 && <span style={{ fontSize: 11, fontWeight: 700, color: '#B04A12', background: '#FBE9D8', padding: '2px 8px', borderRadius: 20, marginRight: 6, whiteSpace: 'nowrap' }}>needs W-9</span>}
                           {r.is1099 && !r.needs1099 && <span style={{ fontSize: 11, fontWeight: 700, color: GREEN, background: '#E6F0E6', padding: '2px 8px', borderRadius: 20, marginRight: 6, whiteSpace: 'nowrap' }}>1099 contractor</span>}
                           {r.candidate && <span style={{ fontSize: 11, fontWeight: 600, color: '#9A7B2A', background: '#FBF5E3', padding: '2px 8px', borderRadius: 20, marginRight: 6, whiteSpace: 'nowrap' }}>${threshold}+ · review?</span>}
                           {r.payrollRisk && <span style={{ fontSize: 11, fontWeight: 700, color: '#7A3A8A', background: '#F0E6F6', padding: '2px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>⚠ payroll?</span>}
