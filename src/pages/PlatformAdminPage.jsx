@@ -171,6 +171,25 @@ export default function PlatformAdminPage() {
     setBusyId(null);
   }
 
+  // Flip the white-label add-on for a firm. Enabling commits them to $79/mo + a
+  // one-time $99 setup (added to their next consolidated platform-fee invoice);
+  // turn it on once their custom domain + branded email are configured.
+  async function toggleWhiteLabel(t, enabled) {
+    if (enabled && !window.confirm(`Turn on white-label for ${t.name}?\n\nThis bills the firm $79/mo plus a one-time $99 setup on their next platform-fee invoice. Make sure their custom domain and branded email are configured first.`)) return;
+    if (!enabled && !window.confirm(`Turn off white-label for ${t.name}? The $79/mo add-on stops; the one-time $99 setup already billed is not refunded here.`)) return;
+    setBusyId(t.id);
+    try {
+      const res = await fetch(`${API}/platform-fees/tenant/${t.id}/white-label`, {
+        method: 'PATCH', headers: H(), body: JSON.stringify({ enabled }),
+      });
+      const j = await res.json();
+      if (!res.ok || j.success === false) throw new Error(j.message || 'Could not update white-label.');
+      toast.success(`${t.name}: white-label ${enabled ? 'on' : 'off'}.`);
+      loadAll();
+    } catch (e) { toast.error(e.message || 'Could not update white-label.'); }
+    setBusyId(null);
+  }
+
   async function deleteCompany(c) {
     setBusyId(c.id);
     try {
@@ -202,6 +221,7 @@ export default function PlatformAdminPage() {
   }
 
   const feeByTenant = Object.fromEntries((fees?.resellers || []).map(r => [r.tenantId, r.monthlyTotal]));
+  const wlByTenant  = Object.fromEntries((fees?.resellers || []).map(r => [r.tenantId, !!r.whiteLabelEnabled]));
 
   return (
     <div className="page">
@@ -239,6 +259,7 @@ export default function PlatformAdminPage() {
                     <th style={{ padding: '6px 8px' }}>Status</th>
                     <th style={{ padding: '6px 8px', textAlign: 'center' }}>Clients</th>
                     <th style={{ padding: '6px 8px', textAlign: 'right' }}>Fee/mo</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'center' }}>White-label</th>
                     <th style={{ padding: '6px 8px' }}>Payments</th>
                     <th style={{ padding: '6px 8px' }}>Actions</th>
                   </tr>
@@ -266,6 +287,16 @@ export default function PlatformAdminPage() {
                       <td style={{ padding: '9px 8px' }}>{statusPill(t.status)}</td>
                       <td style={{ padding: '9px 8px', textAlign: 'center', color: '#1f2a24', fontWeight: 600 }}>{t.clientCount}</td>
                       <td style={{ padding: '9px 8px', textAlign: 'right', color: '#1f2a24', fontWeight: 600 }}>{money(feeByTenant[t.id] ?? 0)}</td>
+                      <td style={{ padding: '9px 8px', textAlign: 'center' }}>
+                        <button onClick={() => toggleWhiteLabel(t, !wlByTenant[t.id])} disabled={busyId === t.id || t.status === 'retired'}
+                          title={wlByTenant[t.id] ? 'White-label on ($79/mo). Click to turn off.' : 'Turn on white-label ($79/mo + $99 one-time setup)'}
+                          style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: busyId === t.id || t.status === 'retired' ? 'not-allowed' : 'pointer',
+                            border: wlByTenant[t.id] ? '1px solid #2D6A4F' : '1px solid #D4DDCC',
+                            background: wlByTenant[t.id] ? '#E7F2EA' : '#fff',
+                            color: wlByTenant[t.id] ? '#1E7A3D' : '#8A968C' }}>
+                          {wlByTenant[t.id] ? 'On · $79/mo' : 'Off'}
+                        </button>
+                      </td>
                       <td style={{ padding: '9px 8px', color: '#5E6B62', fontSize: 12 }}>
                         {t.stripeConnectStatus === 'active'
                           ? <span style={{ color: '#1E7A3D', fontWeight: 600 }}>Connected</span>
