@@ -193,7 +193,7 @@ export default function PayrollPage() {
       </div>
 
       <div style={{ fontSize: 11.5, color: '#aaa', marginTop: 16, maxWidth: 760, lineHeight: 1.6 }}>
-        Enter the totals from your provider's payroll report for each run. This records the employer's cost (wages + employer payroll taxes) to your books and nets against the payroll bank withdrawal via the Payroll Clearing account. It is a bookkeeping entry, not a tax filing — your provider still files and remits.
+        Enter the totals from your provider's payroll report for each run. Each run is posted via a <strong>Payroll Clearing</strong> account — standard bookkeeping practice — so it reconciles against the single payroll bank withdrawal and the cost hits your books exactly once. It's a bookkeeping entry, not a tax filing — your provider still files and remits.
       </div>
     </div>
   );
