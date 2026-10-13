@@ -186,6 +186,7 @@ export default function BankingPage() {
   const [accounts, setAccounts]   = useState([]);
   const [activeId, setActiveId]   = useState(null);
   const [txns, setTxns]           = useState([]);
+  const [bankTab, setBankTab]     = useState('review');  // 'review' | 'reviewed'
   const [chart, setChart]         = useState([]);
   const [loading, setLoading]     = useState(true);
   const [msg, setMsg]             = useState('');
@@ -817,6 +818,8 @@ export default function BankingPage() {
   // this review list and lives in the register / reports. Keeps the screen to just
   // what still needs attention (Caryn's note: added rows lingering caused confusion).
   const visibleTxns = txns.filter(t => t.status !== 'categorized' && t.status !== 'matched');
+  const reviewedTxns = txns.filter(t => t.status === 'categorized' || t.status === 'matched');
+  const shownTxns = bankTab === 'reviewed' ? reviewedTxns : visibleTxns;
   const uncategorized = visibleTxns.length;
   const hasPlaid = accounts.some(a => a.plaidItemId);
 
@@ -955,8 +958,7 @@ export default function BankingPage() {
           {activeAcct && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>
-                {visibleTxns.length} to review
-                {txns.length - visibleTxns.length > 0 && <span style={{ color: '#0F6E56', fontWeight: 600 }}> · {txns.length - visibleTxns.length} added</span>}
+                {txns.length} transaction{txns.length === 1 ? '' : 's'}
                 {activeAcct.plaidItemId && (
                   <span style={{ color: '#0F6E56', fontWeight: 600 }}>
                     {' '}· 🔗 Connected{activeAcct.lastSyncedAt ? ` · synced ${new Date(activeAcct.lastSyncedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
@@ -989,14 +991,26 @@ export default function BankingPage() {
                   </div>
                 )}
             </div>
-          ) : visibleTxns.length === 0 ? (
-            <div className="card" style={{ padding: 40, textAlign: 'center' }}>
-              <div style={{ fontSize: 30, marginBottom: 10, color: '#0F6E56' }}>✓</div>
-              <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>All caught up</p>
-              <p style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>Every transaction here is categorized and posted to your books. Added items move to your register and reports.</p>
-            </div>
           ) : (
-            <div className="card" style={{ padding: 0, overflow: 'visible' }}>
+            <>
+              {/* For review / Reviewed tabs — QuickBooks-style. Added & matched
+                  transactions move to Reviewed, where each can be undone. */}
+              <div style={{ display: 'flex', gap: 2, marginBottom: 10, borderBottom: '1px solid #E2E8E0' }}>
+                {[['review', 'For review', visibleTxns.length], ['reviewed', 'Reviewed', reviewedTxns.length]].map(([id, label, n]) => (
+                  <button key={id} onClick={() => setBankTab(id)}
+                    style={{ background: 'none', border: 'none', borderBottom: bankTab === id ? '2px solid var(--brand-primary, #2D4A35)' : '2px solid transparent', color: bankTab === id ? 'var(--brand-primary, #2D4A35)' : '#7A9A7A', fontWeight: 600, fontSize: 13, padding: '8px 14px', cursor: 'pointer', marginBottom: -1 }}>
+                    {label} <span style={{ fontWeight: 500, opacity: 0.75 }}>({n})</span>
+                  </button>
+                ))}
+              </div>
+              {shownTxns.length === 0 ? (
+                <div className="card" style={{ padding: 40, textAlign: 'center' }}>
+                  <div style={{ fontSize: 30, marginBottom: 10, color: '#0F6E56' }}>✓</div>
+                  <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>{bankTab === 'reviewed' ? 'Nothing reviewed yet' : 'All caught up'}</p>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{bankTab === 'reviewed' ? 'Transactions you add or match will appear here — each has an Undo to send it back for review.' : 'Everything here is categorized and posted to your books.'}</p>
+                </div>
+              ) : (
+              <div className="card" style={{ padding: 0, overflow: 'visible' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #D4DDCC' }}>
@@ -1009,15 +1023,15 @@ export default function BankingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleTxns.map((t, idx) => {
+                  {shownTxns.map((t, idx) => {
                     const inflow = Number(t.amount) > 0;
                     // Outline a contiguous group of sibling split lines (they're adjacent
                     // because the register is sorted by date). Top border on the first of
                     // the group, bottom on the last, side borders on the edge cells.
                     const key   = splitKey(t);
                     const isSplit = !!key;
-                    const isTop = isSplit && key !== splitKey(visibleTxns[idx - 1]);
-                    const isBot = isSplit && key !== splitKey(visibleTxns[idx + 1]);
+                    const isTop = isSplit && key !== splitKey(shownTxns[idx - 1]);
+                    const isBot = isSplit && key !== splitKey(shownTxns[idx + 1]);
                     const sideL = isSplit ? { borderLeft: `2px solid ${SPLIT_BORDER}` } : null;
                     const sideR = isSplit ? { borderRight: `2px solid ${SPLIT_BORDER}` } : null;
                     return (
@@ -1061,6 +1075,8 @@ export default function BankingPage() {
                                 warn={!!t.category && !chart.some(a => (a.name || '').toLowerCase() === String(t.category).toLowerCase())} />
                               <button onClick={() => openSplit(t)} title="Split this charge across two or more categories (e.g. rental vs. property)"
                                 style={{ background: 'none', border: 'none', color: 'var(--brand-primary, #2D4A35)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline', whiteSpace: 'nowrap' }}>Split</button>
+                              <button onClick={() => categorize(t.id, '', t)} title="Undo — send back to For review and remove it from the books"
+                                style={{ background: 'none', border: 'none', color: '#7A9A7A', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>Undo</button>
                             </div>
                           ) : (
                             // Uncategorized: pick a category, then click Add to post it.
@@ -1085,7 +1101,9 @@ export default function BankingPage() {
                   })}
                 </tbody>
               </table>
-            </div>
+              </div>
+              )}
+            </>
           )}
         </>
       )}
