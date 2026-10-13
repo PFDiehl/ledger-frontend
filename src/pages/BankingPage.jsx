@@ -813,7 +813,11 @@ export default function BankingPage() {
   };
 
   const activeAcct = accounts.find(a => a.id === activeId);
-  const uncategorized = txns.filter(t => t.status !== 'categorized' && t.status !== 'matched').length;
+  // Once a transaction is Added (categorized) or Matched it's done, so it drops off
+  // this review list and lives in the register / reports. Keeps the screen to just
+  // what still needs attention (Caryn's note: added rows lingering caused confusion).
+  const visibleTxns = txns.filter(t => t.status !== 'categorized' && t.status !== 'matched');
+  const uncategorized = visibleTxns.length;
   const hasPlaid = accounts.some(a => a.plaidItemId);
 
   return (
@@ -951,8 +955,8 @@ export default function BankingPage() {
           {activeAcct && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>
-                {txns.length} transaction{txns.length === 1 ? '' : 's'}
-                {uncategorized > 0 && <span style={{ color: '#854F0B', fontWeight: 600 }}> · {uncategorized} to categorize</span>}
+                {visibleTxns.length} to review
+                {txns.length - visibleTxns.length > 0 && <span style={{ color: '#0F6E56', fontWeight: 600 }}> · {txns.length - visibleTxns.length} added</span>}
                 {activeAcct.plaidItemId && (
                   <span style={{ color: '#0F6E56', fontWeight: 600 }}>
                     {' '}· 🔗 Connected{activeAcct.lastSyncedAt ? ` · synced ${new Date(activeAcct.lastSyncedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
@@ -985,6 +989,12 @@ export default function BankingPage() {
                   </div>
                 )}
             </div>
+          ) : visibleTxns.length === 0 ? (
+            <div className="card" style={{ padding: 40, textAlign: 'center' }}>
+              <div style={{ fontSize: 30, marginBottom: 10, color: '#0F6E56' }}>✓</div>
+              <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>All caught up</p>
+              <p style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>Every transaction here is categorized and posted to your books. Added items move to your register and reports.</p>
+            </div>
           ) : (
             <div className="card" style={{ padding: 0, overflow: 'visible' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -999,15 +1009,15 @@ export default function BankingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {txns.map((t, idx) => {
+                  {visibleTxns.map((t, idx) => {
                     const inflow = Number(t.amount) > 0;
                     // Outline a contiguous group of sibling split lines (they're adjacent
                     // because the register is sorted by date). Top border on the first of
                     // the group, bottom on the last, side borders on the edge cells.
                     const key   = splitKey(t);
                     const isSplit = !!key;
-                    const isTop = isSplit && key !== splitKey(txns[idx - 1]);
-                    const isBot = isSplit && key !== splitKey(txns[idx + 1]);
+                    const isTop = isSplit && key !== splitKey(visibleTxns[idx - 1]);
+                    const isBot = isSplit && key !== splitKey(visibleTxns[idx + 1]);
                     const sideL = isSplit ? { borderLeft: `2px solid ${SPLIT_BORDER}` } : null;
                     const sideR = isSplit ? { borderRight: `2px solid ${SPLIT_BORDER}` } : null;
                     return (
