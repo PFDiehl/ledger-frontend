@@ -105,7 +105,7 @@ function defaultMatch(desc) {
 
 // Searchable category picker: click to open, type to filter (so "T" jumps to
 // Travel), arrow keys + Enter to choose. Value is the chart-account NAME.
-function CategoryPicker({ value, options, onPick, autoOpen, warn }) {
+function CategoryPicker({ value, options, onPick, onAddNew, autoOpen, warn }) {
   const [open, setOpen]     = useState(!!autoOpen);   // autoOpen: start in "type to filter" mode
   const [q, setQ]           = useState('');
   const [active, setActive] = useState(0);
@@ -173,6 +173,14 @@ function CategoryPicker({ value, options, onPick, autoOpen, warn }) {
               </div>
             ))}
           </div>
+          {onAddNew && (
+            <div onMouseDown={e => e.preventDefault()}
+              onClick={() => { setOpen(false); onAddNew(q.trim()); }}
+              style={{ padding: '9px 12px', fontSize: 13, fontWeight: 600, color: 'var(--color-primary, #1C4B3A)', cursor: 'pointer', borderTop: '1px solid #EBF2E8', background: '#FAFCF8', display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span style={{ fontSize: 15, lineHeight: 1 }}>＋</span>
+              <span>Add new account{q.trim() ? ` “${q.trim()}”` : ''}</span>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -223,6 +231,12 @@ export default function BankingPage() {
   // the user types a payee and picks a category, then clicks Add to post it.
   const [payeeDraft, setPayeeDraft] = useState({}); // txnId -> payee string
   const [catDraft, setCatDraft]     = useState({}); // txnId -> pending category name
+
+  // "+ Add new account" shortcut: create a Chart-of-Accounts category right from the
+  // category dropdown (QuickBooks-style) without leaving Banking. `assign` is the
+  // callback that drops the new account onto the row that opened the form.
+  const [newAcct, setNewAcct]       = useState(null); // { name, type, detail, assign } | null
+  const [savingAcct, setSavingAcct] = useState(false);
 
   // Manual "Add transaction" entry (used when there's no bank feed). Supports a
   // split: one charge divided across two or more categories (e.g. rental vs. property).
@@ -609,6 +623,32 @@ export default function BankingPage() {
     await categorize(t.id, category, t, payee);
     setCatDraft(d => { const n = { ...d }; delete n[t.id]; return n; });
     setPayeeDraft(d => { const n = { ...d }; delete n[t.id]; return n; });
+  }
+
+  // ── "+ Add new account" (create a category from the dropdown) ──
+  // Opens the small form, pre-filling the name with whatever the user had typed in
+  // the filter box. `assign` wires the created account back onto the row.
+  function openNewAcct(prefillName, assign) {
+    setNewAcct({ name: prefillName || '', type: 'Expense', detail: '', assign });
+  }
+  async function createAccount() {
+    const f = newAcct;
+    if (!f || savingAcct) return;
+    if (!f.name.trim()) { setMsg('Give the new account a name.'); return; }
+    setSavingAcct(true);
+    try {
+      const r = await fetch(`${API}/orgs/${orgId}/accounts`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ name: f.name.trim(), type: f.type, subtype: f.detail.trim() || undefined }),
+      }).then(r => r.json());
+      if (r.success) {
+        setChart(prev => [...prev, r.data]);       // show it in every category picker right away
+        if (typeof f.assign === 'function') f.assign(r.data.name);  // drop it onto the row
+        setMsg(`Added “${r.data.name}” (${r.data.code}) to your Chart of Accounts.`);
+        setNewAcct(null);
+      } else setMsg(r.message || 'Could not create the account.');
+    } catch (e) { setMsg('Could not create the account.'); }
+    setSavingAcct(false);
   }
 
   // ── Manual add (type a transaction in by hand, with optional split) ──
@@ -1072,6 +1112,7 @@ export default function BankingPage() {
                               <span style={{ fontSize: 11, fontWeight: 600, color: '#0F6E56', background: '#E1F5EE', padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>✓ Added</span>
                               <CategoryPicker value={t.category || ''} options={sortedChart}
                                 onPick={(name) => categorize(t.id, name, t)}
+                                onAddNew={(q) => openNewAcct(q, (name) => categorize(t.id, name, t))}
                                 warn={!!t.category && !chart.some(a => (a.name || '').toLowerCase() === String(t.category).toLowerCase())} />
                               <button onClick={() => openSplit(t)} title="Split this charge across two or more categories (e.g. rental vs. property)"
                                 style={{ background: 'none', border: 'none', color: 'var(--brand-primary, #2D4A35)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline', whiteSpace: 'nowrap' }}>Split</button>
@@ -1082,7 +1123,8 @@ export default function BankingPage() {
                             // Uncategorized: pick a category, then click Add to post it.
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                               <CategoryPicker value={catDraft[t.id] || ''} options={sortedChart}
-                                onPick={(name) => setCatDraft(d => ({ ...d, [t.id]: name }))} />
+                                onPick={(name) => setCatDraft(d => ({ ...d, [t.id]: name }))}
+                                onAddNew={(q) => openNewAcct(q, (name) => setCatDraft(d => ({ ...d, [t.id]: name })))} />
                               <button onClick={() => addTxn(t)} disabled={!catDraft[t.id]}
                                 title={catDraft[t.id] ? 'Add this transaction to the books' : 'Pick a category first'}
                                 style={{ background: catDraft[t.id] ? 'var(--brand-primary, #2D4A35)' : '#9BB39B', border: 'none', borderRadius: 6, color: '#fff', fontSize: 11, fontWeight: 600, padding: '6px 12px', cursor: catDraft[t.id] ? 'pointer' : 'default', whiteSpace: 'nowrap' }}>Add</button>
@@ -1109,6 +1151,47 @@ export default function BankingPage() {
       )}
 
       {/* Add account modal */}
+      {/* "+ Add new account" — create a Chart-of-Accounts category without leaving Banking */}
+      {newAcct && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 130, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: 440, maxWidth: '90vw' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 600 }}>New account</h2>
+              <button onClick={() => setNewAcct(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer' }}>×</button>
+            </div>
+            <p style={{ fontSize: 12.5, color: '#7A8A78', margin: '0 0 18px' }}>
+              Adds a category to your Chart of Accounts. The account number is assigned for you.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div><label style={labelStyle}>ACCOUNT NAME</label>
+                <input autoFocus value={newAcct.name}
+                  onChange={e => setNewAcct(a => ({ ...a, name: e.target.value }))}
+                  onKeyDown={e => { if (e.key === 'Enter') createAccount(); }}
+                  placeholder="e.g. Equipment Rental" style={inputStyle} /></div>
+              <div><label style={labelStyle}>ACCOUNT TYPE</label>
+                <select value={newAcct.type} onChange={e => setNewAcct(a => ({ ...a, type: e.target.value }))} style={inputStyle}>
+                  <option value="Expense">Expense — things you spend money on</option>
+                  <option value="Revenue">Income — money you bring in</option>
+                  <option value="Asset">Asset — things you own</option>
+                  <option value="Liability">Liability — money you owe</option>
+                  <option value="Equity">Equity — owner's stake</option>
+                </select></div>
+              <div><label style={labelStyle}>DETAIL / SUBTYPE (optional)</label>
+                <input value={newAcct.detail}
+                  onChange={e => setNewAcct(a => ({ ...a, detail: e.target.value }))}
+                  onKeyDown={e => { if (e.key === 'Enter') createAccount(); }}
+                  placeholder="Leave blank for a sensible default" style={inputStyle} /></div>
+              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                <button onClick={() => setNewAcct(null)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #D4DDCC', background: '#fff', cursor: 'pointer', fontSize: 14 }}>Cancel</button>
+                <button onClick={createAccount} disabled={savingAcct || !newAcct.name.trim()}
+                  style={{ flex: 2, padding: '10px', borderRadius: 8, border: 'none', background: (savingAcct || !newAcct.name.trim()) ? '#9BB39B' : '#2D4A35', color: '#fff', cursor: (savingAcct || !newAcct.name.trim()) ? 'default' : 'pointer', fontSize: 14, fontWeight: 600 }}>
+                  {savingAcct ? 'Adding…' : 'Add & use it'}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showAddAcct && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: 420, maxWidth: '90vw' }}>
@@ -1197,7 +1280,8 @@ export default function BankingPage() {
               <div style={{ marginBottom: 16 }}>
                 <label style={labelStyle}>CATEGORY</label>
                 <div style={{ display: 'flex' }}>
-                  <CategoryPicker value={txnForm.category} options={sortedChart} onPick={(name) => setTxn({ category: name })} />
+                  <CategoryPicker value={txnForm.category} options={sortedChart} onPick={(name) => setTxn({ category: name })}
+                    onAddNew={(q) => openNewAcct(q, (name) => setTxn({ category: name }))} />
                 </div>
               </div>
             ) : (
@@ -1212,7 +1296,8 @@ export default function BankingPage() {
                 {txnForm.lines.map((l, i) => (
                   <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
                     <div style={{ flex: 2, minWidth: 0, display: 'flex' }}>
-                      <CategoryPicker value={l.category} options={sortedChart} onPick={(name) => setLine(i, { category: name })} />
+                      <CategoryPicker value={l.category} options={sortedChart} onPick={(name) => setLine(i, { category: name })}
+                        onAddNew={(q) => openNewAcct(q, (name) => setLine(i, { category: name }))} />
                     </div>
                     <div style={{ position: 'relative', flex: 1 }}>
                       <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#7A9A7A', fontSize: 13 }}>$</span>
@@ -1278,7 +1363,8 @@ export default function BankingPage() {
               {splitLines.map((l, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
                   <div style={{ flex: 2, minWidth: 0, display: 'flex' }}>
-                    <CategoryPicker value={l.category} options={sortedChart} onPick={(name) => setSplitLn(i, { category: name })} autoOpen={i === 0} />
+                    <CategoryPicker value={l.category} options={sortedChart} onPick={(name) => setSplitLn(i, { category: name })}
+                      onAddNew={(q) => openNewAcct(q, (name) => setSplitLn(i, { category: name }))} autoOpen={i === 0} />
                   </div>
                   <div style={{ position: 'relative', flex: 1 }}>
                     <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#7A9A7A', fontSize: 13 }}>$</span>
