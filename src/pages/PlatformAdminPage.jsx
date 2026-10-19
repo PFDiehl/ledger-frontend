@@ -23,6 +23,36 @@ function StatCard({ label, value }) {
   );
 }
 
+// Simple, accessible single-series bar chart for weekly sign-ups.
+function SignupsChart({ data }) {
+  const rows = Array.isArray(data) ? data : [];
+  const w = 560, h = 180, padL = 14, padR = 10, padT = 20, padB = 26;
+  const n = Math.max(1, rows.length);
+  const max = Math.max(1, ...rows.map((d) => d.count || 0));
+  const bw = (w - padL - padR) / n;
+  const fmt = (s) => { try { return new Date(s + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); } catch { return s; } };
+  if (!rows.length) return <p style={{ fontSize: 13, color: '#8A968C' }}>No sign-up data yet.</p>;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" role="img"
+      aria-label={`New client companies per week for the last ${rows.length} weeks`} style={{ display: 'block' }}>
+      <line x1={padL} y1={h - padB} x2={w - padR} y2={h - padB} stroke="#E3EBE0" strokeWidth="1" />
+      {rows.map((d, i) => {
+        const bx = padL + i * bw + bw * 0.22;
+        const bWidth = bw * 0.56;
+        const barH = (h - padT - padB) * ((d.count || 0) / max);
+        const by = (h - padB) - barH;
+        return (
+          <g key={i}>
+            {d.count > 0 && <rect x={bx} y={by} width={bWidth} height={Math.max(2, barH)} rx="3" fill="#2F7D4F" />}
+            <text x={bx + bWidth / 2} y={by - 5} textAnchor="middle" fontSize="11" fontWeight="700" fill="#1f2a24" style={{ fontVariantNumeric: 'tabular-nums' }}>{d.count || 0}</text>
+            <text x={bx + bWidth / 2} y={h - padB + 14} textAnchor="middle" fontSize="9.5" fill="#8A968C">{fmt(d.weekStart)}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 function statusPill(status) {
   const map = {
     active:    { bg: '#E6F4EA', fg: '#1E7A3D' },
@@ -40,6 +70,7 @@ export default function PlatformAdminPage() {
   const { isPlatformOwner } = useAuth();
 
   const [stats, setStats]     = useState(null);
+  const [overview, setOverview] = useState(null);
   const [tenants, setTenants] = useState([]);
   const [fees, setFees]       = useState(null);
   const [loading, setLoading] = useState(true);
@@ -64,13 +95,15 @@ export default function PlatformAdminPage() {
   async function loadAll() {
     setLoading(true);
     try {
-      const [s, t, f, c] = await Promise.all([
+      const [s, ov, t, f, c] = await Promise.all([
         fetch(`${API}/tenants/admin/stats`,     { headers: H() }).then(r => r.json()),
+        fetch(`${API}/tenants/admin/overview`,  { headers: H() }).then(r => r.json()),
         fetch(`${API}/tenants`,                 { headers: H() }).then(r => r.json()),
         fetch(`${API}/platform-fees/admin`,     { headers: H() }).then(r => r.json()),
         fetch(`${API}/tenants/admin/companies`, { headers: H() }).then(r => r.json()),
       ]);
       setStats(s.data || null);
+      setOverview(ov.data || null);
       setTenants(Array.isArray(t.data) ? t.data : []);
       setFees(f.data || null);
       setCompanies(Array.isArray(c.data) ? c.data : []);
@@ -228,9 +261,42 @@ export default function PlatformAdminPage() {
       <div className="page-header">
         <h1 className="page-title">Platform admin</h1>
         <p style={{ color: '#5E6B62', fontSize: 13, marginTop: 2 }}>
-          Every reseller on the platform, and the totals across all of them.
+          Your business at a glance, plus every reseller on the platform.
         </p>
       </div>
+
+      {/* ── Business overview (owner dashboard) ── */}
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+        <StatCard label="New this month"     value={loading ? '—' : (overview?.growth?.newOrgsThisMonth ?? 0)} />
+        <StatCard label="New this week"      value={loading ? '—' : (overview?.growth?.newOrgsThisWeek ?? 0)} />
+        <StatCard label="Active accts · 30d" value={loading ? '—' : `${overview?.activity?.activeAccounts30d ?? 0} / ${overview?.totals?.organizations ?? 0}`} />
+        <StatCard label="Active users · 30d" value={loading ? '—' : (overview?.activity?.activeUsers30d ?? 0)} />
+        <StatCard label="Collected this mo." value={loading ? '—' : money((overview?.revenue?.collectedThisMonthCents ?? 0) / 100)} />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: 20, alignItems: 'start', marginBottom: 24 }}>
+        <div style={card}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 2px', color: '#1f2a24' }}>New sign-ups</h2>
+          <p style={{ fontSize: 12, color: '#8A968C', margin: '0 0 10px' }}>Client companies added per week — last 8 weeks</p>
+          {loading ? <p style={{ fontSize: 13, color: '#8A968C' }}>Loading…</p> : <SignupsChart data={overview?.growth?.signupsByWeek} />}
+        </div>
+        <div style={card}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 10px', color: '#1f2a24' }}>Activity · last 30 days</h2>
+          {[
+            ['Invoices created',   overview?.activity?.invoices30d],
+            ['Bank transactions',  overview?.activity?.bankTxns30d],
+            ['Journal entries',    overview?.activity?.journalEntries30d],
+            ['Dormant accounts',   overview?.activity?.dormantAccounts],
+          ].map(([k, v], i, arr) => (
+            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < arr.length - 1 ? '0.5px solid #EBF2E8' : 'none' }}>
+              <span style={{ fontSize: 13, color: '#5E6B62' }}>{k}</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#1f2a24', fontVariantNumeric: 'tabular-nums' }}>{loading ? '—' : (v ?? 0)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <h2 style={{ fontSize: 12, fontWeight: 700, color: '#8A968C', textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 10px' }}>Resellers &amp; platform</h2>
 
       {/* Stats */}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
