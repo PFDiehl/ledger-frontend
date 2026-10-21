@@ -53,6 +53,37 @@ function SignupsChart({ data }) {
   );
 }
 
+// Monthly revenue bars (platform fees collected), last 6 months.
+function RevenueChart({ data }) {
+  const rows = Array.isArray(data) ? data : [];
+  const w = 560, h = 180, padL = 14, padR = 10, padT = 22, padB = 26;
+  const n = Math.max(1, rows.length);
+  const max = Math.max(1, ...rows.map((d) => (d.cents || 0) / 100));
+  const bw = (w - padL - padR) / n;
+  const fmt$ = (v) => v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + Math.round(v);
+  if (!rows.length) return <p style={{ fontSize: 13, color: '#8A968C' }}>No revenue data yet.</p>;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" role="img"
+      aria-label={`Platform fees collected per month for the last ${rows.length} months`} style={{ display: 'block' }}>
+      <line x1={padL} y1={h - padB} x2={w - padR} y2={h - padB} stroke="#E3EBE0" strokeWidth="1" />
+      {rows.map((d, i) => {
+        const v = (d.cents || 0) / 100;
+        const bx = padL + i * bw + bw * 0.22;
+        const bWidth = bw * 0.56;
+        const barH = (h - padT - padB) * (v / max);
+        const by = (h - padB) - barH;
+        return (
+          <g key={i}>
+            {v > 0 && <rect x={bx} y={by} width={bWidth} height={Math.max(2, barH)} rx="3" fill="#B8872B" />}
+            <text x={bx + bWidth / 2} y={by - 5} textAnchor="middle" fontSize="10.5" fontWeight="700" fill="#1f2a24" style={{ fontVariantNumeric: 'tabular-nums' }}>{v > 0 ? fmt$(v) : '—'}</text>
+            <text x={bx + bWidth / 2} y={h - padB + 14} textAnchor="middle" fontSize="9.5" fill="#8A968C">{d.label}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 function statusPill(status) {
   const map = {
     active:    { bg: '#E6F4EA', fg: '#1E7A3D' },
@@ -287,12 +318,35 @@ export default function PlatformAdminPage() {
             ['Bank transactions',  overview?.activity?.bankTxns30d],
             ['Journal entries',    overview?.activity?.journalEntries30d],
             ['Dormant accounts',   overview?.activity?.dormantAccounts],
+            ['Canceled accounts',  overview?.activity?.canceledAccounts],
           ].map(([k, v], i, arr) => (
             <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < arr.length - 1 ? '0.5px solid #EBF2E8' : 'none' }}>
               <span style={{ fontSize: 13, color: '#5E6B62' }}>{k}</span>
               <span style={{ fontSize: 15, fontWeight: 700, color: '#1f2a24', fontVariantNumeric: 'tabular-nums' }}>{loading ? '—' : (v ?? 0)}</span>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: 20, alignItems: 'start', marginBottom: 24 }}>
+        <div style={card}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 2px', color: '#1f2a24' }}>Revenue collected</h2>
+          <p style={{ fontSize: 12, color: '#8A968C', margin: '0 0 10px' }}>Platform fees per month — last 6 months</p>
+          {loading ? <p style={{ fontSize: 13, color: '#8A968C' }}>Loading…</p> : <RevenueChart data={overview?.revenue?.monthlyCollected} />}
+        </div>
+        <div style={card}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 10px', color: '#1f2a24' }}>Newest sign-ups</h2>
+          {loading ? (
+            <p style={{ fontSize: 13, color: '#8A968C' }}>Loading…</p>
+          ) : (overview?.growth?.recentSignups?.length ? overview.growth.recentSignups.map((o, i, arr) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < arr.length - 1 ? '0.5px solid #EBF2E8' : 'none', gap: 10 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2a24', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.name}</div>
+                <div style={{ fontSize: 11, color: '#8A968C' }}>{o.kind}</div>
+              </div>
+              <span style={{ fontSize: 11.5, color: '#5E6B62', whiteSpace: 'nowrap' }}>{o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}</span>
+            </div>
+          )) : <p style={{ fontSize: 13, color: '#8A968C' }}>No sign-ups yet.</p>)}
         </div>
       </div>
 
