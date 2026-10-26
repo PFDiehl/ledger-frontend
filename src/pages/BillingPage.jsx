@@ -38,6 +38,7 @@ export default function BillingPage() {
   const [sub, setSub]         = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy]       = useState('');
+  const [promo, setPromo]     = useState('');
 
   async function loadSub() {
     if (!org?.id) return;
@@ -60,7 +61,7 @@ export default function BillingPage() {
     try {
       const res = await fetch(`${API}/billing/checkout`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orgId: org.id, plan }),
+        body: JSON.stringify({ orgId: org.id, plan, promoCode: promo.trim() }),
       });
       const data = await res.json();
       if (data.success && data.url) window.location.href = data.url;
@@ -128,6 +129,30 @@ export default function BillingPage() {
         <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Choose a plan — first month free</div>
       )}
 
+      {/* Promo code (only when choosing a plan) */}
+      {!active && (
+        <div style={{ marginBottom: 14, background: 'var(--color-background-secondary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 8, padding: '12px 14px', maxWidth: 420 }}>
+          <label htmlFor="promo" style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 7 }}>
+            Have a promo code?
+          </label>
+          <input
+            id="promo"
+            value={promo}
+            onChange={e => setPromo(e.target.value.toUpperCase())}
+            placeholder="Enter code (e.g. CARYN90)"
+            autoComplete="off"
+            style={{
+              width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: 14,
+              border: '1px solid var(--color-border-tertiary)', borderRadius: 7, outline: 'none',
+              letterSpacing: '.03em', background: 'var(--color-background-primary)', color: 'var(--color-text-primary)',
+            }}
+          />
+          <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 6 }}>
+            Enter it here, then pick a plan below — the discount applies automatically.
+          </div>
+        </div>
+      )}
+
       {/* Plans */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
         {PLANS.map(plan => {
@@ -172,12 +197,6 @@ export default function BillingPage() {
           );
         })}
       </div>
-
-      {!active && (
-        <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginTop: 14, background: 'var(--color-background-secondary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 8, padding: '9px 12px' }}>
-          <strong style={{ color: 'var(--color-text-primary)' }}>Have a promo code?</strong> You can enter it on the next screen, at checkout — just look for “Add promotion code.”
-        </div>
-      )}
 
       <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 16 }}>
         Payments are handled securely by Stripe. Card required; cancel anytime before your first month ends and you won't be charged.

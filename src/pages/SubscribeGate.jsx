@@ -24,6 +24,7 @@ const PLANS = [
 export default function SubscribeGate({ org, selectedPlan, apiBase, onLogout }) {
   const [loading, setLoading] = useState('');
   const [error, setError]     = useState('');
+  const [promo, setPromo]     = useState('');
 
   async function choose(plan) {
     setLoading(plan);
@@ -32,7 +33,7 @@ export default function SubscribeGate({ org, selectedPlan, apiBase, onLogout }) 
       const res = await fetch(`${apiBase}/billing/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orgId: org?.id, plan }),
+        body: JSON.stringify({ orgId: org?.id, plan, promoCode: promo.trim() }),
       });
       const data = await res.json().catch(() => ({}));
       if (data.success && data.url) {
@@ -76,6 +77,30 @@ export default function SubscribeGate({ org, selectedPlan, apiBase, onLogout }) 
           {error}
         </div>
       )}
+
+      <div style={{
+        marginBottom: 22, background: '#fff', border: `1px solid ${LINE}`,
+        borderRadius: 12, padding: '16px 18px', maxWidth: 520, width: '100%',
+      }}>
+        <label htmlFor="promo" style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: GREEN, marginBottom: 8 }}>
+          Have a promo code?
+        </label>
+        <input
+          id="promo"
+          value={promo}
+          onChange={e => setPromo(e.target.value.toUpperCase())}
+          placeholder="Enter code (e.g. CARYN90)"
+          autoComplete="off"
+          style={{
+            width: '100%', boxSizing: 'border-box', padding: '11px 14px', fontSize: 15,
+            border: `1.5px solid ${promo ? GREEN : LINE}`, borderRadius: 10, outline: 'none',
+            letterSpacing: '.04em', textTransform: 'uppercase', color: INK,
+          }}
+        />
+        <div style={{ fontSize: 12.5, color: INK_3, marginTop: 8 }}>
+          Enter your code here, then pick a plan below — your discount is applied automatically.
+        </div>
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: 20, maxWidth: 740, width: '100%' }}>
         {PLANS.map(plan => {
@@ -130,13 +155,6 @@ export default function SubscribeGate({ org, selectedPlan, apiBase, onLogout }) 
             </div>
           );
         })}
-      </div>
-
-      <div style={{
-        marginTop: 20, fontSize: 13.5, color: INK_2, background: '#fff',
-        border: `1px solid ${LINE}`, borderRadius: 10, padding: '10px 16px', maxWidth: 520, textAlign: 'center',
-      }}>
-        <strong style={{ color: GREEN }}>Have a promo code?</strong> You can enter it at checkout — look for “Add promotion code.”
       </div>
 
       <div style={{ marginTop: 18, fontSize: 13, color: INK_3, textAlign: 'center' }}>
