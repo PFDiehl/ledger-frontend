@@ -24,6 +24,7 @@ const ALL_NAV = [
   { id:'expenses',      icon:'credit-card',   label:'Expenses',       level:0, section:'Money in' },
   { id:'bank',          icon:'building-bank', label:'Banking',        level:0, section:'Money in' },
   { id:'bills',         icon:'receipt',       label:'Bills',          level:0, section:'Money out' },
+  { id:'jobs',          icon:'tools',         label:'Jobs',           level:0, section:'Job costing' },
   { id:'reports',       icon:'chart-bar',     label:'Reports',        level:0, section:'Reports' },
   { id:'settings',      icon:'settings',      label:'Settings',       level:0, section:'More' },
   { id:'payroll',       icon:'users',         label:'Payroll',        level:1, section:'Money out' },

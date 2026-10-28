@@ -15,8 +15,9 @@ const PAYMENT_METHODS = ['Cash','Check','Credit Card','Debit Card','ACH / Bank T
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ vendor:'', category:'', amount:'', date:today, description:'', receiptNumber:'', paymentMethod:'' });
+  const [form, setForm] = useState({ vendor:'', category:'', amount:'', date:today, description:'', receiptNumber:'', paymentMethod:'', projectId:'' });
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -34,7 +35,12 @@ export default function ExpensesPage() {
       .then(r => r.json()).then(j => { if(j.success) setExpenses(j.data || []); }).catch(()=>{});
     fetch(API+'/orgs/'+orgId+'/accounts', { headers: { Authorization: 'Bearer '+token } })
       .then(r => r.json()).then(j => { if(j.success) setAccounts(j.data || []); }).catch(()=>{});
+    fetch(API+'/orgs/'+orgId+'/projects?status=active', { headers: { Authorization: 'Bearer '+token } })
+      .then(r => r.json()).then(j => { if(j.success) setProjects(j.data || []); }).catch(()=>{});
   }, [orgId]);
+
+  // Job picker options (job costing). "" = not tied to a job.
+  const jobOpts = [{ value:'', label:'— No job —' }, ...projects.map(p => ({ value:p.id, label: p.name + (p.code ? ' · '+p.code : '') }))];
 
   async function save() {
     if (!form.vendor || !form.amount) return alert('Please fill in vendor and amount');
@@ -42,7 +48,7 @@ export default function ExpensesPage() {
     try {
       const r = await fetch(API+'/orgs/'+orgId+'/expenses', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+token }, body: JSON.stringify(form) });
       const j = await r.json();
-      if (j.success) { setExpenses(prev => [j.data, ...prev]); setShowForm(false); setForm({ vendor:'', category:'', amount:'', date:today, description:'', receiptNumber:'', paymentMethod:'' }); }
+      if (j.success) { setExpenses(prev => [j.data, ...prev]); setShowForm(false); setForm({ vendor:'', category:'', amount:'', date:today, description:'', receiptNumber:'', paymentMethod:'', projectId:'' }); }
       else alert(j.message);
     } catch(e) { alert('Error saving expense'); } finally { setLoading(false); }
   }
@@ -253,6 +259,7 @@ export default function ExpensesPage() {
                 {F('DATE', 'date', 'input', {type:'date'})}
               </div>
               {F('PAYMENT METHOD', 'paymentMethod', 'select', {options: ['', ...PAYMENT_METHODS]})}
+              {projects.length > 0 && F('JOB (optional)', 'projectId', 'select', {options: jobOpts})}
               {F('RECEIPT NUMBER', 'receiptNumber', 'input', {placeholder:'REC-001 (optional)'})}
               {F('DESCRIPTION', 'description', 'input', {placeholder:'Optional notes'})}
               <div style={{display:'flex',gap:10,marginTop:4}}>
@@ -282,6 +289,7 @@ export default function ExpensesPage() {
                   {EF('DATE', 'date', 'input', {type:'date'})}
                 </div>
                 {EF('PAYMENT METHOD', 'paymentMethod', 'select', {options: ['', ...PAYMENT_METHODS]})}
+                {projects.length > 0 && EF('JOB (optional)', 'projectId', 'select', {options: jobOpts})}
                 {EF('RECEIPT NUMBER', 'receiptNumber', 'input', {placeholder:'REC-001 (optional)'})}
                 {EF('DESCRIPTION', 'description', 'input', {placeholder:'Optional notes'})}
                 <div style={{display:'flex',gap:10,marginTop:4}}>
@@ -319,7 +327,7 @@ export default function ExpensesPage() {
 
                 <div style={{display:'flex',gap:10,marginTop:20}}>
                   <button onClick={()=>deleteExpense(selected.id)} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #c0392b',background:'#fff',color:'#c0392b',cursor:'pointer',fontSize:14,fontWeight:600}}>Delete</button>
-                  <button onClick={()=>{setEditing(true);setEditForm({vendor:selected.vendor,category:selected.category,amount:selected.amount,date:selected.date?selected.date.slice(0,10):today,description:selected.description||'',receiptNumber:selected.receiptNumber||'',paymentMethod:selected.paymentMethod||''});}} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #2D4A35',background:'#fff',color:'#2D4A35',cursor:'pointer',fontSize:14,fontWeight:600}}>Edit</button>
+                  <button onClick={()=>{setEditing(true);setEditForm({vendor:selected.vendor,category:selected.category,amount:selected.amount,date:selected.date?selected.date.slice(0,10):today,description:selected.description||'',receiptNumber:selected.receiptNumber||'',paymentMethod:selected.paymentMethod||'',projectId:selected.projectId||''});}} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #2D4A35',background:'#fff',color:'#2D4A35',cursor:'pointer',fontSize:14,fontWeight:600}}>Edit</button>
                   <button onClick={()=>setSelected(null)} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #D4DDCC',background:'#fff',cursor:'pointer',fontSize:14}}>Close</button>
                 </div>
               </>
