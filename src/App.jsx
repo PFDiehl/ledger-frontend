@@ -81,9 +81,10 @@ function PlaidOAuthPage() {
   useEffect(() => {
     (async () => {
       try {
-        const token     = localStorage.getItem('plaid_link_token');
-        const orgId     = (JSON.parse(localStorage.getItem('ledger_org') || '{}')).id;
-        const authToken = localStorage.getItem('accessToken');
+        const token        = localStorage.getItem('plaid_link_token');
+        const relinkItemId = localStorage.getItem('plaid_relink_item_id');  // set → this is a reconnect, not a new connection
+        const orgId        = (JSON.parse(localStorage.getItem('ledger_org') || '{}')).id;
+        const authToken    = localStorage.getItem('accessToken');
         if (!token || !orgId) { window.location.href = '/'; return; }
         await loadPlaidScript();
         const handler = window.Plaid.create({
@@ -91,16 +92,25 @@ function PlaidOAuthPage() {
           receivedRedirectUri: window.location.href,
           onSuccess: async (publicToken, metadata) => {
             try {
-              await fetch(`${API_BASE}/orgs/${orgId}/plaid/exchange`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-                body: JSON.stringify({ publicToken, institutionName: metadata?.institution?.name }),
-              });
+              if (relinkItemId) {
+                // Reconnect (update mode): re-authenticate the SAME item — don't exchange.
+                await fetch(`${API_BASE}/orgs/${orgId}/plaid/items/${relinkItemId}/relink-complete`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+                });
+              } else {
+                await fetch(`${API_BASE}/orgs/${orgId}/plaid/exchange`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+                  body: JSON.stringify({ publicToken, institutionName: metadata?.institution?.name }),
+                });
+              }
             } catch { /* the banking page will show the result on load */ }
             localStorage.removeItem('plaid_link_token');
-            window.location.href = '/?bank_connected=1';
+            localStorage.removeItem('plaid_relink_item_id');
+            window.location.href = relinkItemId ? '/?bank_reconnected=1' : '/?bank_connected=1';
           },
-          onExit: () => { localStorage.removeItem('plaid_link_token'); window.location.href = '/'; },
+          onExit: () => { localStorage.removeItem('plaid_link_token'); localStorage.removeItem('plaid_relink_item_id'); window.location.href = '/'; },
         });
         handler.open();
       } catch {

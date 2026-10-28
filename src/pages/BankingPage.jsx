@@ -204,6 +204,8 @@ export default function BankingPage() {
 
   const [connecting, setConnecting] = useState(false);   // Plaid connect in progress
   const [syncing, setSyncing]       = useState(false);   // Plaid sync in progress
+  const [reconnecting, setReconnecting] = useState('');  // itemId being reconnected
+  const [errItems, setErrItems]     = useState({});      // { plaidItemId: reason } — connections needing re-auth
 
   const [importData, setImportData] = useState(null); // { headerRow, rows, map }
   const [importing, setImporting]   = useState(false);
@@ -312,7 +314,19 @@ export default function BankingPage() {
     } catch (e) { setMsg('Could not load banking.'); }
     setLoading(false);
   }
-  useEffect(() => { if (orgId) loadAccounts(); }, [orgId]);
+  useEffect(() => { if (orgId) { loadAccounts(); loadPlaidStatus(); } }, [orgId]);
+
+  // Which Plaid connections currently need re-authentication (status === 'error').
+  async function loadPlaidStatus() {
+    try {
+      const r = await fetch(`${API}/orgs/${orgId}/plaid/items`, { headers }).then(r => r.json());
+      const map = {};
+      for (const it of (r.data || [])) {
+        if (it.status === 'error') map[it.id] = it.lastError || 'This connection needs to be reconnected.';
+      }
+      setErrItems(map);
+    } catch { /* non-fatal — the reconnect prompt just won't show */ }
+  }
 
   async function loadTxns(acctId) {
     if (!acctId) { setTxns([]); return; }
@@ -401,12 +415,56 @@ export default function BankingPage() {
       const r = await fetch(`${API}/orgs/${orgId}/plaid/sync`, opts).then(r => r.json());
       if (r.success) {
         const d = r.data || {};
-        setMsg(`Sync complete — ${d.imported || 0} new, ${d.updated || 0} updated${d.autoCategorized ? `, ${d.autoCategorized} auto-categorized` : ''}.`);
+        await loadPlaidStatus();   // refresh which connections (if any) need reconnecting
+        if (d.errored?.length) {
+          setMsg(`${d.errored.length} bank connection${d.errored.length === 1 ? '' : 's'} need reconnecting — use the Reconnect button below.${d.imported ? ` (${d.imported} new from the others.)` : ''}`);
+        } else {
+          setMsg(`Sync complete — ${d.imported || 0} new, ${d.updated || 0} updated${d.autoCategorized ? `, ${d.autoCategorized} auto-categorized` : ''}.`);
+        }
         await loadAccounts();
         await loadTxns(activeId);
       } else setMsg(r.message || 'Sync failed.');
     } catch (e) { setMsg('Sync failed.'); }
     setSyncing(false);
+  }
+
+  // Re-authenticate an existing connection whose bank login expired (Plaid update
+  // mode). Keeps the same accounts + history — no duplicate connection is created.
+  async function reconnectBank(itemId) {
+    if (!itemId) return;
+    setReconnecting(itemId); setMsg('');
+    try {
+      await loadPlaidScript();
+      const r = await fetch(`${API}/orgs/${orgId}/plaid/items/${itemId}/relink-token`, { method: 'POST', headers }).then(r => r.json());
+      const linkToken = r?.data?.linkToken;
+      if (!linkToken) throw new Error(r?.message || 'Could not start the reconnect.');
+      // Flag this as a RECONNECT (not a new connection) so an OAuth bank redirect
+      // (BofA, Chase, …) resumes via relink-complete, not exchange, on /plaid-oauth.
+      try { localStorage.setItem('plaid_link_token', linkToken); localStorage.setItem('plaid_relink_item_id', itemId); } catch {}
+      await new Promise((resolve) => {
+        const handler = window.Plaid.create({
+          token: linkToken,
+          onSuccess: async () => {
+            try { localStorage.removeItem('plaid_link_token'); localStorage.removeItem('plaid_relink_item_id'); } catch {}
+            setMsg('Reconnected — pulling the transactions we missed…');
+            try {
+              const done = await fetch(`${API}/orgs/${orgId}/plaid/items/${itemId}/relink-complete`, { method: 'POST', headers }).then(r => r.json());
+              const d = done.data || {};
+              setMsg(`Reconnected — ${d.imported || 0} new transaction${d.imported === 1 ? '' : 's'} caught up.`);
+            } catch (err) { setMsg('Reconnected, but the catch-up sync hiccuped — try Sync now.'); }
+            await loadAccounts(); await loadPlaidStatus(); await loadTxns(activeId);
+            resolve();
+          },
+          onExit: (err) => {
+            try { localStorage.removeItem('plaid_link_token'); localStorage.removeItem('plaid_relink_item_id'); } catch {}
+            if (err) setMsg(err.display_message || err.error_message || 'Reconnect was cancelled.');
+            resolve();
+          },
+        });
+        handler.open();
+      });
+    } catch (e) { setMsg(e.message || 'Could not reconnect your bank.'); }
+    setReconnecting('');
   }
 
   // ── Drag-to-reorder the account cards ──
@@ -1000,12 +1058,19 @@ export default function BankingPage() {
               <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>
                 {txns.length} transaction{txns.length === 1 ? '' : 's'}
                 {activeAcct.plaidItemId && (
-                  <span style={{ color: '#0F6E56', fontWeight: 600 }}>
-                    {' '}· 🔗 Connected{activeAcct.lastSyncedAt ? ` · synced ${new Date(activeAcct.lastSyncedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
-                  </span>
+                  errItems[activeAcct.plaidItemId] ? (
+                    <span style={{ color: '#A35200', fontWeight: 600 }}>{' '}· ⚠ Reconnect needed</span>
+                  ) : (
+                    <span style={{ color: '#0F6E56', fontWeight: 600 }}>
+                      {' '}· 🔗 Connected{activeAcct.lastSyncedAt ? ` · synced ${new Date(activeAcct.lastSyncedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
+                    </span>
+                  )
                 )}
               </div>
               <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                {activeAcct.plaidItemId && errItems[activeAcct.plaidItemId] && (
+                  <button onClick={() => reconnectBank(activeAcct.plaidItemId)} disabled={reconnecting === activeAcct.plaidItemId} style={{ background: '#A35200', border: 'none', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', borderRadius: 6, padding: '5px 11px' }}>{reconnecting === activeAcct.plaidItemId ? 'Reconnecting…' : '↻ Reconnect'}</button>
+                )}
                 {activeAcct.plaidItemId && (
                   <button onClick={() => syncBank(activeAcct.plaidItemId)} disabled={syncing} style={{ background: 'none', border: 'none', color: 'var(--brand-primary, #2D4A35)', fontSize: 12, cursor: 'pointer' }}>{syncing ? 'Syncing…' : '⟳ Sync now'}</button>
                 )}
@@ -1019,10 +1084,16 @@ export default function BankingPage() {
               <div style={{ fontSize: 34, marginBottom: 12 }}>📄</div>
               <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>No transactions yet</p>
               <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 18 }}>
-                {activeAcct?.plaidItemId ? 'Sync to pull this account’s latest activity from your bank.' : 'Upload a statement PDF and let AI read it, or import a CSV / .qbo / .qfx file — or add a transaction by hand.'}
+                {activeAcct?.plaidItemId
+                  ? (errItems[activeAcct.plaidItemId]
+                      ? 'This bank connection needs to be reconnected — your bank asked you to log in again. Reconnect to pull the transactions since the last sync.'
+                      : 'Sync to pull this account’s latest activity from your bank.')
+                  : 'Upload a statement PDF and let AI read it, or import a CSV / .qbo / .qfx file — or add a transaction by hand.'}
               </p>
               {activeAcct?.plaidItemId
-                ? <button className="btn-primary" onClick={() => syncBank(activeAcct.plaidItemId)} disabled={syncing}>{syncing ? 'Syncing…' : '⟳ Sync from bank'}</button>
+                ? (errItems[activeAcct.plaidItemId]
+                    ? <button className="btn-primary" onClick={() => reconnectBank(activeAcct.plaidItemId)} disabled={reconnecting === activeAcct.plaidItemId} style={{ background: '#A35200', borderColor: '#A35200' }}>{reconnecting === activeAcct.plaidItemId ? 'Reconnecting…' : '↻ Reconnect your bank'}</button>
+                    : <button className="btn-primary" onClick={() => syncBank(activeAcct.plaidItemId)} disabled={syncing}>{syncing ? 'Syncing…' : '⟳ Sync from bank'}</button>)
                 : (
                   <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                     <button className="btn-primary" onClick={() => pdfRef.current?.click()} disabled={parsingPdf}>✨ {parsingPdf ? 'Reading…' : 'Import statement PDF'}</button>
