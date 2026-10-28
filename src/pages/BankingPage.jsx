@@ -226,6 +226,7 @@ export default function BankingPage() {
 
   const [rules, setRules]         = useState([]);
   const [showRules, setShowRules] = useState(false);
+  const [projects, setProjects]   = useState([]);   // active jobs for the job-costing tag
   const [rulePrompt, setRulePrompt] = useState(null);        // { match, category, description }
   const [newRule, setNewRule]     = useState({ match: '', category: '' });
 
@@ -344,6 +345,26 @@ export default function BankingPage() {
     } catch (e) { /* ignore */ }
   }
   useEffect(() => { if (orgId) loadRules(); }, [orgId]);
+
+  // Active jobs, for the optional job-costing tag on each bank line.
+  async function loadProjects() {
+    try {
+      const r = await fetch(`${API}/orgs/${orgId}/projects?status=active`, { headers }).then(r => r.json());
+      if (r.success) setProjects(r.data || []);
+    } catch (e) { /* non-critical */ }
+  }
+  useEffect(() => { if (orgId) loadProjects(); }, [orgId]);
+
+  // Tag (or clear) the job on a bank line. Independent of category — the backend
+  // only touches projectId when the key is present, so this works on any row.
+  async function setJob(txnId, projectId) {
+    try {
+      const r = await fetch(`${API}/orgs/${orgId}/banking/accounts/${activeId}/transactions/${txnId}`, {
+        method: 'PATCH', headers, body: JSON.stringify({ projectId: projectId || null }),
+      }).then(r => r.json());
+      if (r.success) setTxns(prev => prev.map(t => t.id === txnId ? r.data : t));
+    } catch (e) { setMsg('Could not set the job.'); }
+  }
 
   async function addAccount() {
     if (!acctForm.name) return;
@@ -1129,6 +1150,7 @@ export default function BankingPage() {
                     <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500, color: '#7A9A7A' }}>Description</th>
                     <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500, color: '#7A9A7A', width: 150 }}>Payee / vendor</th>
                     <th style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 500, color: '#7A9A7A', width: 110 }}>Amount</th>
+                    {projects.length > 0 && <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500, color: '#7A9A7A', width: 160 }}>Job</th>}
                     <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500, color: '#7A9A7A', width: 300 }}>Category</th>
                     <th style={{ width: 34 }}></th>
                   </tr>
@@ -1169,6 +1191,16 @@ export default function BankingPage() {
                         <td style={{ padding: '9px 16px', textAlign: 'right', fontWeight: 500, color: inflow ? '#0F6E56' : 'var(--color-text-primary)', whiteSpace: 'nowrap' }}>
                           {inflow ? '+' : '−'}${fmtMoney(Math.abs(Number(t.amount)))}
                         </td>
+                        {projects.length > 0 && (
+                          <td style={{ padding: '6px 10px' }}>
+                            <select value={t.projectId || ''} onChange={(e) => setJob(t.id, e.target.value)}
+                              title="Tag this transaction to a job (job costing)"
+                              style={{ width: '100%', maxWidth: 160, padding: '6px 8px', border: '1px solid #D4DDCC', borderRadius: 6, fontSize: 12, boxSizing: 'border-box', background: '#fff', color: 'var(--color-text-primary)' }}>
+                              <option value="">— No job —</option>
+                              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                          </td>
+                        )}
                         <td style={{ padding: '6px 16px' }}>
                           {t.status === 'matched' ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

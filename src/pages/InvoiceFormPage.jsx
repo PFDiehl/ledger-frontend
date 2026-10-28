@@ -24,6 +24,7 @@ export default function InvoiceFormPage({ invoice, presetContact, onBack, onSave
     shipToName: invoice?.shipToName || '',
     shipToAddress: invoice?.shipToAddress || '',
     currency: invoice?.currency || 'USD',
+    projectId: invoice?.projectId || '',
   });
   const [lines, setLines] = useState(
     invoice?.lines?.length
@@ -35,7 +36,17 @@ export default function InvoiceFormPage({ invoice, presetContact, onBack, onSave
   const [submitError, setSubmitError] = useState('');
   const [serviceOptions, setServiceOptions] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [contactId, setContactId] = useState(invoice?.contactId || invoice?.contact?.id || presetContact?.id || null);
+
+  // Load active jobs so this invoice can be tagged to one (job costing).
+  useEffect(() => {
+    if (!org) return;
+    fetch(`${API}/orgs/${org.id}/projects?status=active`, { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` } })
+      .then(r => r.json())
+      .then(j => { if (j.success) setProjects(j.data || []); })
+      .catch(() => {});
+  }, [org]);
 
   // Load existing customers so the Company field can match/auto-fill them.
   useEffect(() => {
@@ -131,6 +142,7 @@ export default function InvoiceFormPage({ invoice, presetContact, onBack, onSave
         taxRate: form.taxRate,
         shipping: form.shipping,
         discount: form.discount,
+        projectId: form.projectId || null,
         lines: lines.map(l => ({ description: l.description, quantity: l.qty, unitPrice: l.rate, service: l.service || null, taxable: l.taxable !== false }))
       };
       const method = isEdit ? 'PATCH' : 'POST';
@@ -264,6 +276,17 @@ export default function InvoiceFormPage({ invoice, presetContact, onBack, onSave
                   style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
               </div>
             </div>
+            {projects.length > 0 && (
+              <div style={{marginTop:12}}>
+                <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Job (optional)</label>
+                <select value={form.projectId} onChange={e=>setField('projectId',e.target.value)}
+                  style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box',background:'#fff'}}>
+                  <option value="">— No job —</option>
+                  {projects.map(p => <option key={p.id} value={p.id}>{p.name}{p.code ? ' · ' + p.code : ''}</option>)}
+                </select>
+                <span style={{fontSize:11,color:'#7A9A7A'}}>Tag this invoice to a job to track profit per job.</span>
+              </div>
+            )}
           </div>
 
           {/* Line Items */}

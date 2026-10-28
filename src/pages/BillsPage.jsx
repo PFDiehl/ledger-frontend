@@ -13,12 +13,13 @@ export default function BillsPage({ presetVendor } = {}) {
   const [bills, setBills] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editingStatus, setEditingStatus] = useState(null);
-  const [form, setForm] = useState({ vendor:'', amount:'', dueDate:'', description:'', category:'', paidDate:'' });
+  const [form, setForm] = useState({ vendor:'', amount:'', dueDate:'', description:'', category:'', paidDate:'', projectId:'' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -33,12 +34,15 @@ export default function BillsPage({ presetVendor } = {}) {
     api.get(`/orgs/${org.id}/accounts`)
       .then(r => setAccounts(r.data?.data || r.data || []))
       .catch(() => {});
+    api.get(`/orgs/${org.id}/projects`, { status: 'active' })
+      .then(r => setProjects(r.data?.data || r.data || []))
+      .catch(() => {});
   }, [org?.id]);
 
   // "New Bill" from a vendor opens the form pre-filled for them.
   useEffect(() => {
     if (presetVendor) {
-      setForm({ vendor: presetVendor.company || presetVendor.name || '', amount:'', dueDate:'', description:'', category:'' });
+      setForm({ vendor: presetVendor.company || presetVendor.name || '', amount:'', dueDate:'', description:'', category:'', paidDate:'', projectId:'' });
       setShowForm(true);
     }
   }, [presetVendor]);
@@ -64,7 +68,7 @@ export default function BillsPage({ presetVendor } = {}) {
   function openNew() {
     setEditingId(null);
     setEditingStatus(null);
-    setForm({ vendor:'', amount:'', dueDate:'', description:'', category:'', paidDate:'' });
+    setForm({ vendor:'', amount:'', dueDate:'', description:'', category:'', paidDate:'', projectId:'' });
     setShowForm(true);
   }
 
@@ -78,6 +82,7 @@ export default function BillsPage({ presetVendor } = {}) {
       description: b.description || '',
       category: b.category || '',
       paidDate: b.paidDate ? new Date(b.paidDate).toISOString().slice(0,10) : '',
+      projectId: b.projectId || '',
     });
     setSelected(null);
     setShowForm(true);
@@ -87,7 +92,7 @@ export default function BillsPage({ presetVendor } = {}) {
     setShowForm(false);
     setEditingId(null);
     setEditingStatus(null);
-    setForm({ vendor:'', amount:'', dueDate:'', description:'', category:'', paidDate:'' });
+    setForm({ vendor:'', amount:'', dueDate:'', description:'', category:'', paidDate:'', projectId:'' });
   }
 
   async function deleteBill(id) {
@@ -237,6 +242,15 @@ export default function BillsPage({ presetVendor } = {}) {
                 <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>DESCRIPTION</label>
                 <input value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder='Monthly rent' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} />
               </div>
+              {projects.length > 0 && (
+                <div>
+                  <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>JOB <span style={{fontWeight:400,textTransform:'none',color:'#9BB39B'}}>(optional)</span></label>
+                  <select value={form.projectId} onChange={e=>setForm(f=>({...f,projectId:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box',background:'#fff'}}>
+                    <option value="">— No job —</option>
+                    {projects.map(p => <option key={p.id} value={p.id}>{p.name}{p.code ? ' · ' + p.code : ''}</option>)}
+                  </select>
+                </div>
+              )}
               <div style={{display:'flex',gap:10}}>
                 <button onClick={closeForm} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #D4DDCC',background:'#fff',fontSize:13,cursor:'pointer'}}>Cancel</button>
                 <button onClick={save} disabled={saving} style={{flex:2,padding:'10px',borderRadius:8,border:'none',background:'#2D4A35',color:'#A8D4A8',fontSize:13,fontWeight:500,cursor:'pointer'}}>{saving?'Saving...':(editingId?'Save changes':'Save bill')}</button>
