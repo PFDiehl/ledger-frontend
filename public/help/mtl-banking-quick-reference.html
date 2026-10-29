@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MTL Banking Cheat Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{--green:#234F3A;--green-2:#2F6A4C;--green-soft:#EAF1EB;--gold:#C9971F;--gold-soft:#FBF1D7;--ink:#1C2521;--ink-2:#4C564F;--ink-3:#7C867F;--line:#E2E8E2;--bg:#FBFBF9;--surface:#FFFFFF;--warn:#A35200;--warn-soft:#FBEEDC;}
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.6;}
+  .wrap{max-width:900px;margin:0 auto;padding:0 20px}
+  .backbar{background:var(--green-soft);border-bottom:1px solid #D7E4D9}
+  .backbar a{display:inline-block;padding:9px 0;color:var(--green);font-size:13.5px;font-weight:600;text-decoration:none}
+  .backbar a:hover{text-decoration:underline}
+  header.top{background:var(--green);color:#fff;padding:36px 0 30px;border-bottom:4px solid var(--gold);}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:600;font-size:15px;letter-spacing:.2px;opacity:.95}
+  header.top h1{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(26px,5vw,36px);line-height:1.1;margin:14px 0 6px;}
+  header.top p{margin:0;font-size:15.5px;color:#D7E4D9}
+  main{padding:14px 0 50px}
+  section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 24px 16px;margin:20px 0}
+  .eyebrow{font-size:12px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+  h2{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:20px;color:var(--green);margin:0 0 10px;}
+  p{margin:0 0 10px}
+  a{color:var(--green-2)}
+  strong{font-weight:600;color:var(--ink)}
+  .ui{display:inline-block;background:var(--green-soft);color:var(--green);border:1px solid #D4E2D6;border-radius:6px;padding:1px 7px;font-size:13.5px;font-weight:600;white-space:nowrap}
+  .tbl{width:100%;border-collapse:collapse;font-size:14px;overflow:hidden;border-radius:10px;border:1px solid var(--line)}
+  .tbl th{background:var(--green-soft);color:var(--green);text-align:left;padding:9px 12px;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px}
+  .tbl td{padding:10px 12px;border-top:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+  .tbl td.b{color:var(--ink);font-weight:600;white-space:nowrap}
+  .tbl td.w{color:var(--ink-3)}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .mini li{margin-bottom:7px}
+  .mini b{color:var(--green)}
+  .rule{background:var(--warn-soft);border:1px solid #EBD3B0;border-radius:10px;padding:12px 15px;font-size:14px;color:#6E3A05;margin-top:10px}
+  .rule b{color:#5A3005}
+  footer{color:var(--ink-3);font-size:13px;text-align:center;padding:16px 0 40px}
+  footer .line{height:1px;background:var(--line);max-width:120px;margin:0 auto 14px}
+  @media (max-width:640px){ .cols{grid-template-columns:1fr} .tbl td.b{white-space:normal} }
+  @media print{ .backbar{display:none} body{background:#fff} header.top{background:#fff;color:var(--ink);border-bottom:3px solid var(--gold)} header.top h1{color:var(--green)} header.top p{color:var(--ink-2)} section{break-inside:avoid;border-color:#ccc} a{color:var(--ink)} }
+</style>
+</head>
+<body>
+<div class="backbar"><div class="wrap"><a href="mtl-help-center.html">&larr; Help Center</a></div></div>
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><svg width="24" height="24" viewBox="0 0 26 26" aria-hidden="true"><path d="M3 21L10 7l4 7 2-3 7 10z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M10 7l4 7 2-3" fill="none" stroke="#F0C048" stroke-width="2" stroke-linejoin="round"/></svg> MountainTop Ledger</div>
+    <h1>Banking — Quick Reference</h1>
+    <p>Every button, at a glance. The fast companion to the full <a href="mtl-banking-guide.html" style="color:#F0E6C8">Banking guide</a> — print it and keep it handy.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <div class="eyebrow">The toolbar</div>
+    <h2>What every button does</h2>
+    <table class="tbl">
+      <tr><th>Button</th><th>What it does</th><th>When to use it</th></tr>
+      <tr><td class="b">🔗 Connect a bank</td><td>Links a bank or card through a secure window; transactions then flow in automatically.</td><td class="w">Setting up a new automatic account.</td></tr>
+      <tr><td class="b">⟳ Sync from bank / Sync now</td><td>Pulls the latest transactions from a connected bank right now.</td><td class="w">Anytime; connected accounts also refresh on their own.</td></tr>
+      <tr><td class="b">↻ Reconnect</td><td>Re-logs you into a bank whose login expired, then catches up what it missed. Keeps the same account + history.</td><td class="w">Only when you see "⚠ Reconnect needed." Use instead of Sync when a connection has lapsed.</td></tr>
+      <tr><td class="b">⚖ Reconcile</td><td>Reconcile this account to a bank statement — enter the ending balance, check off cleared items, finish at a $0.00 difference.</td><td class="w">Month-end, to prove MTL matches the bank statement exactly.</td></tr>
+      <tr><td class="b">✨ Import statement PDF</td><td>AI reads a PDF statement and extracts the transactions for you to confirm.</td><td class="w">Manual accounts, or filling a gap, from a PDF.</td></tr>
+      <tr><td class="b">⬆ Import statement</td><td>Imports a CSV / .qbo / .qfx file downloaded from your bank.</td><td class="w">Manual accounts, or files you downloaded from the bank.</td></tr>
+      <tr><td class="b">💚 Import Venmo / Cash App</td><td>Imports a Venmo or Cash App activity export (CSV).</td><td class="w">Venmo / Cash App accounts.</td></tr>
+      <tr><td class="b">✎ Add transaction</td><td>Type in a single transaction by hand.</td><td class="w">One-off entries that aren't from a feed.</td></tr>
+      <tr><td class="b">↻ Re-sync books</td><td>Re-posts your already-categorized transactions into the ledger. Does NOT contact the bank or re-download.</td><td class="w">After renaming categories, or when told "X categorized transactions are not in your books."</td></tr>
+      <tr><td class="b">⚙ Rules</td><td>Create "if description contains X, categorize as Y" rules so transactions auto-categorize on arrival.</td><td class="w">To shrink the For-review pile for recurring vendors.</td></tr>
+      <tr><td class="b">Delete account</td><td>Removes a bank account (and its link) from this company.</td><td class="w">Rarely — an account you no longer use.</td></tr>
+    </table>
+  </section>
+
+  <div class="cols">
+    <section>
+      <div class="eyebrow">The two tabs</div>
+      <h2>Where transactions live</h2>
+      <ul class="mini" style="margin:4px 0 0;padding-left:20px">
+        <li><b>For review</b> — new, uncategorized transactions waiting for a category. Your to-do list.</li>
+        <li><b>Reviewed</b> — transactions you've already categorized; posted in your books.</li>
+      </ul>
+    </section>
+    <section>
+      <div class="eyebrow">On each line</div>
+      <h2>Three actions</h2>
+      <ul class="mini" style="margin:4px 0 0;padding-left:20px">
+        <li><b>Add</b> — pick a category and post it to the books.</li>
+        <li><b>Match</b> — link it to an invoice or bill it pays off.</li>
+        <li><b>Split</b> — divide one transaction across several categories.</li>
+      </ul>
+    </section>
+  </div>
+
+  <section>
+    <div class="eyebrow">Month-end</div>
+    <h2>Reconciling to a statement</h2>
+    <p>Click <span class="ui">⚖ Reconcile</span>, enter the statement <strong>ending date + balance</strong>, check off the transactions on your statement, and finish when the <strong>Difference</strong> reaches <strong>$0.00</strong> (it turns green). The beginning balance pre-fills from your last reconciliation. <a href="mtl-banking-guide.html#reconcile">Full steps →</a></p>
+  </section>
+
+  <section>
+    <div class="eyebrow">Don't mix these up</div>
+    <h2>The two rules to remember</h2>
+    <div class="rule"><b>Reconnect ≠ Sync.</b> If an account shows "⚠ Reconnect needed," the Sync button won't help — only <b>Reconnect</b> re-establishes the bank login and then pulls the missing transactions.</div>
+    <div class="rule"><b>Manual vs. connected.</b> Accounts marked "Manual import" (no 🔗) never sync — feed them with Import statement / Import Venmo. Only 🔗 Connected accounts sync and reconnect.</div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <div class="line"></div>
+  MountainTop Ledger — Banking Quick Reference
+</footer>
+
+</body>
+</html>
