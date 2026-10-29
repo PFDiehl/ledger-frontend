@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import ReconcileModal from '../components/ReconcileModal';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -227,6 +228,7 @@ export default function BankingPage() {
   const [rules, setRules]         = useState([]);
   const [showRules, setShowRules] = useState(false);
   const [projects, setProjects]   = useState([]);   // active jobs for the job-costing tag
+  const [reconcileOpen, setReconcileOpen] = useState(false);   // statement reconciliation modal
   const [rulePrompt, setRulePrompt] = useState(null);        // { match, category, description }
   const [newRule, setNewRule]     = useState({ match: '', category: '' });
 
@@ -975,6 +977,12 @@ export default function BankingPage() {
           {accounts.length > 0 && (
             <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={openAddTxn} disabled={!activeId}>
               ✏ Add transaction
+            </button>
+          )}
+          {accounts.length > 0 && (
+            <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={() => setReconcileOpen(true)} disabled={!activeId}
+              title="Reconcile this account against a bank statement">
+              ⚖ Reconcile
             </button>
           )}
           <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={resyncBooks} disabled={resyncing}
@@ -1815,6 +1823,12 @@ export default function BankingPage() {
           </div>
         );
       })()}
+
+      {reconcileOpen && activeAcct && (
+        <ReconcileModal account={activeAcct} orgId={orgId} token={token}
+          onClose={() => setReconcileOpen(false)}
+          onDone={() => { loadTxns(activeId); }} />
+      )}
     </div>
   );
 }
