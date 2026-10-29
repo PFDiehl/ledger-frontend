@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MTL Reports</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --green:#234F3A;--green-2:#2F6A4C;--green-soft:#EAF1EB;--gold:#C9971F;--gold-soft:#FBF1D7;
+    --ink:#1C2521;--ink-2:#4C564F;--ink-3:#7C867F;--line:#E2E8E2;--bg:#FBFBF9;--surface:#FFFFFF;
+    --warn:#A35200;--warn-soft:#FBEEDC;--blue:#185FA5;--blue-soft:#E9F1F9;--pos:#176B4C;--neg:#A3302A;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.65;}
+  .wrap{max-width:820px;margin:0 auto;padding:0 20px}
+  .backbar{background:var(--green-soft);border-bottom:1px solid #D7E4D9}
+  .backbar a{display:inline-block;padding:9px 0;color:var(--green);font-size:13.5px;font-weight:600;text-decoration:none}
+  .backbar a:hover{text-decoration:underline}
+  header.top{background:var(--green);color:#fff;padding:40px 0 34px;border-bottom:4px solid var(--gold);}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:600;font-size:15px;letter-spacing:.2px;opacity:.95}
+  header.top h1{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(28px,5vw,40px);line-height:1.1;margin:16px 0 8px;text-wrap:balance;}
+  header.top p{margin:0;font-size:16.5px;color:#D7E4D9;max-width:62ch}
+  .audience{margin-top:16px;font-size:13.5px;color:#BFD3C3;letter-spacing:.3px}
+  main{padding:14px 0 60px}
+  section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:26px 26px 20px;margin:22px 0}
+  .eyebrow{font-size:12px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+  h2{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:22px;color:var(--green);margin:0 0 12px;line-height:1.2}
+  h3{font-size:16px;font-weight:600;color:var(--ink);margin:22px 0 8px}
+  p{margin:0 0 13px}
+  a{color:var(--green-2)}
+  strong{font-weight:600;color:var(--ink)}
+  .lede{font-size:16.5px;color:var(--ink-2)}
+  .ui{display:inline-block;background:var(--green-soft);color:var(--green);border:1px solid #D4E2D6;border-radius:6px;padding:1px 8px;font-size:14px;font-weight:600;white-space:nowrap}
+  .ui.warn{background:var(--warn-soft);color:var(--warn);border-color:#EBD3B0}
+  .ui.blue{background:var(--blue-soft);color:var(--blue);border-color:#C9DEF0}
+  .path{font-weight:600;color:var(--green)}
+  .path .sep{color:var(--ink-3);font-weight:400;margin:0 4px}
+  ol.steps{list-style:none;counter-reset:s;margin:10px 0 6px;padding:0}
+  ol.steps>li{counter-increment:s;position:relative;padding:0 0 14px 44px;}
+  ol.steps>li::before{content:counter(s);position:absolute;left:0;top:0;width:29px;height:29px;border-radius:50%;background:var(--green);color:#fff;font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;}
+  ol.steps>li:not(:last-child)::after{content:"";position:absolute;left:14px;top:30px;bottom:2px;width:2px;background:var(--line)}
+  .note{border-radius:10px;padding:13px 16px;margin:14px 0;font-size:14.5px;border:1px solid}
+  .note.tip{background:var(--green-soft);border-color:#CFE0D2;color:#1F4030}
+  .note.warn{background:var(--warn-soft);border-color:#EBD3B0;color:#6E3A05}
+  .note.info{background:var(--blue-soft);border-color:#CADEF1;color:#123E68}
+  .note b{color:inherit}
+  .tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:14.5px;overflow:hidden;border-radius:10px;border:1px solid var(--line)}
+  .tbl th{background:var(--green-soft);color:var(--green);text-align:left;padding:10px 13px;font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.5px}
+  .tbl td{padding:11px 13px;border-top:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+  .tbl td b{color:var(--ink)}
+  .toc{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 24px;margin:22px 0}
+  .toc h2{font-size:15px;color:var(--ink);font-family:"IBM Plex Sans",sans-serif;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+  .toc ol{margin:0;padding-left:20px;columns:2;column-gap:28px;font-size:14.5px}
+  .toc li{margin-bottom:6px;break-inside:avoid}
+  .toc a{text-decoration:none;color:var(--ink-2)}
+  .toc a:hover{color:var(--green);text-decoration:underline}
+  .faq{margin-top:4px}
+  .faq .q{font-weight:600;color:var(--green);margin:16px 0 4px;font-size:15.5px}
+  footer{color:var(--ink-3);font-size:13px;text-align:center;padding:10px 0 50px}
+  footer .line{height:1px;background:var(--line);max-width:120px;margin:0 auto 16px}
+  @media (max-width:560px){ .toc ol{columns:1} section{padding:22px 18px 16px} }
+  @media print{ .backbar{display:none} body{background:#fff} header.top{background:#fff;color:var(--ink);border-bottom:3px solid var(--gold)} header.top h1{color:var(--green)} header.top p,.audience{color:var(--ink-2)} section,.toc{break-inside:avoid;border-color:#ccc} a{color:var(--ink)} }
+</style>
+</head>
+<body>
+<div class="backbar"><div class="wrap"><a href="mtl-help-center.html">&larr; Help Center</a></div></div>
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><svg width="24" height="24" viewBox="0 0 26 26" aria-hidden="true"><path d="M3 21L10 7l4 7 2-3 7 10z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M10 7l4 7 2-3" fill="none" stroke="#F0C048" stroke-width="2" stroke-linejoin="round"/></svg> MountainTop Ledger</div>
+    <h1>Reports, in Plain English</h1>
+    <p>What each MTL report actually tells you about your business — no accounting degree required.</p>
+    <div class="audience">A guide for business owners & bookkeepers</div>
+  </div>
+</header>
+<div class="wrap">
+  <nav class="toc">
+    <h2>What's inside</h2>
+    <ol>
+      <li><a href="#where">Where to find them</a></li>
+      <li><a href="#pl">Profit & Loss</a></li>
+      <li><a href="#bs">Balance Sheet</a></li>
+      <li><a href="#cash">Cash Flow</a></li>
+      <li><a href="#others">The rest</a></li>
+      <li><a href="#options">Periods & options</a></li>
+      <li><a href="#faq">Quick answers</a></li>
+    </ol>
+  </nav>
+</div>
+<main class="wrap">
+
+  <section id="where">
+    <div class="eyebrow">Start here</div>
+    <h2>Where to find them</h2>
+    <p>Open <span class="ui">Reports</span> from the sidebar. Across the top you'll see tabs for each report: <span class="ui">P&amp;L</span>, <span class="ui">Balance Sheet</span>, <span class="ui">Cash Flow</span>, <span class="ui">Aged A/R</span>, <span class="ui">Trial Balance</span>, <span class="ui">General Ledger</span>, and <span class="ui">Contractors (1099)</span>.</p>
+    <p>Here's what the three you'll use most actually mean.</p>
+  </section>
+  <section id="pl">
+    <div class="eyebrow">Am I making money?</div>
+    <h2>Profit &amp; Loss (P&amp;L)</h2>
+    <p class="lede">Your income minus your expenses over a period — the bottom line is your profit (or loss).</p>
+    <p>It answers "did the business make money last month / last quarter / this year?" Income is grouped at the top, expenses below, and the difference is your net profit.</p>
+    <div class="note info"><b>Cash vs. accrual:</b> on the P&amp;L you can switch the <b>basis</b>. <em>Cash</em> counts income and expenses when money actually moves; <em>accrual</em> counts them when they're earned or incurred. Cash is simplest for most small businesses.</div>
+  </section>
+  <section id="bs">
+    <div class="eyebrow">What am I worth?</div>
+    <h2>Balance Sheet</h2>
+    <p class="lede">A snapshot, as of a date, of what you <strong>own</strong> (assets), what you <strong>owe</strong> (liabilities), and what's left over (equity).</p>
+    <p>Where the P&amp;L covers a stretch of time, the Balance Sheet is a single moment — "where do things stand today?" Assets always equal liabilities plus equity; that's the balance.</p>
+  </section>
+  <section id="cash">
+    <div class="eyebrow">Where did the cash go?</div>
+    <h2>Cash Flow</h2>
+    <p class="lede">How cash actually moved in and out over a period — which can differ from profit.</p>
+    <p>You can be "profitable" on paper but short on cash (money tied up in unpaid invoices), or the reverse. Cash flow shows the real money movement, so you can see whether you'll be able to cover what's coming.</p>
+  </section>
+  <section id="others">
+    <div class="eyebrow">The rest</div>
+    <h2>The other four</h2>
+    <table class="tbl">
+      <tr><th>Report</th><th>Answers</th></tr>
+      <tr><td><b>Aged A/R</b></td><td>Who owes you money and how overdue it is (30 / 60 / 90+ days). Your collections to-do list.</td></tr>
+      <tr><td><b>Trial Balance</b></td><td>Every account's balance in one list — an accountant's check that the books balance.</td></tr>
+      <tr><td><b>General Ledger</b></td><td>Every transaction posted to a given account, in detail. Use it to trace exactly what makes up a number.</td></tr>
+      <tr><td><b>Contractors (1099)</b></td><td>Each 1099 contractor's total for the year and whether they crossed $600 (see the <em>Bills, Vendors &amp; 1099s</em> guide).</td></tr>
+    </table>
+  </section>
+  <section id="options">
+    <div class="eyebrow">Fine-tuning</div>
+    <h2>Periods &amp; options</h2>
+    <ul style="margin:6px 0 0;padding-left:20px">
+      <li style="margin-bottom:8px"><strong>Period:</strong> view a full year, a single quarter (Q1–Q4), or a custom date range.</li>
+      <li style="margin-bottom:8px"><strong>Compare:</strong> on the P&amp;L you can compare against the prior period to see what changed.</li>
+      <li><strong>Basis &amp; filters:</strong> switch cash/accrual on the P&amp;L, or narrow some reports to a specific account.</li>
+    </ul>
+  </section>
+  <section id="faq">
+    <div class="eyebrow">At a glance</div>
+    <h2>Quick answers</h2>
+    <div class="faq">
+      <div class="q">Which report should I look at most?</div>
+      <p>The <b>P&amp;L</b> for "am I making money," and <b>Cash Flow</b> or your bank balance for "do I have money." Together they tell the real story.</p>
+      <div class="q">My profit looks high but my account is low.</div>
+      <p>Classic timing gap — profit counts invoices you've billed, cash counts what's actually arrived. Check <b>Aged A/R</b> for unpaid invoices.</p>
+      <div class="q">An accountant asked for my trial balance.</div>
+      <p>It's a tab right in Reports — open it and you can share or export it.</p>
+    </div>
+  </section>
+</main>
+<footer class="wrap">
+  <div class="line"></div>
+  MountainTop Ledger — Reports, in Plain English
+</footer>
+</body>
+</html>

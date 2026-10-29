@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MTL Expenses & Receipts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --green:#234F3A;--green-2:#2F6A4C;--green-soft:#EAF1EB;--gold:#C9971F;--gold-soft:#FBF1D7;
+    --ink:#1C2521;--ink-2:#4C564F;--ink-3:#7C867F;--line:#E2E8E2;--bg:#FBFBF9;--surface:#FFFFFF;
+    --warn:#A35200;--warn-soft:#FBEEDC;--blue:#185FA5;--blue-soft:#E9F1F9;--pos:#176B4C;--neg:#A3302A;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.65;}
+  .wrap{max-width:820px;margin:0 auto;padding:0 20px}
+  .backbar{background:var(--green-soft);border-bottom:1px solid #D7E4D9}
+  .backbar a{display:inline-block;padding:9px 0;color:var(--green);font-size:13.5px;font-weight:600;text-decoration:none}
+  .backbar a:hover{text-decoration:underline}
+  header.top{background:var(--green);color:#fff;padding:40px 0 34px;border-bottom:4px solid var(--gold);}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:600;font-size:15px;letter-spacing:.2px;opacity:.95}
+  header.top h1{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(28px,5vw,40px);line-height:1.1;margin:16px 0 8px;text-wrap:balance;}
+  header.top p{margin:0;font-size:16.5px;color:#D7E4D9;max-width:62ch}
+  .audience{margin-top:16px;font-size:13.5px;color:#BFD3C3;letter-spacing:.3px}
+  main{padding:14px 0 60px}
+  section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:26px 26px 20px;margin:22px 0}
+  .eyebrow{font-size:12px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+  h2{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:22px;color:var(--green);margin:0 0 12px;line-height:1.2}
+  h3{font-size:16px;font-weight:600;color:var(--ink);margin:22px 0 8px}
+  p{margin:0 0 13px}
+  a{color:var(--green-2)}
+  strong{font-weight:600;color:var(--ink)}
+  .lede{font-size:16.5px;color:var(--ink-2)}
+  .ui{display:inline-block;background:var(--green-soft);color:var(--green);border:1px solid #D4E2D6;border-radius:6px;padding:1px 8px;font-size:14px;font-weight:600;white-space:nowrap}
+  .ui.warn{background:var(--warn-soft);color:var(--warn);border-color:#EBD3B0}
+  .ui.blue{background:var(--blue-soft);color:var(--blue);border-color:#C9DEF0}
+  .path{font-weight:600;color:var(--green)}
+  .path .sep{color:var(--ink-3);font-weight:400;margin:0 4px}
+  ol.steps{list-style:none;counter-reset:s;margin:10px 0 6px;padding:0}
+  ol.steps>li{counter-increment:s;position:relative;padding:0 0 14px 44px;}
+  ol.steps>li::before{content:counter(s);position:absolute;left:0;top:0;width:29px;height:29px;border-radius:50%;background:var(--green);color:#fff;font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;}
+  ol.steps>li:not(:last-child)::after{content:"";position:absolute;left:14px;top:30px;bottom:2px;width:2px;background:var(--line)}
+  .note{border-radius:10px;padding:13px 16px;margin:14px 0;font-size:14.5px;border:1px solid}
+  .note.tip{background:var(--green-soft);border-color:#CFE0D2;color:#1F4030}
+  .note.warn{background:var(--warn-soft);border-color:#EBD3B0;color:#6E3A05}
+  .note.info{background:var(--blue-soft);border-color:#CADEF1;color:#123E68}
+  .note b{color:inherit}
+  .tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:14.5px;overflow:hidden;border-radius:10px;border:1px solid var(--line)}
+  .tbl th{background:var(--green-soft);color:var(--green);text-align:left;padding:10px 13px;font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.5px}
+  .tbl td{padding:11px 13px;border-top:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+  .tbl td b{color:var(--ink)}
+  .toc{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 24px;margin:22px 0}
+  .toc h2{font-size:15px;color:var(--ink);font-family:"IBM Plex Sans",sans-serif;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+  .toc ol{margin:0;padding-left:20px;columns:2;column-gap:28px;font-size:14.5px}
+  .toc li{margin-bottom:6px;break-inside:avoid}
+  .toc a{text-decoration:none;color:var(--ink-2)}
+  .toc a:hover{color:var(--green);text-decoration:underline}
+  .faq{margin-top:4px}
+  .faq .q{font-weight:600;color:var(--green);margin:16px 0 4px;font-size:15.5px}
+  footer{color:var(--ink-3);font-size:13px;text-align:center;padding:10px 0 50px}
+  footer .line{height:1px;background:var(--line);max-width:120px;margin:0 auto 16px}
+  @media (max-width:560px){ .toc ol{columns:1} section{padding:22px 18px 16px} }
+  @media print{ .backbar{display:none} body{background:#fff} header.top{background:#fff;color:var(--ink);border-bottom:3px solid var(--gold)} header.top h1{color:var(--green)} header.top p,.audience{color:var(--ink-2)} section,.toc{break-inside:avoid;border-color:#ccc} a{color:var(--ink)} }
+</style>
+</head>
+<body>
+<div class="backbar"><div class="wrap"><a href="mtl-help-center.html">&larr; Help Center</a></div></div>
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><svg width="24" height="24" viewBox="0 0 26 26" aria-hidden="true"><path d="M3 21L10 7l4 7 2-3 7 10z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M10 7l4 7 2-3" fill="none" stroke="#F0C048" stroke-width="2" stroke-linejoin="round"/></svg> MountainTop Ledger</div>
+    <h1>Expenses & Receipts</h1>
+    <p>Log what you spend, snap a photo of the receipt, and let MTL read the details for you — on the web or from your phone in the field.</p>
+    <div class="audience">A guide for business owners, bookkeepers & field crews</div>
+  </div>
+</header>
+<div class="wrap">
+  <nav class="toc">
+    <h2>What's inside</h2>
+    <ol>
+      <li><a href="#add">Add an expense</a></li>
+      <li><a href="#scan">Scan a receipt</a></li>
+      <li><a href="#attach">Attach a receipt image</a></li>
+      <li><a href="#category">Categories & jobs</a></li>
+      <li><a href="#mobile">Capturing in the field</a></li>
+      <li><a href="#faq">Quick answers</a></li>
+    </ol>
+  </nav>
+</div>
+<main class="wrap">
+
+  <section id="add">
+    <div class="eyebrow">Start here</div>
+    <h2>Add an expense</h2>
+    <ol class="steps">
+      <li>Open <span class="ui">Expenses</span> &rarr; <span class="ui blue">New expense</span>.</li>
+      <li>Enter the <strong>vendor</strong>, <strong>amount</strong>, and <strong>date</strong>.</li>
+      <li>Pick a <strong>category</strong> (from your chart of accounts), a payment method, and — for job costing — a <span class="ui">Job</span>.</li>
+      <li>Save. The expense posts to your books right away.</li>
+    </ol>
+    <div class="note info"><b>Expense vs. bill:</b> use an <b>expense</b> for something you've already paid. Use a <b>bill</b> for something you owe and will pay later (see the <em>Bills, Vendors &amp; 1099s</em> guide).</div>
+  </section>
+  <section id="scan">
+    <div class="eyebrow">The time-saver</div>
+    <h2>Scan a receipt</h2>
+    <p class="lede">Instead of typing, let MTL read the receipt for you.</p>
+    <ol class="steps">
+      <li>On the New Expense form, click <span class="ui">📷 Scan receipt to auto-fill</span>.</li>
+      <li>Choose a photo of the receipt (JPG or PNG).</li>
+      <li>MTL reads the <strong>vendor, amount, and date</strong> and fills them in. Check them, pick a category, and save.</li>
+    </ol>
+    <div class="note tip"><b>Always double-check the scan.</b> It's quick and accurate, but a crumpled or faint receipt can misread a number — a two-second glance saves a correction later.</div>
+  </section>
+  <section id="attach">
+    <div class="eyebrow">Keep the proof</div>
+    <h2>Attach a receipt image</h2>
+    <p>You can keep the receipt image attached to the expense for your records — handy at tax time or if you're ever audited.</p>
+    <ol class="steps">
+      <li>Open an existing expense.</li>
+      <li>In the Receipt section, <span class="ui">Upload Receipt</span> (or <span class="ui">Replace</span> / <span class="ui">Remove</span> an existing one).</li>
+      <li>Click the image anytime to view it full size.</li>
+    </ol>
+  </section>
+  <section id="category">
+    <div class="eyebrow">Sorting it right</div>
+    <h2>Categories &amp; jobs</h2>
+    <p>The <strong>category</strong> comes from your chart of accounts — it's how the expense lands in the right spot on your Profit &amp; Loss. If your chart isn't set up yet, MTL offers a sensible default list.</p>
+    <p>If you use <strong>job costing</strong>, pick a <span class="ui">Job</span> so the expense counts as a cost on that project.</p>
+  </section>
+  <section id="mobile">
+    <div class="eyebrow">Out on the job</div>
+    <h2>Capturing in the field</h2>
+    <p class="lede">The MTL mobile app is built for exactly this moment: your project manager buys materials and snaps the receipt before leaving the counter.</p>
+    <p>The expense (and its photo) goes straight into the books — and can be tagged to the right <strong>job</strong> — so costs stay current and nobody's reconciling a shoebox of receipts at month-end.</p>
+    <div class="note info">See the <b>The Mobile App</b> guide for signing in and capturing receipts on your phone.</div>
+  </section>
+  <section id="faq">
+    <div class="eyebrow">At a glance</div>
+    <h2>Quick answers</h2>
+    <div class="faq">
+      <div class="q">The scan read the wrong amount.</div>
+      <p>Just type over it before saving. The scan is a head start, not the final word.</p>
+      <div class="q">Can I attach a PDF receipt?</div>
+      <p>Receipt images (JPG/PNG) attach to an expense. For a bank/card charge, you can also match it to the expense in Banking.</p>
+      <div class="q">Where do these show up in reports?</div>
+      <p>Under the category you chose, on your Profit &amp; Loss — and, if tagged, on that job's profit.</p>
+    </div>
+  </section>
+</main>
+<footer class="wrap">
+  <div class="line"></div>
+  MountainTop Ledger — Expenses & Receipts
+</footer>
+</body>
+</html>

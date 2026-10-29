@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MTL Banking Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --green:#234F3A;
+    --green-2:#2F6A4C;
+    --green-soft:#EAF1EB;
+    --gold:#C9971F;
+    --gold-soft:#FBF1D7;
+    --ink:#1C2521;
+    --ink-2:#4C564F;
+    --ink-3:#7C867F;
+    --line:#E2E8E2;
+    --bg:#FBFBF9;
+    --surface:#FFFFFF;
+    --warn:#A35200;
+    --warn-soft:#FBEEDC;
+    --blue:#185FA5;
+    --blue-soft:#E9F1F9;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:16px;line-height:1.65;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:0 20px}
+  /* header */
+  header.top{
+    background:var(--green);color:#fff;padding:44px 0 38px;
+    border-bottom:4px solid var(--gold);
+  }
+  .brand{display:flex;align-items:center;gap:11px;font-weight:600;font-size:15px;letter-spacing:.2px;opacity:.95}
+  header.top h1{
+    font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(28px,5vw,40px);
+    line-height:1.1;margin:18px 0 8px;text-wrap:balance;
+  }
+  header.top p{margin:0;font-size:16.5px;color:#D7E4D9;max-width:60ch}
+  .audience{margin-top:18px;font-size:13.5px;color:#BFD3C3;letter-spacing:.3px}
+  /* sections */
+  main{padding:14px 0 60px}
+  section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:26px 26px 20px;margin:22px 0}
+  .eyebrow{font-size:12px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+  h2{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:22px;color:var(--green);margin:0 0 12px;line-height:1.2}
+  h3{font-size:16px;font-weight:600;color:var(--ink);margin:22px 0 8px}
+  p{margin:0 0 13px}
+  a{color:var(--green-2)}
+  strong{font-weight:600;color:var(--ink)}
+  .lede{font-size:16.5px;color:var(--ink-2)}
+  /* chips for UI labels */
+  .ui{display:inline-block;background:var(--green-soft);color:var(--green);border:1px solid #D4E2D6;border-radius:6px;padding:1px 8px;font-size:14px;font-weight:600;white-space:nowrap}
+  .ui.warn{background:var(--warn-soft);color:var(--warn);border-color:#EBD3B0}
+  .ui.blue{background:var(--blue-soft);color:var(--blue);border-color:#C9DEF0}
+  /* steps */
+  ol.steps{list-style:none;counter-reset:s;margin:10px 0 6px;padding:0}
+  ol.steps>li{counter-increment:s;position:relative;padding:0 0 14px 44px;}
+  ol.steps>li::before{
+    content:counter(s);position:absolute;left:0;top:0;width:29px;height:29px;border-radius:50%;
+    background:var(--green);color:#fff;font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;
+  }
+  ol.steps>li:not(:last-child)::after{content:"";position:absolute;left:14px;top:30px;bottom:2px;width:2px;background:var(--line)}
+  /* callouts */
+  .note{border-radius:10px;padding:13px 16px;margin:14px 0;font-size:14.5px;border:1px solid}
+  .note.tip{background:var(--green-soft);border-color:#CFE0D2;color:#1F4030}
+  .note.warn{background:var(--warn-soft);border-color:#EBD3B0;color:#6E3A05}
+  .note.info{background:var(--blue-soft);border-color:#CADEF1;color:#123E68}
+  .note b{color:inherit}
+  /* table */
+  .tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:14.5px;overflow:hidden;border-radius:10px;border:1px solid var(--line)}
+  .tbl th{background:var(--green-soft);color:var(--green);text-align:left;padding:10px 13px;font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.5px}
+  .tbl td{padding:11px 13px;border-top:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+  .tbl td b{color:var(--ink)}
+  /* toc */
+  .toc{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 24px;margin:22px 0}
+  .toc h2{font-size:15px;color:var(--ink);font-family:"IBM Plex Sans",sans-serif;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+  .toc ol{margin:0;padding-left:20px;columns:2;column-gap:28px;font-size:14.5px}
+  .toc li{margin-bottom:6px;break-inside:avoid}
+  .toc a{text-decoration:none;color:var(--ink-2)}
+  .toc a:hover{color:var(--green);text-decoration:underline}
+  /* faq */
+  .faq{margin-top:4px}
+  .faq .q{font-weight:600;color:var(--green);margin:16px 0 4px;font-size:15.5px}
+  footer{color:var(--ink-3);font-size:13px;text-align:center;padding:10px 0 50px}
+  footer .line{height:1px;background:var(--line);max-width:120px;margin:0 auto 16px}
+  @media (max-width:560px){ .toc ol{columns:1} section{padding:22px 18px 16px} }
+  @media print{
+    body{background:#fff}
+    header.top{background:#fff;color:var(--ink);border-bottom:3px solid var(--gold)}
+    header.top h1{color:var(--green)} header.top p,.audience{color:var(--ink-2)}
+    section,.toc{break-inside:avoid;border-color:#ccc}
+    a{color:var(--ink)}
+  }
+</style>
+</head>
+<body>
+<div style="background:#EAF1EB;border-bottom:1px solid #D7E4D9"><div style="max-width:820px;margin:0 auto;padding:0 20px"><a href="mtl-help-center.html" style="display:inline-block;padding:9px 0;color:#234F3A;font-size:13.5px;font-weight:600;text-decoration:none">&larr; Help Center</a></div></div>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 26 26" aria-hidden="true"><path d="M3 21L10 7l4 7 2-3 7 10z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M10 7l4 7 2-3" fill="none" stroke="#F0C048" stroke-width="2" stroke-linejoin="round"/></svg>
+      MountainTop Ledger
+    </div>
+    <h1>Your Banking, Start to Finish</h1>
+    <p>How to connect a bank, keep transactions flowing in, categorize them into your books, reconnect when a bank asks you to log in again, and bring in anything by hand.</p>
+    <div class="audience">A guide for business owners &amp; bookkeepers · No accounting jargon required</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc">
+    <h2>What's inside</h2>
+    <ol>
+      <li><a href="#basics">The two kinds of accounts</a></li>
+      <li><a href="#flow">How a transaction becomes a book entry</a></li>
+      <li><a href="#sync">Syncing a connected bank</a></li>
+      <li><a href="#reconnect">When a bank needs reconnecting</a></li>
+      <li><a href="#import">Importing statements by hand</a></li>
+      <li><a href="#resync">The "Re-sync books" button</a></li>
+      <li><a href="#rules">Rules &amp; auto-categorizing</a></li>
+      <li><a href="#faq">Quick answers</a></li>
+    </ol>
+  </nav>
+</div>
+
+<main class="wrap">
+
+  <!-- 1 -->
+  <section id="basics">
+    <div class="eyebrow">Start here</div>
+    <h2>The two kinds of accounts</h2>
+    <p class="lede">Every account in <strong>Banking</strong> is one of two types. Knowing which is which explains everything else in this guide.</p>
+    <table class="tbl">
+      <tr><th>Type</th><th>How you spot it</th><th>How transactions arrive</th></tr>
+      <tr>
+        <td><b>Connected</b><br>(bank-linked)</td>
+        <td>Shows a <span class="ui">🔗 Connected</span> label and a <span class="ui">Sync now</span> option.</td>
+        <td><b>Automatically.</b> MTL pulls new transactions straight from the bank. You just categorize them.</td>
+      </tr>
+      <tr>
+        <td><b>Manual</b></td>
+        <td>Shows <span class="ui">Manual import</span> and <em>no</em> 🔗 link.</td>
+        <td><b>You bring them in</b> — by importing a statement (PDF/CSV) or a Venmo/Cash App export. There's no login to sync.</td>
+      </tr>
+    </table>
+    <div class="note info">
+      <b>Why it matters:</b> a <b>manual</b> account can't "stop syncing" or "need reconnecting," because it was never syncing — it only ever holds what you import. Reconnecting and Sync are only for <b>connected</b> accounts.
+    </div>
+    <h3>Connecting a bank</h3>
+    <ol class="steps">
+      <li>On <strong>Banking</strong>, click <span class="ui blue">🔗 Connect a bank</span>.</li>
+      <li>A secure window (Plaid) opens. Find your bank, log in with your <em>bank's</em> credentials, and pick the accounts to link. <strong>MTL never sees your bank password</strong> — that stays between you and your bank.</li>
+      <li>The account appears with a 🔗 and starts pulling in transactions right away.</li>
+    </ol>
+  </section>
+
+  <!-- 2 -->
+  <section id="flow">
+    <div class="eyebrow">The daily rhythm</div>
+    <h2>How a transaction becomes a book entry</h2>
+    <p class="lede">New transactions don't post to your books on their own — you give each one a category first. That's the whole job, and it takes seconds per line.</p>
+    <ol class="steps">
+      <li>A new transaction arrives and lands in the <span class="ui">For review</span> tab, marked <em>Uncategorized</em>.</li>
+      <li>You tell MTL what it is. On each line you can:
+        <br>• <span class="ui">Add</span> — pick a category and post it to the books.
+        <br>• <span class="ui">Match</span> — link it to an invoice or bill it pays off.
+        <br>• <span class="ui">Split</span> — divide one transaction across several categories.</li>
+      <li>Once categorized, it moves to the <span class="ui">Reviewed</span> tab and is now <strong>in your books</strong> (a proper double-entry journal entry is created behind the scenes).</li>
+    </ol>
+    <div class="note tip">
+      <b>Tip:</b> A big number in <span class="ui">For review</span> after a sync is normal — it's just the backlog that flowed in. Your <b>Rules</b> auto-categorize the familiar ones (see below), so you only hand-pick the rest.
+    </div>
+    <div class="note info">
+      <b>"For review" vs "Reviewed":</b> if you synced and thought nothing came in, check the <b>For review</b> tab — brand-new transactions always arrive there <em>uncategorized</em>, not in Reviewed. They're in; they just need a category.
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section id="sync">
+    <div class="eyebrow">Keeping it current</div>
+    <h2>Syncing a connected bank</h2>
+    <p>Connected accounts refresh on their own as your bank reports new activity. You can also pull the latest yourself anytime:</p>
+    <ol class="steps">
+      <li>Click the account card so it's selected.</li>
+      <li>Click <span class="ui">⟳ Sync now</span> (or <span class="ui">Sync from bank</span> at the top).</li>
+      <li>MTL reports what it found — e.g. <em>"Sync complete — 6 new, 0 updated."</em> New items appear in <span class="ui">For review</span>.</li>
+    </ol>
+    <div class="note info">
+      <b>"0 new" is usually fine</b> — it just means there's been no new activity since the last sync. But if you <em>know</em> transactions are missing and keep getting "0 new," your connection most likely needs reconnecting — read on.
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section id="reconnect">
+    <div class="eyebrow">The important one</div>
+    <h2>When a bank needs reconnecting</h2>
+    <p class="lede">Every so often your bank requires you to log in again through its own security — after a password change, or just on the bank's periodic schedule. When that happens, syncing quietly stops until you re-authenticate.</p>
+    <p>MTL shows you when this happens: the account displays <span class="ui warn">⚠ Reconnect needed</span> and a <span class="ui warn">↻ Reconnect</span> button appears.</p>
+    <h3>How to reconnect</h3>
+    <ol class="steps">
+      <li>Select the account showing <span class="ui warn">⚠ Reconnect needed</span>.</li>
+      <li>Click <span class="ui warn">↻ Reconnect</span>.</li>
+      <li>The secure bank window opens — log in to your bank again (big banks may bounce you out to the bank's own site and back; that's expected).</li>
+      <li>MTL confirms <em>"Reconnected — N new transactions caught up,"</em> and everything the connection missed flows into <span class="ui">For review</span>.</li>
+    </ol>
+    <div class="note warn">
+      <b>Reconnect is not the same as Sync.</b> If a connection has expired, clicking <b>Sync now</b> won't fix it — it just asks the bank for data using the old, expired login, which fails. Only <b>Reconnect</b> re-establishes the login and then pulls the backlog. Reach for Reconnect whenever you see the ⚠ badge.
+    </div>
+    <div class="note tip">
+      <b>Your history is safe.</b> Reconnecting keeps the same account and all its existing transactions — it does <em>not</em> create a duplicate account or wipe anything. It simply refreshes the login.
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section id="import">
+    <div class="eyebrow">By hand</div>
+    <h2>Importing statements by hand</h2>
+    <p class="lede">For manual accounts — or to fill a gap on any account — you can bring transactions in yourself. MTL reads several formats, and categorizing works exactly the same once they're in.</p>
+    <table class="tbl">
+      <tr><th>Button</th><th>Use it for</th></tr>
+      <tr><td><span class="ui">✨ Import statement PDF</span></td><td>A PDF statement from almost any bank or card. MTL's AI reads the pages and pulls out the transactions for you to confirm.</td></tr>
+      <tr><td><span class="ui">⬆ Import statement</span></td><td>A <b>CSV</b>, <b>.qbo</b>, or <b>.qfx</b> file downloaded from your bank's website.</td></tr>
+      <tr><td><span class="ui">💚 Import Venmo / Cash App</span></td><td>A Venmo or Cash App activity export (CSV).</td></tr>
+      <tr><td><span class="ui">✎ Add manually</span></td><td>Typing in a single transaction by hand.</td></tr>
+    </table>
+    <ol class="steps">
+      <li>Click the import button that matches your file.</li>
+      <li>Choose the file (or the account for a manual one). MTL shows a preview of the rows it found.</li>
+      <li>Review the preview, fix anything that looks off, and confirm. The transactions drop into <span class="ui">For review</span> to be categorized — same as a bank sync.</li>
+    </ol>
+    <div class="note tip">
+      <b>Great for the gap after a lapse:</b> if a connection was down for a while, you can either Reconnect (which catches up automatically) or import a statement PDF for the missing stretch — whichever is easier. MTL skips duplicates, so there's no harm if a few overlap.
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section id="resync">
+    <div class="eyebrow">A repair tool</div>
+    <h2>The "Re-sync books" button</h2>
+    <p class="lede">This one is easy to misunderstand, so here's exactly what it does — and doesn't do.</p>
+    <table class="tbl">
+      <tr><th></th><th></th></tr>
+      <tr><td><b>✓ What it does</b></td><td>Takes transactions you've <b>already categorized</b> and re-posts them into your double-entry books. It catches any that didn't make it in — for example, a transaction whose category was later renamed or removed — and posts them properly.</td></tr>
+      <tr><td><b>✕ What it does <em>not</em> do</b></td><td>It never contacts your bank. It does <b>not</b> re-download transactions, and it does <b>not</b> check your data against the bank. It only works with what's already in MTL.</td></tr>
+    </table>
+    <p><strong>When to use it:</strong> if you see a notice that <em>"X categorized transactions are not in your books,"</em> or after you've renamed categories, click <span class="ui">↻ Re-sync books</span> to post everything cleanly. It's safe to run anytime.</p>
+    <div class="note info">
+      <b>Renamed a category and transactions "fell off"?</b> That's exactly what Re-sync books (and the <b>Review &amp; fix</b> prompt) are for. Re-pick a current category for the flagged items, or run Re-sync books, and they post right back into the books.
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section id="rules">
+    <div class="eyebrow">Save yourself time</div>
+    <h2>Rules &amp; auto-categorizing</h2>
+    <p>A <strong>Rule</strong> tells MTL "whenever a transaction's description contains <em>this</em>, categorize it as <em>that</em>." Once a rule exists, matching transactions are categorized automatically the moment they arrive — so a sync of a hundred transactions might leave only a handful for you to touch.</p>
+    <ol class="steps">
+      <li>Open <span class="ui">⚙ Rules</span> on the Banking page.</li>
+      <li>Add a rule: a word or phrase from the description (e.g. <em>"Shell"</em>) and the category to apply (e.g. <em>Fuel</em>).</li>
+      <li>From then on, every incoming "Shell" transaction lands already categorized in <span class="ui">Reviewed</span>.</li>
+    </ol>
+    <div class="note tip"><b>Build rules as you go.</b> Each time you categorize a recurring vendor by hand, consider adding a rule for it — your <span class="ui">For review</span> pile shrinks every month.</div>
+  </section>
+
+  <!-- 8 -->
+  <section id="faq">
+    <div class="eyebrow">At a glance</div>
+    <h2>Quick answers</h2>
+    <div class="faq">
+      <div class="q">My bank stopped updating / transactions are missing.</div>
+      <p>Select the account. If you see <span class="ui warn">⚠ Reconnect needed</span>, click <span class="ui warn">↻ Reconnect</span> and log in to your bank again. If it says <span class="ui">🔗 Connected</span> with a recent sync date, it's genuinely caught up — check the <b>For review</b> tab for new items.</p>
+
+      <div class="q">I synced but nothing showed up.</div>
+      <p>Look in <b>For review</b>, not <b>Reviewed</b> — new transactions arrive uncategorized. If it truly pulled "0 new" and you're sure there's activity, the connection likely needs a <b>Reconnect</b>.</p>
+
+      <div class="q">Why won't Venmo / my store card sync?</div>
+      <p>Those are usually <b>manual</b> accounts (no 🔗 link). They don't sync at all — bring their transactions in with <span class="ui">Import statement</span> or <span class="ui">Import Venmo / Cash App</span>.</p>
+
+      <div class="q">I renamed some categories and transactions disappeared from my books.</div>
+      <p>They're flagged, not lost. Use the <b>Review &amp; fix</b> prompt to re-pick a current category, or click <span class="ui">↻ Re-sync books</span>.</p>
+
+      <div class="q">Will reconnecting lose my history or duplicate the account?</div>
+      <p>No. Reconnect keeps the same account and all its transactions — it only refreshes the bank login.</p>
+
+      <div class="q">Does "Re-sync books" pull new transactions from my bank?</div>
+      <p>No — that's <b>Sync now</b>. "Re-sync books" only re-posts already-categorized transactions into your ledger.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <div class="line"></div>
+  MountainTop Ledger — Banking Guide · Keep this handy for onboarding and quick reference.
+</footer>
+
+</body>
+</html>

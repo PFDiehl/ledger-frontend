@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MTL QuickBooks Import</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --green:#234F3A;
+    --green-2:#2F6A4C;
+    --green-soft:#EAF1EB;
+    --gold:#C9971F;
+    --gold-soft:#FBF1D7;
+    --ink:#1C2521;
+    --ink-2:#4C564F;
+    --ink-3:#7C867F;
+    --line:#E2E8E2;
+    --bg:#FBFBF9;
+    --surface:#FFFFFF;
+    --warn:#A35200;
+    --warn-soft:#FBEEDC;
+    --blue:#185FA5;
+    --blue-soft:#E9F1F9;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:16px;line-height:1.65;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:0 20px}
+  header.top{
+    background:var(--green);color:#fff;padding:44px 0 38px;
+    border-bottom:4px solid var(--gold);
+  }
+  .brand{display:flex;align-items:center;gap:11px;font-weight:600;font-size:15px;letter-spacing:.2px;opacity:.95}
+  header.top h1{
+    font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(28px,5vw,40px);
+    line-height:1.1;margin:18px 0 8px;text-wrap:balance;
+  }
+  header.top p{margin:0;font-size:16.5px;color:#D7E4D9;max-width:60ch}
+  .audience{margin-top:18px;font-size:13.5px;color:#BFD3C3;letter-spacing:.3px}
+  main{padding:14px 0 60px}
+  section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:26px 26px 20px;margin:22px 0}
+  .eyebrow{font-size:12px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+  h2{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:22px;color:var(--green);margin:0 0 12px;line-height:1.2}
+  h3{font-size:16px;font-weight:600;color:var(--ink);margin:22px 0 8px}
+  p{margin:0 0 13px}
+  a{color:var(--green-2)}
+  strong{font-weight:600;color:var(--ink)}
+  .lede{font-size:16.5px;color:var(--ink-2)}
+  .ui{display:inline-block;background:var(--green-soft);color:var(--green);border:1px solid #D4E2D6;border-radius:6px;padding:1px 8px;font-size:14px;font-weight:600;white-space:nowrap}
+  .ui.warn{background:var(--warn-soft);color:var(--warn);border-color:#EBD3B0}
+  .ui.blue{background:var(--blue-soft);color:var(--blue);border-color:#C9DEF0}
+  .path{font-weight:600;color:var(--green)}
+  .path .sep{color:var(--ink-3);font-weight:400;margin:0 4px}
+  ol.steps{list-style:none;counter-reset:s;margin:10px 0 6px;padding:0}
+  ol.steps>li{counter-increment:s;position:relative;padding:0 0 14px 44px;}
+  ol.steps>li::before{
+    content:counter(s);position:absolute;left:0;top:0;width:29px;height:29px;border-radius:50%;
+    background:var(--green);color:#fff;font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;
+  }
+  ol.steps>li:not(:last-child)::after{content:"";position:absolute;left:14px;top:30px;bottom:2px;width:2px;background:var(--line)}
+  .note{border-radius:10px;padding:13px 16px;margin:14px 0;font-size:14.5px;border:1px solid}
+  .note.tip{background:var(--green-soft);border-color:#CFE0D2;color:#1F4030}
+  .note.warn{background:var(--warn-soft);border-color:#EBD3B0;color:#6E3A05}
+  .note.info{background:var(--blue-soft);border-color:#CADEF1;color:#123E68}
+  .note b{color:inherit}
+  .tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:14.5px;overflow:hidden;border-radius:10px;border:1px solid var(--line)}
+  .tbl th{background:var(--green-soft);color:var(--green);text-align:left;padding:10px 13px;font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.5px}
+  .tbl td{padding:11px 13px;border-top:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+  .tbl td b{color:var(--ink)}
+  .toc{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 24px;margin:22px 0}
+  .toc h2{font-size:15px;color:var(--ink);font-family:"IBM Plex Sans",sans-serif;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+  .toc ol{margin:0;padding-left:20px;columns:2;column-gap:28px;font-size:14.5px}
+  .toc li{margin-bottom:6px;break-inside:avoid}
+  .toc a{text-decoration:none;color:var(--ink-2)}
+  .toc a:hover{color:var(--green);text-decoration:underline}
+  .faq{margin-top:4px}
+  .faq .q{font-weight:600;color:var(--green);margin:16px 0 4px;font-size:15.5px}
+  footer{color:var(--ink-3);font-size:13px;text-align:center;padding:10px 0 50px}
+  footer .line{height:1px;background:var(--line);max-width:120px;margin:0 auto 16px}
+  @media (max-width:560px){ .toc ol{columns:1} section{padding:22px 18px 16px} }
+  @media print{
+    body{background:#fff}
+    header.top{background:#fff;color:var(--ink);border-bottom:3px solid var(--gold)}
+    header.top h1{color:var(--green)} header.top p,.audience{color:var(--ink-2)}
+    section,.toc{break-inside:avoid;border-color:#ccc}
+    a{color:var(--ink)}
+  }
+</style>
+</head>
+<body>
+<div style="background:#EAF1EB;border-bottom:1px solid #D7E4D9"><div style="max-width:820px;margin:0 auto;padding:0 20px"><a href="mtl-help-center.html" style="display:inline-block;padding:9px 0;color:#234F3A;font-size:13.5px;font-weight:600;text-decoration:none">&larr; Help Center</a></div></div>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 26 26" aria-hidden="true"><path d="M3 21L10 7l4 7 2-3 7 10z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M10 7l4 7 2-3" fill="none" stroke="#F0C048" stroke-width="2" stroke-linejoin="round"/></svg>
+      MountainTop Ledger
+    </div>
+    <h1>Importing QuickBooks into MTL</h1>
+    <p>Bring a client's existing QuickBooks Online books — customers, vendors, invoices, bills, and expenses — into MountainTop Ledger, step by step.</p>
+    <div class="audience">A guide for bookkeepers &amp; accountants · ~10 minutes, start to finish</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc">
+    <h2>What's inside</h2>
+    <ol>
+      <li><a href="#before">Before you start</a></li>
+      <li><a href="#find">Step 1 · Find the connection</a></li>
+      <li><a href="#connect">Step 2 · Connect to QuickBooks</a></li>
+      <li><a href="#import">Step 3 · Import the data</a></li>
+      <li><a href="#arrows">Which way is the data going?</a></li>
+      <li><a href="#after">After importing</a></li>
+      <li><a href="#faq">Troubleshooting</a></li>
+    </ol>
+  </nav>
+</div>
+
+<main class="wrap">
+
+  <!-- 0 -->
+  <section id="before">
+    <div class="eyebrow">Start here</div>
+    <h2>Before you start</h2>
+    <p class="lede">Three things need to be true before an import will work. Checking them first saves a wasted trip through the sign-in screens.</p>
+    <table class="tbl">
+      <tr><th>You need</th><th>Why</th></tr>
+      <tr><td><b>QuickBooks <u>Online</u></b> (not Desktop)</td><td>MTL connects to QuickBooks Online only. QuickBooks Desktop is a separate product it can't read.</td></tr>
+      <tr><td><b>Sign-in access to that QBO company</b></td><td>Either the client's own Intuit login, or your accountant login that's been invited to their company.</td></tr>
+      <tr><td><b>An <span class="ui">Admin</span> role in MTL</b></td><td>The <span class="ui">Connect</span> button is admin-only. If you see "Admin only" instead, ask the company owner to raise your role.</td></tr>
+    </table>
+    <div class="note info">
+      <b>Not sure if the client is on Online or Desktop?</b> If they log in through a web browser at qbo.intuit.com (no program installed), it's <b>Online</b> — you're good. If they open a QuickBooks program on their PC, that's <b>Desktop</b> — see the note at the end of this guide.
+    </div>
+  </section>
+
+  <!-- 1 -->
+  <section id="find">
+    <div class="eyebrow">Step 1</div>
+    <h2>Find the connection</h2>
+    <p>The QuickBooks connection lives in Settings, under Integrations.</p>
+    <p class="path">Settings <span class="sep">›</span> Integrations <span class="sep">›</span> QuickBooks Online</p>
+    <ol class="steps">
+      <li>Log in to MountainTop Ledger.</li>
+      <li>In the left sidebar, click <span class="ui">Settings</span>.</li>
+      <li>Open the <span class="ui">Integrations</span> tab.</li>
+      <li>Find the <span class="ui">QuickBooks Online</span> card.</li>
+    </ol>
+  </section>
+
+  <!-- 2 -->
+  <section id="connect">
+    <div class="eyebrow">Step 2</div>
+    <h2>Connect to QuickBooks</h2>
+    <p class="lede">This is a one-time link between MTL and the client's QuickBooks company. MTL never sees the QuickBooks password — you sign in on Intuit's own page.</p>
+    <ol class="steps">
+      <li>Click <span class="ui blue">Connect</span>. You'll be sent to Intuit's sign-in page.</li>
+      <li>Sign in with the Intuit account that owns — or has been invited to — the QuickBooks Online company you're importing.</li>
+      <li>Authorize <strong>MTLedger App</strong> to access QuickBooks. You'll return to MTL and the card will read <span class="ui">Connected</span>.</li>
+    </ol>
+    <div class="note warn">
+      <b>Do NOT click "Sign in here instead."</b> That link on Intuit's page is for QuickBooks <b>Desktop</b> — a different product MTL can't import from. Stay on the normal QuickBooks Online sign-in.
+    </div>
+    <div class="note warn">
+      <b>If Intuit offers to "start a free 30-day trial," stop.</b> That means the account you signed in with has <b>no existing QuickBooks Online company with data</b> — it wants to create a brand-new, empty one. There'd be nothing to import, and the trial can turn into a paid subscription. Back out and sign in with the account that actually holds the client's books.
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section id="import">
+    <div class="eyebrow">Step 3</div>
+    <h2>Import the data</h2>
+    <p class="lede">Once connected, an <strong>Import</strong> section appears on the same card. Click the buttons <strong>in this order</strong> — invoices and bills link to customers and vendors, so bring those in first.</p>
+    <ol class="steps">
+      <li><span class="ui">Import customers ← QuickBooks</span></li>
+      <li><span class="ui">Import vendors ← QuickBooks</span></li>
+      <li><span class="ui">Import invoices ← QuickBooks</span></li>
+      <li><span class="ui">Import bills ← QuickBooks</span></li>
+      <li><span class="ui">Import expenses ← QuickBooks</span></li>
+    </ol>
+    <p>After each one, MTL shows a result line, for example:</p>
+    <div class="note info">
+      <b>Customers imported</b> — 48 new · 3 matched &amp; updated · 1 already linked · 0 failed
+    </div>
+    <div class="note tip">
+      <b>Safe to re-run.</b> Clicking an import again does <b>not</b> create duplicates — existing records are matched and updated, not re-added. If a run shows failures, fix the flagged items and simply run it again.
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section id="arrows">
+    <div class="eyebrow">Read the arrow</div>
+    <h2>Which way is the data going?</h2>
+    <p>The same card has two sets of buttons. The arrow tells you which direction the data flows — this is the one thing not to mix up.</p>
+    <table class="tbl">
+      <tr><th>Button</th><th>Direction</th><th>What it does</th></tr>
+      <tr><td><span class="ui">… ← QuickBooks</span></td><td><b>Pulls IN</b></td><td>Brings QuickBooks data <b>into</b> MTL. This is what you want for a migration.</td></tr>
+      <tr><td><span class="ui">… → QuickBooks</span><br><span class="ui">(Sync section)</span></td><td><b>Pushes OUT</b></td><td>Sends your MTL data <b>out to</b> QuickBooks. Leave this alone when you're importing.</td></tr>
+    </table>
+  </section>
+
+  <!-- 5 -->
+  <section id="after">
+    <div class="eyebrow">Finish up</div>
+    <h2>After importing</h2>
+    <ol class="steps">
+      <li>Spot-check the <span class="ui">Customers</span>, <span class="ui">Vendors</span>, <span class="ui">Invoices</span>, <span class="ui">Bills</span>, and <span class="ui">Expenses</span> pages so the counts look right.</li>
+      <li>Connect the client's bank and card accounts under <span class="ui">Banking</span> for ongoing transactions going forward.</li>
+      <li>Pull in historical <strong>bank transactions</strong> through the bank connection, or by importing a <b>.qbo</b> / <b>.qfx</b> / <b>.ofx</b> file on the Banking page.</li>
+    </ol>
+    <div class="note info">
+      <b>What the import covers:</b> customers, vendors, invoices, bills, and expenses. It does <b>not</b> move bank transactions — those come in through Banking (see the <em>Banking Guide</em>).
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section id="faq">
+    <div class="eyebrow">At a glance</div>
+    <h2>Troubleshooting</h2>
+    <div class="faq">
+      <div class="q">The Connect button is greyed out or says "coming soon."</div>
+      <p>The QuickBooks connection isn't enabled for this environment yet. Contact MountainTop Ledger support.</p>
+
+      <div class="q">It says "Admin only" instead of Connect.</div>
+      <p>You need an <b>Admin</b> role on this MTL company. Ask the company owner to raise your role, then reload Settings.</p>
+
+      <div class="q">Intuit wants to start a free 30-day trial.</div>
+      <p>You're signed into an Intuit account with no existing QuickBooks Online company. Back out and sign in with the account that actually has the client's books — don't start the empty trial.</p>
+
+      <div class="q">Some records show "failed."</div>
+      <p>Open the error list shown under the result line, fix the flagged items in QuickBooks if needed, and re-run the import — it's safe to run again.</p>
+
+      <div class="q">The client is on QuickBooks Desktop, not Online.</div>
+      <p>MTL imports from QuickBooks Online only. For a Desktop client, export their lists and transactions from Desktop and bring them in via MTL's CSV / statement imports, or have them move to QuickBooks Online first. Ask MTL support for the current Desktop path.</p>
+
+      <div class="q">Did I just duplicate everything by clicking twice?</div>
+      <p>No. Imports match on existing records and update them rather than adding copies, so re-running is harmless.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <div class="line"></div>
+  MountainTop Ledger — QuickBooks Import Guide · Keep this handy for client onboarding.
+</footer>
+
+</body>
+</html>

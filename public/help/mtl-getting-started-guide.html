@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MTL Getting Started</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --green:#234F3A;--green-2:#2F6A4C;--green-soft:#EAF1EB;--gold:#C9971F;--gold-soft:#FBF1D7;
+    --ink:#1C2521;--ink-2:#4C564F;--ink-3:#7C867F;--line:#E2E8E2;--bg:#FBFBF9;--surface:#FFFFFF;
+    --warn:#A35200;--warn-soft:#FBEEDC;--blue:#185FA5;--blue-soft:#E9F1F9;--pos:#176B4C;--neg:#A3302A;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.65;}
+  .wrap{max-width:820px;margin:0 auto;padding:0 20px}
+  .backbar{background:var(--green-soft);border-bottom:1px solid #D7E4D9}
+  .backbar a{display:inline-block;padding:9px 0;color:var(--green);font-size:13.5px;font-weight:600;text-decoration:none}
+  .backbar a:hover{text-decoration:underline}
+  header.top{background:var(--green);color:#fff;padding:40px 0 34px;border-bottom:4px solid var(--gold);}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:600;font-size:15px;letter-spacing:.2px;opacity:.95}
+  header.top h1{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(28px,5vw,40px);line-height:1.1;margin:16px 0 8px;text-wrap:balance;}
+  header.top p{margin:0;font-size:16.5px;color:#D7E4D9;max-width:62ch}
+  .audience{margin-top:16px;font-size:13.5px;color:#BFD3C3;letter-spacing:.3px}
+  main{padding:14px 0 60px}
+  section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:26px 26px 20px;margin:22px 0}
+  .eyebrow{font-size:12px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+  h2{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:22px;color:var(--green);margin:0 0 12px;line-height:1.2}
+  h3{font-size:16px;font-weight:600;color:var(--ink);margin:22px 0 8px}
+  p{margin:0 0 13px}
+  a{color:var(--green-2)}
+  strong{font-weight:600;color:var(--ink)}
+  .lede{font-size:16.5px;color:var(--ink-2)}
+  .ui{display:inline-block;background:var(--green-soft);color:var(--green);border:1px solid #D4E2D6;border-radius:6px;padding:1px 8px;font-size:14px;font-weight:600;white-space:nowrap}
+  .ui.warn{background:var(--warn-soft);color:var(--warn);border-color:#EBD3B0}
+  .ui.blue{background:var(--blue-soft);color:var(--blue);border-color:#C9DEF0}
+  .path{font-weight:600;color:var(--green)}
+  .path .sep{color:var(--ink-3);font-weight:400;margin:0 4px}
+  ol.steps{list-style:none;counter-reset:s;margin:10px 0 6px;padding:0}
+  ol.steps>li{counter-increment:s;position:relative;padding:0 0 14px 44px;}
+  ol.steps>li::before{content:counter(s);position:absolute;left:0;top:0;width:29px;height:29px;border-radius:50%;background:var(--green);color:#fff;font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;}
+  ol.steps>li:not(:last-child)::after{content:"";position:absolute;left:14px;top:30px;bottom:2px;width:2px;background:var(--line)}
+  .note{border-radius:10px;padding:13px 16px;margin:14px 0;font-size:14.5px;border:1px solid}
+  .note.tip{background:var(--green-soft);border-color:#CFE0D2;color:#1F4030}
+  .note.warn{background:var(--warn-soft);border-color:#EBD3B0;color:#6E3A05}
+  .note.info{background:var(--blue-soft);border-color:#CADEF1;color:#123E68}
+  .note b{color:inherit}
+  .tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:14.5px;overflow:hidden;border-radius:10px;border:1px solid var(--line)}
+  .tbl th{background:var(--green-soft);color:var(--green);text-align:left;padding:10px 13px;font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.5px}
+  .tbl td{padding:11px 13px;border-top:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+  .tbl td b{color:var(--ink)}
+  .toc{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 24px;margin:22px 0}
+  .toc h2{font-size:15px;color:var(--ink);font-family:"IBM Plex Sans",sans-serif;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+  .toc ol{margin:0;padding-left:20px;columns:2;column-gap:28px;font-size:14.5px}
+  .toc li{margin-bottom:6px;break-inside:avoid}
+  .toc a{text-decoration:none;color:var(--ink-2)}
+  .toc a:hover{color:var(--green);text-decoration:underline}
+  .faq{margin-top:4px}
+  .faq .q{font-weight:600;color:var(--green);margin:16px 0 4px;font-size:15.5px}
+  footer{color:var(--ink-3);font-size:13px;text-align:center;padding:10px 0 50px}
+  footer .line{height:1px;background:var(--line);max-width:120px;margin:0 auto 16px}
+  @media (max-width:560px){ .toc ol{columns:1} section{padding:22px 18px 16px} }
+  @media print{ .backbar{display:none} body{background:#fff} header.top{background:#fff;color:var(--ink);border-bottom:3px solid var(--gold)} header.top h1{color:var(--green)} header.top p,.audience{color:var(--ink-2)} section,.toc{break-inside:avoid;border-color:#ccc} a{color:var(--ink)} }
+</style>
+</head>
+<body>
+<div class="backbar"><div class="wrap"><a href="mtl-help-center.html">&larr; Help Center</a></div></div>
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><svg width="24" height="24" viewBox="0 0 26 26" aria-hidden="true"><path d="M3 21L10 7l4 7 2-3 7 10z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M10 7l4 7 2-3" fill="none" stroke="#F0C048" stroke-width="2" stroke-linejoin="round"/></svg> MountainTop Ledger</div>
+    <h1>Getting Started in MTL</h1>
+    <p>Your first day: set up your company, build your chart of accounts, connect a bank, and send your first invoice — in about fifteen minutes.</p>
+    <div class="audience">A guide for new business owners & bookkeepers</div>
+  </div>
+</header>
+<div class="wrap">
+  <nav class="toc">
+    <h2>What's inside</h2>
+    <ol>
+      <li><a href="#company">Set up your company</a></li>
+      <li><a href="#coa">Your chart of accounts</a></li>
+      <li><a href="#bank">Connect a bank</a></li>
+      <li><a href="#invoice">Send your first invoice</a></li>
+      <li><a href="#help">Invite a bookkeeper</a></li>
+      <li><a href="#faq">Quick answers</a></li>
+    </ol>
+  </nav>
+</div>
+<main class="wrap">
+
+  <section id="company">
+    <div class="eyebrow">Step 1</div>
+    <h2>Set up your company</h2>
+    <p class="lede">Your company details appear on your invoices and reports, so fill these in first.</p>
+    <p class="path">Settings <span class="sep">›</span> Company</p>
+    <ol class="steps">
+      <li>Open <span class="ui">Settings</span> from the sidebar, then the <span class="ui">Company</span> tab.</li>
+      <li>Enter your business name, address, email, and phone. Add a logo if you have one.</li>
+      <li>Set your <strong>accounting method</strong> (cash or accrual) and your fiscal year start if they differ from the defaults.</li>
+      <li>Save. That's the foundation — everything else builds on it.</li>
+    </ol>
+    <div class="note tip"><b>Not sure cash vs. accrual?</b> Most small businesses use <b>cash basis</b> — you count income when money arrives and expenses when you pay them. You can change it later, and your accountant can advise.</div>
+  </section>
+  <section id="coa">
+    <div class="eyebrow">Step 2</div>
+    <h2>Your chart of accounts</h2>
+    <p>The chart of accounts is just the list of categories your money gets sorted into (Sales, Rent, Fuel, and so on). MTL can create a standard small-business chart for you in one click.</p>
+    <ol class="steps">
+      <li>Open <span class="ui">Chart of accounts</span> (under the Advanced section of the sidebar).</li>
+      <li>If it's empty, choose to <strong>seed the standard chart</strong> — MTL adds a tidy, ready-to-use set of accounts.</li>
+      <li>Rename or add accounts anytime to match how you think about your business. New ones are numbered for you automatically.</li>
+    </ol>
+    <div class="note info"><b>Why it matters:</b> these categories are what you'll pick when you categorize bank transactions, bills, and expenses — and they're what your reports add up.</div>
+  </section>
+  <section id="bank">
+    <div class="eyebrow">Step 3</div>
+    <h2>Connect a bank</h2>
+    <p>Connecting a bank pulls your transactions in automatically, so you're not typing them by hand.</p>
+    <ol class="steps">
+      <li>Open <span class="ui">Banking</span> and click <span class="ui blue">🔗 Connect a bank</span>.</li>
+      <li>A secure window (Plaid) opens — find your bank, log in with your <em>bank's</em> credentials, and pick the accounts to link. <strong>MTL never sees your bank password.</strong></li>
+      <li>Transactions start flowing into the <span class="ui">For review</span> tab, ready to categorize.</li>
+    </ol>
+    <div class="note tip">New to the bank feed? The <b>Banking</b> guide walks through categorizing, reconnecting, and importing statements by hand.</div>
+  </section>
+  <section id="invoice">
+    <div class="eyebrow">Step 4</div>
+    <h2>Send your first invoice</h2>
+    <ol class="steps">
+      <li>Open <span class="ui">Invoices</span> and click <span class="ui blue">New invoice</span>.</li>
+      <li>Type a customer name (new ones are saved automatically), add your line items, and set the dates.</li>
+      <li>Click <span class="ui">Save draft</span> to finish later, or <span class="ui">Save &amp; send</span> to email it to the customer right away.</li>
+    </ol>
+    <div class="note info">See the <b>Invoicing &amp; Getting Paid</b> guide for recording payments and setting up recurring invoices.</div>
+  </section>
+  <section id="help">
+    <div class="eyebrow">Step 5</div>
+    <h2>Invite a bookkeeper (optional)</h2>
+    <p>If someone keeps your books for you, you can give them secure access to this company.</p>
+    <ul style="margin:6px 0 0;padding-left:20px"><li style="margin-bottom:8px"><strong>You have a bookkeeper:</strong> when they request access, you'll see a banner at the top of the app asking you to approve it. You choose <span class="ui">Full (view &amp; edit)</span> or <span class="ui">View only</span>, and MTL keeps a signed record of the authorization.</li>
+    <li><strong>You are the bookkeeper:</strong> see the <em>For Bookkeepers</em> guide for requesting access and switching between client companies.</li></ul>
+  </section>
+  <section id="faq">
+    <div class="eyebrow">At a glance</div>
+    <h2>Quick answers</h2>
+    <div class="faq">
+      <div class="q">Do I have to connect a bank?</div>
+      <p>No — you can import statements or enter transactions by hand. But connecting a bank saves the most time.</p>
+      <div class="q">Can I run more than one business?</div>
+      <p>Yes. One login can hold several companies; switch between them from the company menu at the top.</p>
+      <div class="q">What should I do first if I'm moving from QuickBooks?</div>
+      <p>See the <b>Importing QuickBooks</b> guide — you can pull your customers, vendors, invoices, bills, and expenses straight in.</p>
+    </div>
+  </section>
+</main>
+<footer class="wrap">
+  <div class="line"></div>
+  MountainTop Ledger — Getting Started Guide
+</footer>
+</body>
+</html>

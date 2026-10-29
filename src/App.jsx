@@ -25,6 +25,7 @@ import CurrenciesPage            from './pages/CurrenciesPage';
 import CustomerPortalPage        from './pages/CustomerPortalPage';
 import BillingPage               from './pages/BillingPage';
 import JobsPage                  from './pages/JobsPage';
+import HelpPage                  from './pages/HelpPage';
 import MultiCompanyPage          from './pages/MultiCompanyPage';
 import ResellerPage              from './pages/ResellerPage';
 import PlatformAdminPage         from './pages/PlatformAdminPage';
@@ -351,6 +352,7 @@ export default function App() {
       case 'vendors':     return <VendorsPage org={org} focusName={view.focusName} onNewBill={(v)=>{ setActiveNav('bills'); setView({ type:'list', presetVendor:v }); }} />;
       case 'expenses':    return <ExpensesPage />;
       case 'jobs':        return <JobsPage />;
+      case 'help':        return <HelpPage />;
       case 'bank':        return <BankingPage />;
       case 'reports':     return <ReportsPage />;
       case 'coa':         return <ChartOfAccountsPage />;

@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MTL Job Costing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --green:#234F3A;--green-2:#2F6A4C;--green-soft:#EAF1EB;--gold:#C9971F;--gold-soft:#FBF1D7;
+    --ink:#1C2521;--ink-2:#4C564F;--ink-3:#7C867F;--line:#E2E8E2;--bg:#FBFBF9;--surface:#FFFFFF;
+    --warn:#A35200;--warn-soft:#FBEEDC;--blue:#185FA5;--blue-soft:#E9F1F9;
+    --pos:#176B4C;--neg:#A3302A;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.65;}
+  .wrap{max-width:820px;margin:0 auto;padding:0 20px}
+  header.top{background:var(--green);color:#fff;padding:44px 0 38px;border-bottom:4px solid var(--gold);}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:600;font-size:15px;letter-spacing:.2px;opacity:.95}
+  header.top h1{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(28px,5vw,40px);line-height:1.1;margin:18px 0 8px;text-wrap:balance;}
+  header.top p{margin:0;font-size:16.5px;color:#D7E4D9;max-width:62ch}
+  .audience{margin-top:18px;font-size:13.5px;color:#BFD3C3;letter-spacing:.3px}
+  main{padding:14px 0 60px}
+  section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:26px 26px 20px;margin:22px 0}
+  .eyebrow{font-size:12px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+  h2{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:22px;color:var(--green);margin:0 0 12px;line-height:1.2}
+  h3{font-size:16px;font-weight:600;color:var(--ink);margin:22px 0 8px}
+  p{margin:0 0 13px}
+  a{color:var(--green-2)}
+  strong{font-weight:600;color:var(--ink)}
+  .lede{font-size:16.5px;color:var(--ink-2)}
+  .ui{display:inline-block;background:var(--green-soft);color:var(--green);border:1px solid #D4E2D6;border-radius:6px;padding:1px 8px;font-size:14px;font-weight:600;white-space:nowrap}
+  .ui.warn{background:var(--warn-soft);color:var(--warn);border-color:#EBD3B0}
+  .ui.blue{background:var(--blue-soft);color:var(--blue);border-color:#C9DEF0}
+  ol.steps{list-style:none;counter-reset:s;margin:10px 0 6px;padding:0}
+  ol.steps>li{counter-increment:s;position:relative;padding:0 0 14px 44px;}
+  ol.steps>li::before{content:counter(s);position:absolute;left:0;top:0;width:29px;height:29px;border-radius:50%;background:var(--green);color:#fff;font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;}
+  ol.steps>li:not(:last-child)::after{content:"";position:absolute;left:14px;top:30px;bottom:2px;width:2px;background:var(--line)}
+  .note{border-radius:10px;padding:13px 16px;margin:14px 0;font-size:14.5px;border:1px solid}
+  .note.tip{background:var(--green-soft);border-color:#CFE0D2;color:#1F4030}
+  .note.warn{background:var(--warn-soft);border-color:#EBD3B0;color:#6E3A05}
+  .note.info{background:var(--blue-soft);border-color:#CADEF1;color:#123E68}
+  .note b{color:inherit}
+  .tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:14.5px;overflow:hidden;border-radius:10px;border:1px solid var(--line)}
+  .tbl th{background:var(--green-soft);color:var(--green);text-align:left;padding:10px 13px;font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.5px}
+  .tbl td{padding:11px 13px;border-top:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+  .tbl td b{color:var(--ink)}
+  .toc{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 24px;margin:22px 0}
+  .toc h2{font-size:15px;color:var(--ink);font-family:"IBM Plex Sans",sans-serif;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+  .toc ol{margin:0;padding-left:20px;columns:2;column-gap:28px;font-size:14.5px}
+  .toc li{margin-bottom:6px;break-inside:avoid}
+  .toc a{text-decoration:none;color:var(--ink-2)}
+  .toc a:hover{color:var(--green);text-decoration:underline}
+  .faq{margin-top:4px}
+  .faq .q{font-weight:600;color:var(--green);margin:16px 0 4px;font-size:15.5px}
+  /* sample P&L mock */
+  .pnl{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:14px 0;font-size:14.5px}
+  .pnl .row{display:flex;justify-content:space-between;padding:9px 16px;border-top:1px solid #EEF2EC}
+  .pnl .row:first-child{border-top:0}
+  .pnl .row.sub{color:var(--ink-2);padding-left:28px}
+  .pnl .row.tot{font-weight:600;background:#F6F9F4;color:var(--ink)}
+  .pnl .row.profit{background:var(--green);color:#fff;font-weight:700;font-size:16px}
+  .pnl .pos{color:var(--pos);font-weight:600}
+  .pnl .neg{color:var(--neg);font-weight:600}
+  .pnl .row.profit .pos{color:#Eafff4}
+  footer{color:var(--ink-3);font-size:13px;text-align:center;padding:10px 0 50px}
+  footer .line{height:1px;background:var(--line);max-width:120px;margin:0 auto 16px}
+  @media (max-width:560px){ .toc ol{columns:1} section{padding:22px 18px 16px} }
+  @media print{
+    body{background:#fff}
+    header.top{background:#fff;color:var(--ink);border-bottom:3px solid var(--gold)}
+    header.top h1{color:var(--green)} header.top p,.audience{color:var(--ink-2)}
+    section,.toc{break-inside:avoid;border-color:#ccc}
+    .pnl .row.profit{background:#eef4ee;color:var(--green)} .pnl .row.profit .pos{color:var(--pos)}
+    a{color:var(--ink)}
+  }
+</style>
+</head>
+<body>
+<div style="background:#EAF1EB;border-bottom:1px solid #D7E4D9"><div style="max-width:820px;margin:0 auto;padding:0 20px"><a href="mtl-help-center.html" style="display:inline-block;padding:9px 0;color:#234F3A;font-size:13.5px;font-weight:600;text-decoration:none">&larr; Help Center</a></div></div>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 26 26" aria-hidden="true"><path d="M3 21L10 7l4 7 2-3 7 10z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M10 7l4 7 2-3" fill="none" stroke="#F0C048" stroke-width="2" stroke-linejoin="round"/></svg>
+      MountainTop Ledger
+    </div>
+    <h1>Job Costing: Profit on Every Project</h1>
+    <p>For contractors and anyone who runs work as separate projects — tag the money that flows through each job and see, at a glance, how much you actually made on it.</p>
+    <div class="audience">A guide for business owners &amp; bookkeepers · Built for construction &amp; trades</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc">
+    <h2>What's inside</h2>
+    <ol>
+      <li><a href="#what">What job costing does</a></li>
+      <li><a href="#create">Create a job</a></li>
+      <li><a href="#tag">Tag money to a job</a></li>
+      <li><a href="#pnl">Reading the per-job profit</a></li>
+      <li><a href="#estimate">Estimate vs. actual</a></li>
+      <li><a href="#onceonly">The one rule: tag it once</a></li>
+      <li><a href="#faq">Quick answers</a></li>
+    </ol>
+  </nav>
+</div>
+
+<main class="wrap">
+
+  <!-- 1 -->
+  <section id="what">
+    <div class="eyebrow">Start here</div>
+    <h2>What job costing does</h2>
+    <p class="lede">Normal bookkeeping tells you how the <em>whole business</em> is doing. Job costing tells you how <em>each project</em> is doing — so you can see which jobs make money and which quietly lose it.</p>
+    <p>The idea is simple: you create a <strong>job</strong> for each project, then <strong>tag</strong> the invoices, bills, expenses, and bank charges that belong to it. MTL adds up the money in and the money out and shows you the <strong>profit on that job</strong>.</p>
+    <p>You'll find it under <span class="ui">Jobs</span> in the left sidebar (under the "Job costing" heading).</p>
+    <div class="note info"><b>Tagging is always optional.</b> Anything you don't tag just stays in your regular books exactly as before — turning on job costing changes nothing about how the rest of MTL works.</div>
+  </section>
+
+  <!-- 2 -->
+  <section id="create">
+    <div class="eyebrow">Step one</div>
+    <h2>Create a job</h2>
+    <ol class="steps">
+      <li>Click <span class="ui">Jobs</span> in the sidebar, then <span class="ui blue">+ New job</span>.</li>
+      <li>Give it a <strong>name</strong> (e.g. "Smith Residence — Kitchen Remodel"). Everything else is optional.</li>
+      <li>Add a <strong>job number</strong>, <strong>customer</strong>, and — if you want estimate-vs-actual — your <strong>estimated revenue</strong> (the contract amount) and <strong>estimated cost</strong> (your budget).</li>
+      <li>Save. The job starts as <span class="ui">Active</span>; you can mark it <span class="ui">Completed</span> or <span class="ui">Archived</span> later.</li>
+    </ol>
+    <div class="note tip"><b>Good to know:</b> the job pickers throughout MTL only appear once you've created at least one job — so the rest of your screens stay uncluttered if you don't use job costing.</div>
+  </section>
+
+  <!-- 3 -->
+  <section id="tag">
+    <div class="eyebrow">Step two</div>
+    <h2>Tag money to a job</h2>
+    <p class="lede">Every place money enters your books now has a <strong>Job</strong> picker. Tag an item to a job and it counts toward that job's profit. You can tag as you go, or assign things in bulk from inside the job.</p>
+    <table class="tbl">
+      <tr><th>Where</th><th>How</th></tr>
+      <tr><td><b>New / edit Invoice</b><br><span style="font-size:12.5px;color:var(--ink-3)">money in</span></td><td>A <span class="ui">Job (optional)</span> dropdown under the dates.</td></tr>
+      <tr><td><b>New / edit Bill</b><br><span style="font-size:12.5px;color:var(--ink-3)">money out</span></td><td>A <span class="ui">Job (optional)</span> dropdown in the bill form.</td></tr>
+      <tr><td><b>New / edit Expense</b><br><span style="font-size:12.5px;color:var(--ink-3)">money out</span></td><td>A <span class="ui">Job (optional)</span> dropdown in the expense form.</td></tr>
+      <tr><td><b>Banking → For review</b><br><span style="font-size:12.5px;color:var(--ink-3)">the big one for trades</span></td><td>A <span class="ui">Job</span> column on each transaction row. Pick a job right there — it tags instantly. Perfect for materials and subs paid on a card.</td></tr>
+      <tr><td><b>From inside a job</b><br><span style="font-size:12.5px;color:var(--ink-3)">bulk / catch-up</span></td><td>Open the job and click <span class="ui">+ Assign</span> to pull in invoices, bills, expenses, or bank transactions you already entered. Click <span class="ui">Remove</span> to untag.</td></tr>
+    </table>
+    <div class="note tip"><b>On the phone, in the field:</b> your project managers can snap a receipt with the MTL mobile app the moment they buy materials — then that expense gets tagged to the job (here, or from the job's Assign button), so costs stay current without a month-end paperwork pile.</div>
+  </section>
+
+  <!-- 4 -->
+  <section id="pnl">
+    <div class="eyebrow">The payoff</div>
+    <h2>Reading the per-job profit</h2>
+    <p>Open any job to see its profit broken out plainly — nothing hidden. Here's what it looks like:</p>
+    <div class="pnl" role="img" aria-label="Example per-job profit: income 24,500 minus cost 15,900 equals profit 8,600 at 35.1 percent margin">
+      <div class="row"><span>Invoices billed</span><span>$22,000</span></div>
+      <div class="row"><span>Deposits / money in (bank)</span><span>$2,500</span></div>
+      <div class="row tot"><span>Total income</span><span class="pos">$24,500</span></div>
+      <div class="row"><span>Bills</span><span>$9,400</span></div>
+      <div class="row"><span>Expenses</span><span>$1,200</span></div>
+      <div class="row"><span>Card / bank spending</span><span>$5,300</span></div>
+      <div class="row tot"><span>Total cost</span><span class="neg">$15,900</span></div>
+      <div class="row profit"><span>Profit</span><span class="pos">$8,600 · 35.1%</span></div>
+    </div>
+    <p>And the <span class="ui">Jobs</span> list shows every job in one table — Revenue, Cost, Profit, and Margin — so you can scan all your projects at once and spot the winners and the losers.</p>
+    <table class="tbl">
+      <tr><th>Line</th><th>What feeds it</th></tr>
+      <tr><td><b>Invoices billed</b></td><td>Invoices tagged to this job.</td></tr>
+      <tr><td><b>Deposits / money in</b></td><td>Money-in bank transactions tagged to this job.</td></tr>
+      <tr><td><b>Bills · Expenses · Card/bank spending</b></td><td>Those three cost types, tagged to this job.</td></tr>
+      <tr><td><b>Profit · Margin</b></td><td>Total income minus total cost, and profit as a % of income.</td></tr>
+    </table>
+  </section>
+
+  <!-- 5 -->
+  <section id="estimate">
+    <div class="eyebrow">Quote vs. reality</div>
+    <h2>Estimate vs. actual</h2>
+    <p>If you entered an <strong>estimated revenue</strong> and <strong>estimated cost</strong> when you created the job, the job page also compares your quote to how it's actually tracking — your estimated profit, your actual profit so far, and the difference. It's the fastest way to catch a job drifting over budget <em>while you can still do something about it</em>.</p>
+    <div class="note info"><b>No estimate yet?</b> You can add one anytime — open the job, click <span class="ui">Edit</span>, and fill in the estimated revenue and cost.</div>
+  </section>
+
+  <!-- 6 -->
+  <section id="onceonly">
+    <div class="eyebrow">The one rule</div>
+    <h2>Tag each cost once</h2>
+    <p class="lede">Job costing shows you exactly what's tagged — it doesn't guess. So the one thing to get right: <strong>tag each dollar in only one place.</strong></p>
+    <p>For example, if you buy $800 of lumber on a card, you can either enter it as a <strong>bill or expense</strong> <em>or</em> tag the <strong>bank charge</strong> for it — but not both, or that $800 gets counted as $1,600 of cost on the job.</p>
+    <div class="note warn"><b>Rule of thumb:</b> most trades tag costs in <b>one</b> spot — usually right on the <b>bank "For review"</b> row as charges come in. Pick the spot that fits your workflow and stick to it.</div>
+  </section>
+
+  <!-- 7 -->
+  <section id="faq">
+    <div class="eyebrow">At a glance</div>
+    <h2>Quick answers</h2>
+    <div class="faq">
+      <div class="q">A cost looks doubled on a job.</div>
+      <p>It's probably tagged in two places — e.g. both as an expense <em>and</em> on the bank charge that paid it. Remove the job tag from one of them (open the job → <b>Remove</b>, or clear the Job picker on the item).</p>
+
+      <div class="q">Can I move an item to a different job?</div>
+      <p>Yes — just change its <b>Job</b> picker to the other job, or re-assign it from inside the job. Nothing is locked.</p>
+
+      <div class="q">If I delete a job, do I lose the invoices and costs?</div>
+      <p>No. Deleting a job keeps all the invoices, bills, and expenses — they simply lose the job tag and stay in your regular books.</p>
+
+      <div class="q">My profit number looks off.</div>
+      <p>Two usual causes: something's <b>double-tagged</b> (see above), or a cost/revenue item just isn't <b>tagged to the job yet</b>. Open the job to see exactly what's counted, and use <span class="ui">+ Assign</span> to pull in anything missing.</p>
+
+      <div class="q">Do I have to use job costing for every company?</div>
+      <p>No. It's entirely optional and per-company. If you never create a job, nothing changes and no job pickers appear.</p>
+
+      <div class="q">What about progress billing, retainage, or change orders?</div>
+      <p>Those deeper tools are on the roadmap and we build them as construction customers need them. Today's job costing covers profit-per-job and estimate-vs-actual — tell us what you need next.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <div class="line"></div>
+  MountainTop Ledger — Job Costing Guide · Create a job, tag the money, see the profit.
+</footer>
+
+</body>
+</html>

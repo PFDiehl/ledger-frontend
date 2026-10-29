@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MTL Invoicing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --green:#234F3A;--green-2:#2F6A4C;--green-soft:#EAF1EB;--gold:#C9971F;--gold-soft:#FBF1D7;
+    --ink:#1C2521;--ink-2:#4C564F;--ink-3:#7C867F;--line:#E2E8E2;--bg:#FBFBF9;--surface:#FFFFFF;
+    --warn:#A35200;--warn-soft:#FBEEDC;--blue:#185FA5;--blue-soft:#E9F1F9;--pos:#176B4C;--neg:#A3302A;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.65;}
+  .wrap{max-width:820px;margin:0 auto;padding:0 20px}
+  .backbar{background:var(--green-soft);border-bottom:1px solid #D7E4D9}
+  .backbar a{display:inline-block;padding:9px 0;color:var(--green);font-size:13.5px;font-weight:600;text-decoration:none}
+  .backbar a:hover{text-decoration:underline}
+  header.top{background:var(--green);color:#fff;padding:40px 0 34px;border-bottom:4px solid var(--gold);}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:600;font-size:15px;letter-spacing:.2px;opacity:.95}
+  header.top h1{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(28px,5vw,40px);line-height:1.1;margin:16px 0 8px;text-wrap:balance;}
+  header.top p{margin:0;font-size:16.5px;color:#D7E4D9;max-width:62ch}
+  .audience{margin-top:16px;font-size:13.5px;color:#BFD3C3;letter-spacing:.3px}
+  main{padding:14px 0 60px}
+  section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:26px 26px 20px;margin:22px 0}
+  .eyebrow{font-size:12px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+  h2{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:22px;color:var(--green);margin:0 0 12px;line-height:1.2}
+  h3{font-size:16px;font-weight:600;color:var(--ink);margin:22px 0 8px}
+  p{margin:0 0 13px}
+  a{color:var(--green-2)}
+  strong{font-weight:600;color:var(--ink)}
+  .lede{font-size:16.5px;color:var(--ink-2)}
+  .ui{display:inline-block;background:var(--green-soft);color:var(--green);border:1px solid #D4E2D6;border-radius:6px;padding:1px 8px;font-size:14px;font-weight:600;white-space:nowrap}
+  .ui.warn{background:var(--warn-soft);color:var(--warn);border-color:#EBD3B0}
+  .ui.blue{background:var(--blue-soft);color:var(--blue);border-color:#C9DEF0}
+  .path{font-weight:600;color:var(--green)}
+  .path .sep{color:var(--ink-3);font-weight:400;margin:0 4px}
+  ol.steps{list-style:none;counter-reset:s;margin:10px 0 6px;padding:0}
+  ol.steps>li{counter-increment:s;position:relative;padding:0 0 14px 44px;}
+  ol.steps>li::before{content:counter(s);position:absolute;left:0;top:0;width:29px;height:29px;border-radius:50%;background:var(--green);color:#fff;font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;}
+  ol.steps>li:not(:last-child)::after{content:"";position:absolute;left:14px;top:30px;bottom:2px;width:2px;background:var(--line)}
+  .note{border-radius:10px;padding:13px 16px;margin:14px 0;font-size:14.5px;border:1px solid}
+  .note.tip{background:var(--green-soft);border-color:#CFE0D2;color:#1F4030}
+  .note.warn{background:var(--warn-soft);border-color:#EBD3B0;color:#6E3A05}
+  .note.info{background:var(--blue-soft);border-color:#CADEF1;color:#123E68}
+  .note b{color:inherit}
+  .tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:14.5px;overflow:hidden;border-radius:10px;border:1px solid var(--line)}
+  .tbl th{background:var(--green-soft);color:var(--green);text-align:left;padding:10px 13px;font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.5px}
+  .tbl td{padding:11px 13px;border-top:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+  .tbl td b{color:var(--ink)}
+  .toc{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 24px;margin:22px 0}
+  .toc h2{font-size:15px;color:var(--ink);font-family:"IBM Plex Sans",sans-serif;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+  .toc ol{margin:0;padding-left:20px;columns:2;column-gap:28px;font-size:14.5px}
+  .toc li{margin-bottom:6px;break-inside:avoid}
+  .toc a{text-decoration:none;color:var(--ink-2)}
+  .toc a:hover{color:var(--green);text-decoration:underline}
+  .faq{margin-top:4px}
+  .faq .q{font-weight:600;color:var(--green);margin:16px 0 4px;font-size:15.5px}
+  footer{color:var(--ink-3);font-size:13px;text-align:center;padding:10px 0 50px}
+  footer .line{height:1px;background:var(--line);max-width:120px;margin:0 auto 16px}
+  @media (max-width:560px){ .toc ol{columns:1} section{padding:22px 18px 16px} }
+  @media print{ .backbar{display:none} body{background:#fff} header.top{background:#fff;color:var(--ink);border-bottom:3px solid var(--gold)} header.top h1{color:var(--green)} header.top p,.audience{color:var(--ink-2)} section,.toc{break-inside:avoid;border-color:#ccc} a{color:var(--ink)} }
+</style>
+</head>
+<body>
+<div class="backbar"><div class="wrap"><a href="mtl-help-center.html">&larr; Help Center</a></div></div>
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><svg width="24" height="24" viewBox="0 0 26 26" aria-hidden="true"><path d="M3 21L10 7l4 7 2-3 7 10z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M10 7l4 7 2-3" fill="none" stroke="#F0C048" stroke-width="2" stroke-linejoin="round"/></svg> MountainTop Ledger</div>
+    <h1>Invoicing & Getting Paid</h1>
+    <p>Create and send professional invoices, record the payments that come back, and let MTL handle the repeat ones for you.</p>
+    <div class="audience">A guide for business owners & bookkeepers</div>
+  </div>
+</header>
+<div class="wrap">
+  <nav class="toc">
+    <h2>What's inside</h2>
+    <ol>
+      <li><a href="#create">Create an invoice</a></li>
+      <li><a href="#send">Save vs. send</a></li>
+      <li><a href="#payment">Record a payment</a></li>
+      <li><a href="#recurring">Recurring invoices</a></li>
+      <li><a href="#portal">The customer portal</a></li>
+      <li><a href="#faq">Quick answers</a></li>
+    </ol>
+  </nav>
+</div>
+<main class="wrap">
+
+  <section id="create">
+    <div class="eyebrow">Start here</div>
+    <h2>Create an invoice</h2>
+    <ol class="steps">
+      <li>Open <span class="ui">Invoices</span> &rarr; <span class="ui blue">New invoice</span>.</li>
+      <li><strong>Customer:</strong> start typing a name. If they already exist, MTL links to them and fills in their details; if not, the new customer is saved for next time.</li>
+      <li><strong>Line items:</strong> add a description, quantity, and rate for each thing you're billing. The amounts and total calculate as you type.</li>
+      <li>Add <strong>tax, shipping, or a discount</strong> if needed, set the issue and due dates, and (for job costing) pick a <span class="ui">Job</span>.</li>
+    </ol>
+    <div class="note tip"><b>Taxable vs. not:</b> each line has a tax checkbox, so you can charge tax on some items and not others on the same invoice.</div>
+  </section>
+  <section id="send">
+    <div class="eyebrow">Two buttons</div>
+    <h2>Save draft vs. Save &amp; send</h2>
+    <table class="tbl">
+      <tr><th>Button</th><th>What happens</th></tr>
+      <tr><td><span class="ui">Save draft</span></td><td>Saves the invoice so you can review or finish it later. Nothing is emailed.</td></tr>
+      <tr><td><span class="ui">Save &amp; send</span></td><td>Saves it <em>and</em> emails it to the customer's address right away, with a payment link.</td></tr>
+    </table>
+    <div class="note info">If an email can't send (for example, no customer email on file), MTL tells you and keeps the invoice as a draft so nothing is lost.</div>
+  </section>
+  <section id="payment">
+    <div class="eyebrow">Getting paid</div>
+    <h2>Record a payment</h2>
+    <p>When a customer pays, record it against the invoice so your books and receivables stay accurate.</p>
+    <ol class="steps">
+      <li>Open the invoice and choose to record a payment.</li>
+      <li>Enter the <strong>amount</strong> and the <strong>date it arrived</strong> (that date drives your cash-basis reports).</li>
+      <li>MTL marks the invoice <span class="ui">Partial</span> or <span class="ui">Paid</span> and posts the money to your books.</li>
+    </ol>
+    <div class="note tip"><b>Partial payments are fine.</b> Record each one as it comes; the invoice tracks what's still owed until it's paid in full.</div>
+  </section>
+  <section id="recurring">
+    <div class="eyebrow">Set &amp; forget</div>
+    <h2>Recurring invoices</h2>
+    <p>For customers you bill on a schedule (monthly retainers, memberships), set up a recurring invoice once and MTL creates each new invoice for you on time.</p>
+    <ol class="steps">
+      <li>Open <span class="ui">Recurring</span> from the sidebar.</li>
+      <li>Set the customer, the line items, and how often it repeats.</li>
+      <li>MTL generates each invoice on schedule — ready to send, or sent automatically, depending on your choice.</li>
+    </ol>
+  </section>
+  <section id="portal">
+    <div class="eyebrow">For your customer</div>
+    <h2>The customer portal</h2>
+    <p>Every invoice you send includes a link to a simple, branded page where your customer can view the invoice and pay online. There's nothing for them to install or sign up for.</p>
+    <div class="note info"><b>Faster payments:</b> an online pay link typically gets you paid sooner than "mail a check." Payments made through the portal flow back and mark the invoice paid.</div>
+  </section>
+  <section id="faq">
+    <div class="eyebrow">At a glance</div>
+    <h2>Quick answers</h2>
+    <div class="faq">
+      <div class="q">Can I edit an invoice after sending it?</div>
+      <p>Yes — open it and edit, as long as its period isn't closed. If it's already paid, consider whether a change is appropriate before making it.</p>
+      <div class="q">How do I bill a specific project?</div>
+      <p>Pick a <b>Job</b> on the invoice (see the <b>Job Costing</b> guide). The invoice then counts toward that job's profit.</p>
+      <div class="q">The customer never got the email.</div>
+      <p>Check the customer's email address on their record, then re-send. You can also copy the invoice's payment link and send it yourself.</p>
+    </div>
+  </section>
+</main>
+<footer class="wrap">
+  <div class="line"></div>
+  MountainTop Ledger — Invoicing & Getting Paid
+</footer>
+</body>
+</html>
