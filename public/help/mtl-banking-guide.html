@@ -125,6 +125,7 @@
       <li><a href="#reconnect">When a bank needs reconnecting</a></li>
       <li><a href="#import">Importing statements by hand</a></li>
       <li><a href="#resync">The "Re-sync books" button</a></li>
+      <li><a href="#reconcile">Reconciling to a statement</a></li>
       <li><a href="#rules">Rules &amp; auto-categorizing</a></li>
       <li><a href="#faq">Quick answers</a></li>
     </ol>
@@ -255,6 +256,25 @@
     <div class="note info">
       <b>Renamed a category and transactions "fell off"?</b> That's exactly what Re-sync books (and the <b>Review &amp; fix</b> prompt) are for. Re-pick a current category for the flagged items, or run Re-sync books, and they post right back into the books.
     </div>
+  </section>
+
+  <!-- 6b -->
+  <section id="reconcile">
+    <div class="eyebrow">Proving the books match the bank</div>
+    <h2>Reconciling to a statement</h2>
+    <p class="lede">Reconciling is how you confirm MTL matches your bank <em>exactly</em> at the end of a statement period — the month-end check every good set of books gets. There are two ways to think about it in MTL.</p>
+    <h3>The everyday way (ongoing)</h3>
+    <p>Because connected banks pull transactions in automatically, you're reconciling a little every day just by clearing the <span class="ui">For review</span> tab — categorizing or matching each transaction. When For review is empty, you're caught up to the bank.</p>
+    <h3>The formal way (statement reconciliation)</h3>
+    <p>When you want to tie out to a specific <strong>bank statement</strong> — confirm the ending balance matches to the penny — use the <span class="ui">⚖ Reconcile</span> button at the top of the Banking page.</p>
+    <ol class="steps">
+      <li>Select the account, then click <span class="ui">⚖ Reconcile</span>.</li>
+      <li>Enter the <strong>statement ending date</strong> and <strong>ending balance</strong> from your bank statement. (The <strong>beginning balance</strong> is pre-filled from your last reconciliation — for your very first one, type the opening balance from that statement.)</li>
+      <li><strong>Check off</strong> each transaction that appears on the statement. As you do, a running tally shows <em>Beginning + Deposits − Payments = Cleared balance</em>, and a <strong>Difference</strong> figure.</li>
+      <li>When the <strong>Difference reaches $0.00</strong> it turns green (<span class="ui">✓ Balanced</span>) and <span class="ui">Finish reconciliation</span> unlocks. Click it — the cleared items are locked to that reconciliation and it's saved.</li>
+    </ol>
+    <div class="note tip"><b>Difference won't hit zero?</b> Something's off between MTL and the statement — usually a transaction that's on the statement but not yet in MTL (import or add it), one in MTL that isn't on the statement (leave it unchecked for next time), or a wrong ending/beginning balance. Work the difference down until it's $0.00.</div>
+    <div class="note info"><b>Entered a statement wrong?</b> A reconciliation can be undone, which frees its transactions to be reconciled again — ask support if you need one reversed.</div>
   </section>
 
   <!-- 7 -->

@@ -8,11 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-  :root{
-    --green:#234F3A;--green-2:#2F6A4C;--green-soft:#EAF1EB;--gold:#C9971F;--gold-soft:#FBF1D7;
-    --ink:#1C2521;--ink-2:#4C564F;--ink-3:#7C867F;--line:#E2E8E2;--bg:#FBFBF9;--surface:#FFFFFF;
-    --warn:#A35200;--warn-soft:#FBEEDC;--blue:#185FA5;--blue-soft:#E9F1F9;--pos:#176B4C;--neg:#A3302A;
-  }
+  :root{--green:#234F3A;--green-2:#2F6A4C;--green-soft:#EAF1EB;--gold:#C9971F;--gold-soft:#FBF1D7;--ink:#1C2521;--ink-2:#4C564F;--ink-3:#7C867F;--line:#E2E8E2;--bg:#FBFBF9;--surface:#FFFFFF;--warn:#A35200;--warn-soft:#FBEEDC;--blue:#185FA5;--blue-soft:#E9F1F9;}
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.65;}
@@ -35,17 +31,12 @@
   strong{font-weight:600;color:var(--ink)}
   .lede{font-size:16.5px;color:var(--ink-2)}
   .ui{display:inline-block;background:var(--green-soft);color:var(--green);border:1px solid #D4E2D6;border-radius:6px;padding:1px 8px;font-size:14px;font-weight:600;white-space:nowrap}
-  .ui.warn{background:var(--warn-soft);color:var(--warn);border-color:#EBD3B0}
-  .ui.blue{background:var(--blue-soft);color:var(--blue);border-color:#C9DEF0}
-  .path{font-weight:600;color:var(--green)}
-  .path .sep{color:var(--ink-3);font-weight:400;margin:0 4px}
   ol.steps{list-style:none;counter-reset:s;margin:10px 0 6px;padding:0}
   ol.steps>li{counter-increment:s;position:relative;padding:0 0 14px 44px;}
   ol.steps>li::before{content:counter(s);position:absolute;left:0;top:0;width:29px;height:29px;border-radius:50%;background:var(--green);color:#fff;font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;}
   ol.steps>li:not(:last-child)::after{content:"";position:absolute;left:14px;top:30px;bottom:2px;width:2px;background:var(--line)}
   .note{border-radius:10px;padding:13px 16px;margin:14px 0;font-size:14.5px;border:1px solid}
   .note.tip{background:var(--green-soft);border-color:#CFE0D2;color:#1F4030}
-  .note.warn{background:var(--warn-soft);border-color:#EBD3B0;color:#6E3A05}
   .note.info{background:var(--blue-soft);border-color:#CADEF1;color:#123E68}
   .note b{color:inherit}
   .tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:14.5px;overflow:hidden;border-radius:10px;border:1px solid var(--line)}
@@ -71,66 +62,123 @@
 <header class="top">
   <div class="wrap">
     <div class="brand"><svg width="24" height="24" viewBox="0 0 26 26" aria-hidden="true"><path d="M3 21L10 7l4 7 2-3 7 10z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M10 7l4 7 2-3" fill="none" stroke="#F0C048" stroke-width="2" stroke-linejoin="round"/></svg> MountainTop Ledger</div>
-    <h1>The Mobile App</h1>
-    <p>Handle the essentials from your phone — and capture receipts the moment you spend, right there in the field.</p>
-    <div class="audience">A guide for owners, bookkeepers & field crews</div>
+    <h1>Using the MTL Mobile App</h1>
+    <p>Run the day-to-day essentials from your phone — capture receipts in the field, send invoices on the go, and keep the books moving without sitting down at a desk.</p>
+    <div class="audience">A guide for owners, bookkeepers &amp; field crews</div>
   </div>
 </header>
+
 <div class="wrap">
   <nav class="toc">
     <h2>What's inside</h2>
     <ol>
-      <li><a href="#what">What it’s for</a></li>
+      <li><a href="#what">What you can do</a></li>
       <li><a href="#signin">Signing in</a></li>
       <li><a href="#receipt">Capturing a receipt</a></li>
+      <li><a href="#expense">Logging an expense</a></li>
+      <li><a href="#invoice">Invoices on the go</a></li>
+      <li><a href="#more">Bills, customers &amp; vendors</a></li>
       <li><a href="#faq">Quick answers</a></li>
     </ol>
   </nav>
 </div>
+
 <main class="wrap">
 
   <section id="what">
     <div class="eyebrow">Start here</div>
-    <h2>What the app is for</h2>
-    <p class="lede">The MTL mobile app puts the day-to-day essentials in your pocket, so work that used to wait for a desk gets done on the spot.</p>
-    <p>The standout for trades and anyone on the move: <strong>receipt capture in the field.</strong> Buy materials, photograph the receipt, and it's in the books before you've left the parking lot.</p>
+    <h2>What you can do on your phone</h2>
+    <p class="lede">The MTL app isn't a cut-down version — it handles the everyday money tasks, so work that used to wait for the office gets done on the spot.</p>
+    <table class="tbl">
+      <tr><th>You can…</th><th></th></tr>
+      <tr><td><b>Capture receipts</b></td><td>Photograph a receipt and let MTL read the vendor, amount, and date — the standout feature for anyone in the field.</td></tr>
+      <tr><td><b>Log expenses</b></td><td>Record what you spent, attach the receipt image, and it's in the books.</td></tr>
+      <tr><td><b>Create &amp; send invoices</b></td><td>Build an invoice, set it recurring if needed, and send it from your phone.</td></tr>
+      <tr><td><b>Enter bills</b></td><td>Record a bill you owe while it's in front of you.</td></tr>
+      <tr><td><b>Add customers &amp; vendors</b></td><td>Capture a new client or supplier the moment you meet them.</td></tr>
+    </table>
+    <div class="note info"><b>It's the same books.</b> Everything you enter on the phone appears on the website instantly, and vice-versa — one set of records, two ways in.</div>
   </section>
+
   <section id="signin">
     <div class="eyebrow">One account</div>
     <h2>Signing in</h2>
     <ol class="steps">
-      <li>Open the MTL app and sign in with the <strong>same email and password</strong> you use on the web.</li>
-      <li>All the companies you have access to come with you — no separate logins to manage.</li>
+      <li>Open the MTL app and sign in with the <strong>same email and password</strong> you use on the website.</li>
+      <li>Every company you own or have been given access to comes with you — no separate logins.</li>
     </ol>
-    <div class="note info">One login covers every company you own or have been granted access to, on the phone just like on the web.</div>
+    <div class="note tip"><b>Bookkeepers:</b> the companies your clients have granted you access to show up here too, just like on the web.</div>
   </section>
+
   <section id="receipt">
-    <div class="eyebrow">The main event</div>
+    <div class="eyebrow">The standout</div>
     <h2>Capturing a receipt</h2>
+    <p class="lede">This is the one your field crews will use every day: buy materials, photograph the receipt before you leave the counter, and it's handled.</p>
     <ol class="steps">
-      <li>Tap to add an expense and <strong>photograph the receipt</strong>.</li>
-      <li>MTL reads the vendor, amount, and date for you — check them and pick a category.</li>
-      <li>For job costing, tag the expense to the right <span class="ui">Job</span> so the cost lands on that project.</li>
-      <li>Save. It's in the books, receipt image attached, ready for whoever keeps them.</li>
+      <li>Go to <span class="ui">Expenses</span> and tap <span class="ui">+ Add Expense</span>.</li>
+      <li>Tap <span class="ui">Scan Receipt</span> and take (or choose) a photo.</li>
+      <li>MTL reads the <strong>vendor, amount, and date</strong> and fills them in. Check them, pick a <strong>category</strong>, and the receipt image stays attached.</li>
+      <li>Save. It's in the books, image and all — no shoebox of receipts at month-end.</li>
     </ol>
-    <div class="note tip"><b>Why field crews love it:</b> no more handing over a wad of faded receipts at month-end — costs are captured accurately, while the details are fresh, and tied to the right job.</div>
+    <div class="note tip"><b>Always glance at the scan.</b> It's quick and accurate, but a crumpled or faint receipt can misread a number — a two-second check beats a correction later.</div>
+    <div class="note info"><b>Job costing:</b> to tag a field expense to a specific job, do it on the website afterward (Expenses or the job's <span class="ui">+ Assign</span>) — the receipt you captured on the phone is already there waiting.</div>
   </section>
+
+  <section id="expense">
+    <div class="eyebrow">By hand</div>
+    <h2>Logging an expense without a scan</h2>
+    <p>You don't have to scan — you can type an expense in directly:</p>
+    <ol class="steps">
+      <li><span class="ui">Expenses</span> → <span class="ui">+ Add Expense</span>.</li>
+      <li>Enter the <strong>vendor</strong>, <strong>amount</strong>, <strong>date</strong>, and a <strong>category</strong>. Add a receipt number or image if you have one.</li>
+      <li>Save — it posts to your books right away.</li>
+    </ol>
+  </section>
+
+  <section id="invoice">
+    <div class="eyebrow">Get paid faster</div>
+    <h2>Invoices on the go</h2>
+    <ol class="steps">
+      <li>Open <span class="ui">Invoices</span> and start a <span class="ui">New Invoice</span>.</li>
+      <li>Pick (or add) the <strong>customer</strong>, set the <strong>date</strong>, and add your line items.</li>
+      <li>Need it to repeat? Turn on <strong>recurring</strong> — MTL will prompt before each new one is created.</li>
+      <li>Save and send. Your customer gets it with a pay link, same as from the website.</li>
+    </ol>
+    <div class="note tip"><b>Finish a job, send the invoice before you leave.</b> Billing on-site, while the work is fresh, is one of the fastest ways to get paid sooner.</div>
+  </section>
+
+  <section id="more">
+    <div class="eyebrow">The rest</div>
+    <h2>Bills, customers &amp; vendors</h2>
+    <p>The app also covers the records that keep everything connected:</p>
+    <table class="tbl">
+      <tr><td><b>Bills</b></td><td>Record a bill you owe (vendor, amount, due date) so it's tracked until you pay it.</td></tr>
+      <tr><td><b>Customers</b></td><td>Add a new client on the spot — they're ready to invoice immediately.</td></tr>
+      <tr><td><b>Vendors</b></td><td>Capture a new supplier or subcontractor so their bills and expenses have a home.</td></tr>
+    </table>
+  </section>
+
   <section id="faq">
     <div class="eyebrow">At a glance</div>
     <h2>Quick answers</h2>
     <div class="faq">
       <div class="q">Is it the same account as the website?</div>
-      <p>Yes — one login works everywhere, and your companies follow you.</p>
-      <div class="q">Can my project managers use it without seeing everything?</div>
-      <p>Give them the access level that fits their role. Talk to whoever administers your company about the right permissions.</p>
-      <div class="q">Do receipts I capture on the phone show up on the web?</div>
-      <p>Yes — it's all one set of books. An expense captured on the phone appears on the web immediately, receipt image and all.</p>
+      <p>Yes — one login works everywhere, your companies follow you, and it's all one set of books. Something entered on the phone shows on the web right away.</p>
+      <div class="q">The receipt scan read the wrong amount.</div>
+      <p>Just type over it before saving. The scan is a head start, not the final word.</p>
+      <div class="q">Can I do my banking / reconcile on the phone?</div>
+      <p>The phone app is built for invoices, expenses, receipts, bills, and contacts. For bank categorizing and statement reconciliation, use the website (see the <a href="mtl-banking-guide.html">Banking guide</a>).</p>
+      <div class="q">Can my project managers use it without full access?</div>
+      <p>Give each person the access level that fits their role — talk to whoever administers your company about the right permissions.</p>
     </div>
   </section>
+
 </main>
+
 <footer class="wrap">
   <div class="line"></div>
-  MountainTop Ledger — The Mobile App
+  MountainTop Ledger — Mobile App Guide
 </footer>
+
 </body>
 </html>
