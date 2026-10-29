@@ -353,6 +353,7 @@ export default function App() {
       case 'expenses':    return <ExpensesPage />;
       case 'jobs':        return <JobsPage />;
       case 'help':        return <HelpPage />;
+      case 'support':     return <HelpPage src="/help/mtl-contact-support.html" title="Contact Support" />;
       case 'bank':        return <BankingPage />;
       case 'reports':     return <ReportsPage />;
       case 'coa':         return <ChartOfAccountsPage />;

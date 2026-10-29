@@ -242,13 +242,18 @@ export default function TopBar({ onLogout, onAI, onNavigate }) {
                   <div style={{ fontSize:13, fontWeight:600, color:'var(--color-text-primary)' }}>{user?.fullName || 'Account'}</div>
                   {user?.email && <div style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:1 }}>{user.email}</div>}
                 </div>
-                <a
-                  href="mailto:pfd77@pm.me?subject=Mountain%20Top%20Ledger%20support"
-                  onClick={() => setShowAccount(false)}
-                  style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'8px 10px', borderRadius:8, border:'none', cursor:'pointer', textAlign:'left', background:'transparent', color:'var(--color-text-primary)', fontSize:13, textDecoration:'none', boxSizing:'border-box' }}
+                <button
+                  onClick={() => { setShowAccount(false); onNavigate?.('help'); }}
+                  style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'8px 10px', borderRadius:8, border:'none', cursor:'pointer', textAlign:'left', background:'transparent', color:'var(--color-text-primary)', fontSize:13, boxSizing:'border-box' }}
+                >
+                  <i className="ti ti-help" style={{ fontSize:14 }} /> Help Center
+                </button>
+                <button
+                  onClick={() => { setShowAccount(false); onNavigate?.('support'); }}
+                  style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'8px 10px', borderRadius:8, border:'none', cursor:'pointer', textAlign:'left', background:'transparent', color:'var(--color-text-primary)', fontSize:13, boxSizing:'border-box' }}
                 >
                   <i className="ti ti-lifebuoy" style={{ fontSize:14 }} /> Contact support
-                </a>
+                </button>
                 <button
                   onClick={() => { setShowAccount(false); onLogout?.(); }}
                   style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'8px 10px', borderRadius:8, border:'none', cursor:'pointer', textAlign:'left', background:'transparent', color:'var(--color-text-primary)', fontSize:13 }}

@@ -27,7 +27,7 @@ const ALL_NAV = [
   { id:'jobs',          icon:'tools',         label:'Jobs',           level:0, section:'Job costing' },
   { id:'reports',       icon:'chart-bar',     label:'Reports',        level:0, section:'Reports' },
   { id:'settings',      icon:'settings',      label:'Settings',       level:0, section:'More' },
-  { id:'help',          icon:'help',          label:'Help',           level:0, section:'More' },
+  { id:'help',          icon:'help',          label:'Help Center',    level:0, section:'More' },
   { id:'payroll',       icon:'users',         label:'Payroll',        level:1, section:'Money out' },
   { id:'recurring',     icon:'refresh',       label:'Recurring',      level:1, section:'Money in' },
   { id:'budgets',       icon:'trending-up',   label:'Budgets',        level:1, section:'Reports' },
