@@ -286,6 +286,7 @@ export default function PlatformAdminPage() {
 
   const feeByTenant = Object.fromEntries((fees?.resellers || []).map(r => [r.tenantId, r.monthlyTotal]));
   const wlByTenant  = Object.fromEntries((fees?.resellers || []).map(r => [r.tenantId, !!r.whiteLabelEnabled]));
+  const payByTenant = Object.fromEntries((fees?.resellers || []).map(r => [r.tenantId, { clients: r.withPayroll || 0, employees: r.payrollEmployees || 0 }]));
 
   return (
     <div className="page">
@@ -358,6 +359,7 @@ export default function PlatformAdminPage() {
         <StatCard label="Active"        value={loading ? '—' : (stats?.activeTenants ?? 0)} />
         <StatCard label="Client cos."   value={loading ? '—' : (stats?.organizations ?? 0)} />
         <StatCard label="Total users"   value={loading ? '—' : (stats?.users ?? 0)} />
+        <StatCard label="Payroll empl." value={loading ? '—' : (fees?.totalPayrollEmployees ?? 0)} />
         <StatCard label="Platform fee / mo" value={loading ? '—' : money(fees?.grandTotal ?? 0)} />
       </div>
 
@@ -405,7 +407,14 @@ export default function PlatformAdminPage() {
                         ) : '—'}
                       </td>
                       <td style={{ padding: '9px 8px' }}>{statusPill(t.status)}</td>
-                      <td style={{ padding: '9px 8px', textAlign: 'center', color: '#1f2a24', fontWeight: 600 }}>{t.clientCount}</td>
+                      <td style={{ padding: '9px 8px', textAlign: 'center', color: '#1f2a24', fontWeight: 600 }}>
+                        {t.clientCount}
+                        {payByTenant[t.id]?.clients > 0 && (
+                          <div style={{ fontSize: 10.5, color: '#8A968C', fontWeight: 500, marginTop: 2 }}>
+                            {payByTenant[t.id].clients} payroll · {payByTenant[t.id].employees} empl
+                          </div>
+                        )}
+                      </td>
                       <td style={{ padding: '9px 8px', textAlign: 'right', color: '#1f2a24', fontWeight: 600 }}>{money(feeByTenant[t.id] ?? 0)}</td>
                       <td style={{ padding: '9px 8px', textAlign: 'center' }}>
                         <button onClick={() => toggleWhiteLabel(t, !wlByTenant[t.id])} disabled={busyId === t.id || t.status === 'retired'}
