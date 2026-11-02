@@ -34,6 +34,11 @@ export default function PayrollPage() {
   const [newEmp, setNewEmp]   = useState(BLANK_EMP);
   const [addingEmp, setAddingEmp] = useState(false);
 
+  // Plan gating: Startup ($15) gets the simple totals-only entry; Growth ($39) and
+  // bookkeeper-managed (exempt) orgs get the full module (employees + by-employee + YTD).
+  const [fullPayroll, setFullPayroll] = useState(false);
+  const [planLoaded, setPlanLoaded]   = useState(false);
+
   async function load() {
     if (!org?.id) return;
     setLoading(true);
@@ -50,13 +55,32 @@ export default function PayrollPage() {
       // On first load, default to by-employee entry if the client has employees
       // on file. After that, respect whatever tab the user is on.
       if (!autoPicked) {
-        if (emps.some(x => x.active)) setMode('byEmployee');
+        if (fullPayroll && emps.some(x => x.active)) setMode('byEmployee');
         setAutoPicked(true);
       }
     } catch { setRuns([]); setEmployees([]); setYtd([]); }
     finally { setLoading(false); }
   }
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [org?.id]);
+
+  // Determine the plan once per org. Default = simple (safe): only Growth or a
+  // reseller-managed (exempt) org unlocks the full payroll module.
+  useEffect(() => {
+    if (!org?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await api.get('/billing/subscription', { orgId: org.id });
+        const d = r?.data || {};
+        if (!cancelled) setFullPayroll(!!d.exempt || d.plan === 'growth');
+      } catch { /* on error, stay on the simple view */ }
+      finally { if (!cancelled) setPlanLoaded(true); }
+    })();
+    return () => { cancelled = true; };
+  }, [org?.id]);
+
+  // A Startup org always stays in totals mode (there's no by-employee tab to switch to).
+  useEffect(() => { if (planLoaded && !fullPayroll) setMode('totals'); }, [planLoaded, fullPayroll]);
 
   const set   = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const setLn = (id, k, v) => setLineAmts(m => ({ ...m, [id]: { ...(m[id] || {}), [k]: v } }));
@@ -171,7 +195,12 @@ export default function PayrollPage() {
 
   return (
     <div className="page">
-      <div className="page-header"><h1 className="page-title">Payroll</h1></div>
+      <div className="page-header" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <h1 className="page-title">Payroll</h1>
+        {planLoaded && !fullPayroll && (
+          <span style={{ background: '#EAF1EB', border: '1px solid #D4E2D6', color: GREEN, borderRadius: 999, padding: '3px 10px', fontSize: 12, fontWeight: 600 }}>Startup plan</span>
+        )}
+      </div>
 
       <div className="card" style={{ padding: 16, marginBottom: 16, background: '#F6F9F4', border: '1px solid #E6EFE8' }}>
         <div style={{ fontSize: 13.5, color: INK2, lineHeight: 1.55 }}>
@@ -182,7 +211,8 @@ export default function PayrollPage() {
         </div>
       </div>
 
-      {/* Employees */}
+      {/* Employees — full payroll (Growth / managed) only */}
+      {fullPayroll && (
       <div className="card" style={{ padding: 20, marginBottom: 18, maxWidth: 820 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
           onClick={() => setShowEmp(s => !s)}>
@@ -243,15 +273,18 @@ export default function PayrollPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* Record a pay run */}
       <div className="card" style={{ padding: 20, marginBottom: 18, maxWidth: 820 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
           <h2 style={{ fontSize: 15, fontWeight: 600, color: GREEN, margin: 0 }}>Record a pay run</h2>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {tabBtn('byEmployee', 'By employee')}
-            {tabBtn('totals', 'Totals only')}
-          </div>
+          {fullPayroll && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              {tabBtn('byEmployee', 'By employee')}
+              {tabBtn('totals', 'Totals only')}
+            </div>
+          )}
         </div>
 
         <form onSubmit={submit}>
@@ -375,7 +408,7 @@ export default function PayrollPage() {
       )}
 
       {/* Per-employee YTD */}
-      {ytd.length > 0 && (
+      {fullPayroll && ytd.length > 0 && (
         <div className="card" style={{ padding: 20, marginBottom: 18 }}>
           <h2 style={{ fontSize: 15, fontWeight: 600, color: GREEN, margin: '0 0 12px' }}>Paid by employee · {yr}</h2>
           <div style={{ overflowX: 'auto' }}>
@@ -486,6 +519,14 @@ export default function PayrollPage() {
           </div>
         )}
       </div>
+
+      {planLoaded && !fullPayroll && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', background: '#EEF3FB', border: '1px solid #CFE0F3', borderRadius: 12, padding: '14px 18px', marginTop: 16, maxWidth: 820 }}>
+          <div style={{ fontSize: 13, color: '#2B5486', lineHeight: 1.5 }}>
+            <strong style={{ color: '#1E3E63' }}>Need per-employee payroll?</strong> The Growth plan adds an employee list, by-employee entry, and per-person year-to-date for W-2s — upgrade anytime in <strong>Settings → Billing</strong>.
+          </div>
+        </div>
+      )}
 
       <div style={{ fontSize: 11.5, color: '#aaa', marginTop: 16, maxWidth: 820, lineHeight: 1.6 }}>
         Enter each run from your provider's payroll report — by employee or as totals. Every run is posted via a <strong>Payroll Clearing</strong> account — standard bookkeeping practice — so it reconciles against the single payroll bank withdrawal and the cost hits your books exactly once. Per-employee amounts are tracked for your records (year-to-date pay, W-2 prep); the journal entry always posts from the run totals. It's a bookkeeping entry, not a tax filing — your provider still files and remits.
