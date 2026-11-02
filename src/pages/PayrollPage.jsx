@@ -3,7 +3,7 @@ import { useAuth } from '../lib/AuthContext';
 import { api } from '../lib/api';
 import { useToast } from '../lib/ToastContext';
 
-const GREEN = '#2D4A35', SAGE = '#7A9A7A', INK = '#1F2A24', INK2 = '#5E6B62', LINE = '#E2E8E0';
+const GREEN = '#2D4A35', SAGE = '#566B59', INK = '#13201A', INK2 = '#39463E', LINE = '#C0CDC1', CARDLINE = '#A9BBAB';
 
 const fmt = n => '$' + Math.abs(Number(n || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const num = v => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
@@ -177,8 +177,8 @@ export default function PayrollPage() {
   const ytdTotals = runs.filter(r => new Date(r.payDate).getFullYear() === yr)
     .reduce((a, r) => ({ gross: a.gross + num(r.grossWages), tax: a.tax + num(r.employerTaxes), cash: a.cash + num(r.grossWages) + num(r.employerTaxes) }), { gross: 0, tax: 0, cash: 0 });
 
-  const inputStyle = { width: '100%', padding: '8px 10px', borderRadius: 8, border: `1px solid ${LINE}`, fontSize: 14, color: INK, background: '#fff', boxSizing: 'border-box' };
-  const labelStyle = { fontSize: 12, fontWeight: 600, color: INK2, marginBottom: 4, display: 'block' };
+  const inputStyle = { width: '100%', padding: '9px 11px', borderRadius: 8, border: `1px solid ${LINE}`, fontSize: 15, color: INK, background: '#fff', boxSizing: 'border-box' };
+  const labelStyle = { fontSize: 13, fontWeight: 600, color: INK2, marginBottom: 5, display: 'block' };
   const field = (label, k, opts = {}) => (
     <div style={{ flex: opts.flex || '1 1 150px', minWidth: 120 }}>
       <label style={labelStyle}>{label}{opts.hint && <span style={{ color: SAGE, fontWeight: 400 }}> {opts.hint}</span>}</label>
@@ -202,8 +202,8 @@ export default function PayrollPage() {
         )}
       </div>
 
-      <div className="card" style={{ padding: 16, marginBottom: 16, background: '#F6F9F4', border: '1px solid #E6EFE8' }}>
-        <div style={{ fontSize: 13.5, color: INK2, lineHeight: 1.55 }}>
+      <div className="card" style={{ padding: 18, marginBottom: 16, background: '#F6F9F4', border: `1px solid ${CARDLINE}` }}>
+        <div style={{ fontSize: 15, color: INK2, lineHeight: 1.6 }}>
           MountainTop Ledger doesn't run payroll — your provider (<strong>Gusto</strong> or QuickBooks Payroll) pays the team and files the taxes.
           Here you <strong>record each pay run</strong> — by employee or as totals — and MTL posts the journal entry to your books:
           {' '}<strong>Payroll &amp; Wages</strong> and <strong>Payroll Taxes</strong> offset to a <strong>Payroll Clearing</strong> account.
@@ -213,10 +213,10 @@ export default function PayrollPage() {
 
       {/* Employees — full payroll (Growth / managed) only */}
       {fullPayroll && (
-      <div className="card" style={{ padding: 20, marginBottom: 18, maxWidth: 820 }}>
+      <div className="card" style={{ padding: 20, marginBottom: 18, maxWidth: 820, border: `1px solid ${CARDLINE}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
           onClick={() => setShowEmp(s => !s)}>
-          <h2 style={{ fontSize: 15, fontWeight: 600, color: GREEN, margin: 0 }}>
+          <h2 style={{ fontSize: 17, fontWeight: 600, color: GREEN, margin: 0 }}>
             Employees {employees.length > 0 && <span style={{ color: SAGE, fontWeight: 500 }}>· {activeEmps.length} active</span>}
           </h2>
           <span style={{ color: SAGE, fontSize: 13 }}>{showEmp ? 'Hide ▲' : 'Manage ▼'}</span>
@@ -276,9 +276,9 @@ export default function PayrollPage() {
       )}
 
       {/* Record a pay run */}
-      <div className="card" style={{ padding: 20, marginBottom: 18, maxWidth: 820 }}>
+      <div className="card" style={{ padding: 20, marginBottom: 18, maxWidth: 820, border: `1px solid ${CARDLINE}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 600, color: GREEN, margin: 0 }}>Record a pay run</h2>
+          <h2 style={{ fontSize: 17, fontWeight: 600, color: GREEN, margin: 0 }}>Record a pay run</h2>
           {fullPayroll && (
             <div style={{ display: 'flex', gap: 8 }}>
               {tabBtn('byEmployee', 'By employee')}
@@ -380,7 +380,7 @@ export default function PayrollPage() {
           )}
 
           {/* Live posting preview */}
-          <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 10, background: '#fff', border: `1px dashed ${LINE}`, fontSize: 13 }}>
+          <div style={{ marginTop: 14, padding: '14px 16px', borderRadius: 10, background: '#fff', border: `1px solid ${CARDLINE}`, fontSize: 14 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: SAGE, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>This will post</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', color: INK2, padding: '2px 0' }}><span>Dr&nbsp; Payroll &amp; Wages</span><span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(gross)}</span></div>
             {empTax > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', color: INK2, padding: '2px 0' }}><span>Dr&nbsp; Payroll Taxes</span><span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(empTax)}</span></div>}
@@ -409,7 +409,7 @@ export default function PayrollPage() {
 
       {/* Per-employee YTD */}
       {fullPayroll && ytd.length > 0 && (
-        <div className="card" style={{ padding: 20, marginBottom: 18 }}>
+        <div className="card" style={{ padding: 20, marginBottom: 18, border: `1px solid ${CARDLINE}` }}>
           <h2 style={{ fontSize: 15, fontWeight: 600, color: GREEN, margin: '0 0 12px' }}>Paid by employee · {yr}</h2>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 420 }}>
@@ -439,7 +439,7 @@ export default function PayrollPage() {
       )}
 
       {/* Recorded pay runs */}
-      <div className="card" style={{ padding: 20 }}>
+      <div className="card" style={{ padding: 20, border: `1px solid ${CARDLINE}` }}>
         <h2 style={{ fontSize: 15, fontWeight: 600, color: GREEN, margin: '0 0 12px' }}>Recorded pay runs</h2>
         {loading ? (
           <div style={{ color: SAGE, fontSize: 14, padding: '12px 0' }}>Loading…</div>
