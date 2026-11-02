@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Payroll in MTL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{--green:#234F3A;--green-2:#2F6A4C;--green-soft:#EAF1EB;--gold:#C9971F;--gold-soft:#FBF1D7;--ink:#1C2521;--ink-2:#4C564F;--ink-3:#7C867F;--line:#E2E8E2;--bg:#FBFBF9;--surface:#FFFFFF;--warn:#A35200;--warn-soft:#FBEEDC;--warn-line:#EBD3B0;--red:#9A3B2E;--red-soft:#FBECEA;}
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.6;}
+  .wrap{max-width:900px;margin:0 auto;padding:0 20px}
+  .backbar{background:var(--green-soft);border-bottom:1px solid #D7E4D9}
+  .backbar a{display:inline-block;padding:9px 0;color:var(--green);font-size:13.5px;font-weight:600;text-decoration:none}
+  .backbar a:hover{text-decoration:underline}
+  header.top{background:var(--green);color:#fff;padding:36px 0 30px;border-bottom:4px solid var(--gold);}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:600;font-size:15px;letter-spacing:.2px;opacity:.95}
+  header.top h1{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(26px,5vw,36px);line-height:1.1;margin:14px 0 6px;}
+  header.top p{margin:0;font-size:15.5px;color:#D7E4D9;max-width:62ch}
+  .planbadge{display:inline-flex;align-items:center;gap:8px;margin:14px 0 2px;background:rgba(255,255,255,.12);border:1px solid rgba(240,192,72,.55);border-radius:999px;padding:6px 14px 6px 11px;font-size:13.5px;font-weight:600;color:#fff}
+  .planbadge .dot{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--gold);color:#3A2A00;font-size:12px;font-weight:700}
+  .planbadge b{color:#F4E7C4;font-weight:600}
+  main{padding:14px 0 50px}
+  section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 24px 18px;margin:20px 0}
+  .eyebrow{font-size:12px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+  h2{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:20px;color:var(--green);margin:0 0 10px;}
+  p{margin:0 0 10px}
+  a{color:var(--green-2)}
+  strong{font-weight:600;color:var(--ink)}
+  .ui{display:inline-block;background:var(--green-soft);color:var(--green);border:1px solid #D4E2D6;border-radius:6px;padding:1px 7px;font-size:13.5px;font-weight:600;white-space:nowrap}
+
+  /* journal entry visual */
+  .je{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:6px 0 4px;font-variant-numeric:tabular-nums}
+  .je .r{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;font-size:14.5px;color:var(--ink-2)}
+  .je .r + .r{border-top:1px solid var(--line)}
+  .je .r.cr{background:var(--green-soft);color:var(--green);font-weight:600}
+  .je .dr-tag{display:inline-block;width:26px;color:var(--ink-3);font-weight:600;font-size:12px}
+  .je .amt{font-weight:600;color:var(--ink)}
+  .je .r.cr .amt{color:var(--green)}
+  .arrowline{display:flex;align-items:center;gap:10px;color:var(--ink-2);font-size:14px;margin:12px 0 2px}
+  .arrowline .step{background:var(--gold-soft);border:1px solid var(--warn-line);color:#6E4A05;border-radius:8px;padding:6px 11px;font-size:13px;font-weight:600}
+
+  /* two-column does / doesn't */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:6px}
+  .col h3{font-family:"Fraunces",Georgia,serif;font-size:17px;margin:0 0 12px;display:flex;align-items:center;gap:9px}
+  .col.does h3{color:var(--green)}
+  .col.doesnt h3{color:var(--warn)}
+  .tick{width:24px;height:24px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .does .tick{background:var(--green-soft);color:var(--green)}
+  .doesnt .tick{background:var(--warn-soft);color:var(--warn)}
+  ul.feat{list-style:none;margin:0;padding:0}
+  ul.feat li{display:flex;gap:11px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line);font-size:14.5px;color:var(--ink-2);line-height:1.5}
+  ul.feat li:first-child{border-top:none}
+  ul.feat li b{color:var(--ink);font-weight:600}
+  .mk{flex-shrink:0;width:19px;font-weight:700;line-height:1.55}
+  .does .mk{color:var(--green-2)}
+  .doesnt .mk{color:var(--warn)}
+
+  .verdict{background:var(--gold-soft);border:1px solid var(--warn-line);border-radius:14px;padding:20px 24px;margin:22px 0}
+  .verdict .eyebrow{color:#8A6100}
+  .verdict h2{color:#6E4A05}
+  .verdict p{color:#5A3D08;margin-bottom:8px}
+  .verdict b{color:#4A3206}
+
+  .foot{font-size:13px;color:var(--ink-3);text-align:center;padding:10px 0 40px}
+  .foot .line{height:1px;background:var(--line);max-width:120px;margin:0 auto 14px}
+  @media (max-width:640px){ .cols{grid-template-columns:1fr} }
+  @media print{ .backbar{display:none} body{background:#fff} header.top{background:#fff;color:var(--ink);border-bottom:3px solid var(--gold)} header.top h1{color:var(--green)} header.top p{color:var(--ink-2)} section,.verdict{break-inside:avoid} a{color:var(--ink)} }
+</style>
+</head>
+<body>
+<div class="backbar"><div class="wrap"><a href="mtl-help-center.html">&larr; Help Center</a></div></div>
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><svg width="24" height="24" viewBox="0 0 26 26" aria-hidden="true"><path d="M3 21L10 7l4 7 2-3 7 10z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M10 7l4 7 2-3" fill="none" stroke="#F0C048" stroke-width="2" stroke-linejoin="round"/></svg> MountainTop Ledger</div>
+    <h1>Payroll in MountainTop Ledger</h1>
+    <div class="planbadge"><span class="dot">✓</span> Included in the <b>&nbsp;Startup plan · $15/mo</b></div>
+    <p>What payroll does today — and what it doesn't. MTL <strong style="color:#fff">records</strong> payroll into your books. It doesn't run it.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <div class="eyebrow">In one line</div>
+    <h2>MTL is your payroll bookkeeper, not your payroll service</h2>
+    <p>You already know what you paid — gross pay, the taxes withheld, and the net check. MTL takes those numbers, posts a clean journal entry, and flows it into your P&amp;L and reports. It does <strong>not</strong> calculate the withholding, cut the checks, or file the taxes — that's your payroll provider's job (or yours, by hand).</p>
+  </section>
+
+  <section>
+    <div class="eyebrow">How it works</div>
+    <h2>Record a run &rarr; it posts to the books</h2>
+    <p>Enter a pay run on the <span class="ui">Payroll</span> page — by employee or as totals. When you save, MTL posts:</p>
+    <div class="je">
+      <div class="r"><span><span class="dr-tag">Dr</span> Payroll &amp; Wages <span style="color:var(--ink-3)">(gross pay)</span></span><span class="amt">4,000.00</span></div>
+      <div class="r"><span><span class="dr-tag">Dr</span> Payroll Taxes <span style="color:var(--ink-3)">(employer side)</span></span><span class="amt">306.00</span></div>
+      <div class="r cr"><span><span class="dr-tag">Cr</span> Payroll Clearing</span><span class="amt">4,306.00</span></div>
+    </div>
+    <div class="arrowline"><span class="step">Then in Banking</span> <span>&rarr; categorize the payroll withdrawal from your bank to <strong>Payroll Clearing</strong> &rarr; the two cancel out, the cost lands once, and it reconciles.</span></div>
+    <p style="margin-top:12px;font-size:14px;color:var(--ink-3)">Figures shown are an example. MTL also keeps year-to-date totals for each run.</p>
+  </section>
+
+  <section>
+    <div class="eyebrow">The honest picture</div>
+    <h2>What it does &amp; what it doesn't</h2>
+    <div class="cols">
+      <div class="col does">
+        <h3><span class="tick">✓</span> What MTL payroll does</h3>
+        <ul class="feat">
+          <li><span class="mk">✓</span><span>Records each pay run — <b>by employee or as totals</b></span></li>
+          <li><span class="mk">✓</span><span>Posts the <b>journal entry</b> to Payroll &amp; Wages + Payroll Taxes automatically</span></li>
+          <li><span class="mk">✓</span><span>Flows payroll cost into your <b>P&amp;L and reports</b></span></li>
+          <li><span class="mk">✓</span><span>Reconciles cleanly via a <b>Payroll Clearing</b> account against your bank</span></li>
+          <li><span class="mk">✓</span><span>Keeps a <b>pay-run history</b> and <b>year-to-date</b> totals</span></li>
+          <li><span class="mk">✓</span><span>Cross-checks that <b>net + withholding = gross</b> and flags a mismatch</span></li>
+        </ul>
+      </div>
+      <div class="col doesnt">
+        <h3><span class="tick">—</span> What it doesn't do (yet)</h3>
+        <ul class="feat">
+          <li><span class="mk">✕</span><span><b>Calculate withholding</b> — no federal/state income tax, Social Security or Medicare math. You supply the numbers.</span></li>
+          <li><span class="mk">✕</span><span><b>Print paychecks</b> — no check printing.</span></li>
+          <li><span class="mk">✕</span><span><b>Pay anyone electronically</b> — no direct deposit, no ACH, no sending a run to a payroll service.</span></li>
+          <li><span class="mk">✕</span><span><b>File or remit payroll taxes</b> — no 941, 940, W-2s, or state filings.</span></li>
+          <li><span class="mk">✕</span><span><b>Produce pay stubs</b> or an employee self-service portal.</span></li>
+          <li><span class="mk">✕</span><span><b>Track withholding as a liability</b> through to remittance — the clearing account books the total cost, not separate tax liabilities.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Who it's for</div>
+    <h2>A great fit for a small, in-house payroll</h2>
+    <p>If you write a few payroll checks yourself and already handle the withholding — or your provider (Gusto, QuickBooks Payroll) pays the team and files the taxes — MTL's recorder does exactly what you need: it keeps payroll on the books correctly and in the reports, with nothing to reconcile by hand.</p>
+    <p>If you want MTL to <strong>calculate the taxes, cut the checks, and file the returns</strong> for you, that's full-service <strong>Managed Payroll</strong> — a separate service that's on the roadmap, not live today.</p>
+  </section>
+
+  <div class="verdict">
+    <div class="eyebrow">Are we &ldquo;fully ready to go&rdquo; with payroll?</div>
+    <h2>Not for running payroll — yes for recording it</h2>
+    <p><b>No</b>, MTL is not set up to print payroll checks or send a pay run to a service to pay people electronically. Nothing in the program files taxes or moves money to employees.</p>
+    <p><b>Yes</b>, MTL is ready to <b>record</b> payroll into the books and reports, today, on any plan. Think of it as the bookkeeping half of payroll — the other half (the calculating, paying, and filing) is done by a payroll provider until Managed Payroll is built.</p>
+  </div>
+
+</main>
+
+<footer class="wrap foot">
+  <div class="line"></div>
+  MountainTop Ledger — Payroll overview
+</footer>
+
+</body>
+</html>
