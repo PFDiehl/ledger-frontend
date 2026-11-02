@@ -12,12 +12,12 @@ const PLANS = [
   {
     key: 'startup', name: 'Startup', price: 15,
     tagline: 'Everything you need to run the books.',
-    features: ['Unlimited invoices & estimates', 'Expense tracking with receipt scanning', 'Customers & vendors', 'Core financial reports', 'iPhone mobile app', 'Single user'],
+    features: ['Unlimited invoices & estimates', 'Expense tracking with receipt scanning', 'Customers & vendors', 'Core financial reports', 'Simple payroll recording', 'iPhone mobile app', 'Single user'],
   },
   {
     key: 'growth', name: 'Growth', price: 39, popular: true,
     tagline: 'For teams ready to scale up.',
-    features: ['Everything in Startup, plus:', 'Payroll', 'Automatic bank connections', 'Multiple team members', 'Advanced reports'],
+    features: ['Everything in Startup, plus:', 'Full payroll — employees & W-2 prep', 'Automatic bank connections', 'Multiple team members', 'Advanced reports'],
   },
 ];
 
