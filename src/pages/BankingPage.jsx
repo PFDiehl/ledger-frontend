@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import ReconcileModal from '../components/ReconcileModal';
+import DuplicatesModal from '../components/DuplicatesModal';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -229,6 +230,7 @@ export default function BankingPage() {
   const [showRules, setShowRules] = useState(false);
   const [projects, setProjects]   = useState([]);   // active jobs for the job-costing tag
   const [reconcileOpen, setReconcileOpen] = useState(false);   // statement reconciliation modal
+  const [dedupeOpen, setDedupeOpen] = useState(false);         // find & remove duplicates modal
   const [rulePrompt, setRulePrompt] = useState(null);        // { match, category, description }
   const [newRule, setNewRule]     = useState({ match: '', category: '' });
 
@@ -983,6 +985,12 @@ export default function BankingPage() {
             <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={() => setReconcileOpen(true)} disabled={!activeId}
               title="Reconcile this account against a bank statement">
               ⚖ Reconcile
+            </button>
+          )}
+          {accounts.length > 0 && (
+            <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={() => setDedupeOpen(true)} disabled={!activeId}
+              title="Find and remove duplicate transactions on this account">
+              ⧉ Find duplicates
             </button>
           )}
           <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={resyncBooks} disabled={resyncing}
@@ -1827,6 +1835,11 @@ export default function BankingPage() {
       {reconcileOpen && activeAcct && (
         <ReconcileModal account={activeAcct} orgId={orgId} token={token}
           onClose={() => setReconcileOpen(false)}
+          onDone={() => { loadTxns(activeId); }} />
+      )}
+      {dedupeOpen && activeAcct && (
+        <DuplicatesModal account={activeAcct} orgId={orgId} token={token}
+          onClose={() => setDedupeOpen(false)}
           onDone={() => { loadTxns(activeId); }} />
       )}
     </div>
