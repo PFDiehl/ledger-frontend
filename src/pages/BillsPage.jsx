@@ -61,7 +61,7 @@ export default function BillsPage({ presetVendor } = {}) {
         if (created) setBills(prev => [created, ...prev]);
       }
       closeForm();
-    } catch(e) { alert('Error saving bill: ' + (e?.message || 'please try again')); }
+    } catch(e) { const m=(e?.message||'').trim(); alert('Error saving bill:\n\n' + (m.split('\n').map(s=>s.trim()).filter(Boolean).pop() || 'please try again')); }
     finally { setSaving(false); }
   }
 
