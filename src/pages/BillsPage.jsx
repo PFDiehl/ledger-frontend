@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 
@@ -7,6 +7,62 @@ const BILL_CATEGORIES = [
   'Supplier Invoice', 'Equipment Lease', 'Professional Services',
   'Payroll', 'Taxes', 'Software & Subscriptions', 'Other'
 ];
+
+// Money helpers: show $#,###.## but store a clean number the API can read.
+const money2 = n => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const parseMoney = v => Number(String(v == null ? '' : v).replace(/[^0-9.\-]/g, '')) || 0;
+
+// Amount field with a $ prefix that formats to cents on blur.
+function MoneyInput({ value, onChange, placeholder }) {
+  const [focused, setFocused] = useState(false);
+  const display = focused ? (value ?? '') : (value === '' || value == null ? '' : money2(parseMoney(value)));
+  return (
+    <div style={{ position: 'relative' }}>
+      <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#7A9A7A', fontSize: 13, pointerEvents: 'none' }}>$</span>
+      <input inputMode="decimal" value={display} placeholder={placeholder || '0.00'}
+        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+        onChange={e => onChange(e.target.value)}
+        style={{ width: '100%', padding: '9px 12px 9px 24px', borderRadius: 8, border: '1px solid #D4DDCC', fontSize: 13, boxSizing: 'border-box' }} />
+    </div>
+  );
+}
+
+// Type-to-search category picker. options = [{id,code,name}] or plain strings.
+function CategorySearch({ value, options, onPick }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const ref = useRef(null);
+  useEffect(() => {
+    const onDoc = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, []);
+  const norm = (options || []).map(o => typeof o === 'string' ? { id: o, code: '', name: o } : o);
+  const ql = q.trim().toLowerCase();
+  const filtered = ql ? norm.filter(o => (o.name || '').toLowerCase().includes(ql) || String(o.code || '').toLowerCase().includes(ql)) : norm;
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <input value={open ? q : (value || '')} placeholder="Type to search a category…"
+        onFocus={() => { setOpen(true); setQ(''); }}
+        onChange={e => { setQ(e.target.value); setOpen(true); }}
+        style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #D4DDCC', fontSize: 13, boxSizing: 'border-box' }} />
+      {open && (
+        <div style={{ position: 'absolute', zIndex: 30, top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', border: '1px solid #D4DDCC', borderRadius: 8, maxHeight: 220, overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
+          {filtered.length === 0 ? (
+            <div style={{ padding: '9px 12px', fontSize: 13, color: '#9BB39B' }}>No match</div>
+          ) : filtered.map(o => (
+            <div key={o.id} onMouseDown={() => { onPick(o.name); setOpen(false); }}
+              onMouseEnter={e => e.currentTarget.style.background = '#F2F7F0'}
+              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+              style={{ padding: '9px 12px', fontSize: 13, cursor: 'pointer', color: '#2C3E52' }}>
+              {o.code ? o.code + ' · ' : ''}{o.name}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function BillsPage({ presetVendor } = {}) {
   const { org } = useAuth();
@@ -51,12 +107,13 @@ export default function BillsPage({ presetVendor } = {}) {
     if (!form.vendor || !form.amount) return alert('Please fill in vendor and amount');
     setSaving(true);
     try {
+      const payload = { ...form, amount: parseMoney(form.amount) };
       if (editingId) {
-        const r = await api.patch(`/orgs/${org.id}/bills/${editingId}`, form);
+        const r = await api.patch(`/orgs/${org.id}/bills/${editingId}`, payload);
         const updated = r.data?.data || r.data;   // api returns the body; payload is r.data
         if (updated) setBills(prev => prev.map(b => b.id === editingId ? updated : b));
       } else {
-        const r = await api.post(`/orgs/${org.id}/bills`, form);
+        const r = await api.post(`/orgs/${org.id}/bills`, payload);
         const created = r.data?.data || r.data;
         if (created) setBills(prev => [created, ...prev]);
       }
@@ -216,17 +273,11 @@ export default function BillsPage({ presetVendor } = {}) {
               </div>
               <div>
                 <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>CATEGORY</label>
-                <select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))} style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}}>
-                  <option value="">Select category…</option>
-                  {expenseAccounts.length
-                    ? expenseAccounts.map(a => <option key={a.id} value={a.name}>{a.code} · {a.name}</option>)
-                    : BILL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  {form.category && !expenseAccounts.some(a => a.name === form.category) && !BILL_CATEGORIES.includes(form.category) && <option value={form.category}>{form.category}</option>}
-                </select>
+                <CategorySearch value={form.category} options={expenseAccounts.length ? expenseAccounts : BILL_CATEGORIES} onPick={name => setForm(f=>({...f, category:name}))} />
               </div>
               <div>
-                <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>AMOUNT ($)</label>
-                <input type='number' value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} placeholder='0.00' style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} />
+                <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>AMOUNT</label>
+                <MoneyInput value={form.amount} onChange={v=>setForm(f=>({...f,amount:v}))} placeholder='0.00' />
               </div>
               <div>
                 <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>DUE DATE</label>
