@@ -3,6 +3,17 @@ import { useAuth } from '../lib/AuthContext';
 import { api } from '../lib/api';
 
 const TABS = ['P&L', 'Balance Sheet', 'Cash Flow', 'Aged A/R', 'Trial Balance', 'General Ledger', 'Contractors (1099)'];
+
+// Readable date: "Jan 5, 2026" (month, day, year). Parsed from the YYYY-MM-DD part
+// so it never drifts a day from timezone conversion.
+const GL_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const dMDY = v => {
+  if (!v) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(v));
+  if (m) return `${GL_MON[+m[2] - 1]} ${+m[3]}, ${m[1]}`;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+};
 const PERIODS = [
   { key: 'full',   label: 'Full year' },
   { key: 'q1',     label: 'Q1' },
@@ -547,12 +558,12 @@ export default function ReportsPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 620 }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid #D4DDCC' }}>
-                      <th style={{ textAlign: 'left',  padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Date</th>
-                      <th style={{ textAlign: 'left',  padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Ref</th>
-                      <th style={{ textAlign: 'left',  padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Memo</th>
-                      <th style={{ textAlign: 'right', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Debit</th>
-                      <th style={{ textAlign: 'right', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Credit</th>
-                      <th style={{ textAlign: 'right', padding: '8px 6px', color: '#222',    fontWeight: 700 }}>Balance</th>
+                      <th style={{ textAlign: 'center', padding: '8px 10px', color: '#7A9A7A', fontWeight: 600, whiteSpace: 'nowrap' }}>Date</th>
+                      <th style={{ textAlign: 'center', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Ref</th>
+                      <th style={{ textAlign: 'center', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Memo</th>
+                      <th style={{ textAlign: 'center', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Debit</th>
+                      <th style={{ textAlign: 'center', padding: '8px 6px', color: '#7A9A7A', fontWeight: 600 }}>Credit</th>
+                      <th style={{ textAlign: 'center', padding: '8px 6px', color: '#222',    fontWeight: 700 }}>Balance</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -562,9 +573,9 @@ export default function ReportsPage() {
                     </tr>
                     {data.rows.map((r, i) => (
                       <tr key={i} style={{ borderBottom: '0.5px solid #EBF2E8' }}>
-                        <td style={{ padding: '9px 6px' }}>{safeISO(r.date)}</td>
+                        <td style={{ padding: '9px 10px', whiteSpace: 'nowrap' }}>{dMDY(r.date)}</td>
                         <td style={{ padding: '9px 6px', fontFamily: 'monospace', color: '#7A9A7A' }}>{r.reference || ''}</td>
-                        <td style={{ padding: '9px 6px' }}>{r.memo || ''}</td>
+                        <td style={{ padding: '9px 6px', maxWidth: 300, whiteSpace: 'normal', wordBreak: 'break-word' }}>{r.memo || ''}</td>
                         <td style={{ padding: '9px 6px', textAlign: 'right' }}>{r.debit ? fmt(r.debit) : ''}</td>
                         <td style={{ padding: '9px 6px', textAlign: 'right' }}>{r.credit ? fmt(r.credit) : ''}</td>
                         <td style={{ padding: '9px 6px', textAlign: 'right', fontWeight: 600 }}>{fmt(r.balance)}</td>
