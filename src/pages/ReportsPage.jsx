@@ -90,6 +90,8 @@ export default function ReportsPage() {
   const [compare, setCompare]         = useState('none');   // none | prev | prevyear
   const [data2, setData2]             = useState(null);      // comparison-period payload
   const [contractorFilter, setContractorFilter] = useState('all');   // all | marked (1099 contractors only)
+  const [jobs, setJobs]   = useState([]);     // jobs for the P&L "by job" filter
+  const [jobId, setJobId] = useState('');     // '' = all jobs (normal P&L)
 
   const years = [];
   for (let y = now.getFullYear(); y >= now.getFullYear() - 6; y--) years.push(y);
@@ -98,6 +100,7 @@ export default function ReportsPage() {
     if (!org) return;
     api.get(`/orgs/${org.id}/accounts`).then(r => setAccounts(r?.data || [])).catch(() => {});
     api.get(`/orgs/${org.id}/banking/accounts`).then(r => setBankAccounts(r?.data || [])).catch(() => {});
+    api.get(`/orgs/${org.id}/projects`).then(r => setJobs(r?.data || [])).catch(() => {});
   }, [org]);
 
   useEffect(() => {
@@ -108,6 +111,15 @@ export default function ReportsPage() {
       try {
         const { from, to } = period === 'custom' ? { from: customFrom, to: customTo } : computeRange(year, period);
         if (!cancelled) setData2(null);
+        // "By job" P&L: reuse the proven per-job rollup (all records tagged to the
+        // job). The accrual engine has no job-tagged ledger lines in v1, so this is
+        // the honest source for a single job's profit.
+        if (tab === 'P&L' && jobId) {
+          const jr = await api.get(`/orgs/${org.id}/projects/${jobId}`);
+          const jd = jr?.data ?? null;
+          if (!cancelled) setData(jd && jd.pnl ? { _jobPnl: jd.pnl, project: jd.project } : null);
+          return;
+        }
         let path;
         if (tab === 'Aged A/R') {
           path = `/orgs/${org.id}/reports/aged-ar`;
@@ -151,7 +163,7 @@ export default function ReportsPage() {
     }
     load();
     return () => { cancelled = true; };
-  }, [org, tab, year, period, basis, glAccountId, plBankAccountId, customFrom, customTo, asOfDate, compare]);
+  }, [org, tab, year, period, basis, glAccountId, plBankAccountId, customFrom, customTo, asOfDate, compare, jobId]);
 
   const line = (label, value, opts = {}) => (
     <div onClick={opts.onClick}
@@ -266,6 +278,9 @@ export default function ReportsPage() {
 
   const plAcctName = bankAccounts.find(a => a.id === plBankAccountId)?.name || '';
   const scopeNote  = (data && data.scopedToAccount && plAcctName) ? ` · ${plAcctName} only` : '';
+  // When a job is picked on P&L, we show that job's rollup instead of the
+  // date-ranged statement, so the period/basis/compare controls don't apply.
+  const jobScoped  = tab === 'P&L' && !!jobId;
 
   return (
     <div className="page">
@@ -284,7 +299,7 @@ export default function ReportsPage() {
 
       {/* Controls: period / dates + basis + compare */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap', alignItems: 'center' }}>
-        {['P&L', 'Cash Flow', 'General Ledger', 'Contractors (1099)'].includes(tab) && (
+        {['P&L', 'Cash Flow', 'General Ledger', 'Contractors (1099)'].includes(tab) && !jobScoped && (
           <select value={year} onChange={e => setYear(Number(e.target.value))} style={{
             padding: '6px 10px', borderRadius: 8, border: '1px solid #D4DDCC', background: '#fff',
             color: GREEN, fontSize: 13, fontWeight: 600, cursor: 'pointer',
@@ -309,22 +324,30 @@ export default function ReportsPage() {
             ))}
           </span>
         )}
-        {(tab === 'P&L' || tab === 'Cash Flow') && PERIODS.map(p => (
+        {(tab === 'P&L' || tab === 'Cash Flow') && !jobScoped && PERIODS.map(p => (
           <button key={p.key} onClick={() => setPeriod(p.key)} style={ctrlBtn(period === p.key)}>{p.label}</button>
         ))}
-        {(tab === 'P&L' || tab === 'Cash Flow') && period === 'custom' && (
+        {(tab === 'P&L' || tab === 'Cash Flow') && period === 'custom' && !jobScoped && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} style={dateInput} />
             <span style={{ color: '#999', fontSize: 12 }}>to</span>
             <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} style={dateInput} />
           </span>
         )}
-        {(tab === 'P&L' || tab === 'General Ledger') && bankAccounts.length > 0 && (
+        {(tab === 'P&L' || tab === 'General Ledger') && bankAccounts.length > 0 && !jobScoped && (
           <select value={plBankAccountId} onChange={e => setPlBankAccountId(e.target.value)} title="Limit to just one bank account"
             style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #D4DDCC',
               background: plBankAccountId ? '#f0f7f0' : '#fff', color: GREEN, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             <option value="">All accounts</option>
             {bankAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        )}
+        {tab === 'P&L' && jobs.length > 0 && (
+          <select value={jobId} onChange={e => setJobId(e.target.value)} title="Show profit & loss for one job"
+            style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #D4DDCC',
+              background: jobId ? '#f0f7f0' : '#fff', color: GREEN, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            <option value="">All jobs</option>
+            {jobs.map(j => <option key={j.id} value={j.id}>{j.name}{j.code ? ' · ' + j.code : ''}</option>)}
           </select>
         )}
         {(tab === 'Balance Sheet' || tab === 'Trial Balance') && (
@@ -334,7 +357,7 @@ export default function ReportsPage() {
           </span>
         )}
         {tab === 'Aged A/R' && <span style={{ fontSize: 12.5, color: '#7A9A7A' }}>As of today · what customers owe you</span>}
-        {tab === 'P&L' && (
+        {tab === 'P&L' && !jobScoped && (
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
               <span style={{ fontSize: 12, color: '#999' }}>Compare:</span>
@@ -363,7 +386,30 @@ export default function ReportsPage() {
       ) : (
         <div className="card" style={{ padding: 24, maxWidth: ['Aged A/R', 'Trial Balance', 'General Ledger', 'Contractors (1099)'].includes(tab) ? 920 : 640 }}>
 
-          {tab === 'P&L' && !data2 && (
+          {tab === 'P&L' && data._jobPnl && (
+            <>
+              <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4, color: GREEN }}>Profit &amp; Loss — {data.project?.name}{data.project?.code ? ' · ' + data.project.code : ''}</h2>
+              <div style={{ fontSize: 12, color: '#999', marginBottom: 12 }}>Everything tagged to this job · all dates</div>
+              {sectionHead('Income')}
+              {line('Invoices billed', data._jobPnl.income.invoiced, { indent: true })}
+              {line('Deposits / money in', data._jobPnl.income.deposits, { indent: true })}
+              {line('Total income', data._jobPnl.income.total, { strong: true, color: GREEN })}
+              {sectionHead('Cost')}
+              {line('Bills', data._jobPnl.cost.bills, { indent: true, color: RED })}
+              {line('Expenses', data._jobPnl.cost.expenses, { indent: true, color: RED })}
+              {line('Card / bank spending', data._jobPnl.cost.spending, { indent: true, color: RED })}
+              {line('Total cost', data._jobPnl.cost.total, { strong: true, color: RED })}
+              <div style={{ borderTop: '2px solid ' + GREEN, marginTop: 10, paddingTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 16, fontWeight: 700 }}>Profit</span>
+                <span style={{ fontSize: 20, fontWeight: 700, color: Number(data._jobPnl.profit) >= 0 ? GREEN : RED }}>{fmt(data._jobPnl.profit)}{data._jobPnl.margin != null && <span style={{ fontSize: 13, fontWeight: 600, color: '#7A9A7A' }}> · {data._jobPnl.margin}%</span>}</span>
+              </div>
+              <div style={{ fontSize: 11, color: '#9DB39D', marginTop: 12, lineHeight: 1.5 }}>
+                This view adds up every invoice, bill, expense and bank item tagged to the job. Tag each dollar in one place only so nothing is double-counted.
+              </div>
+            </>
+          )}
+
+          {tab === 'P&L' && !data2 && !data._jobPnl && (
             <>
               <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4, color: GREEN }}>Profit &amp; Loss</h2>
               <div style={{ fontSize: 12, color: '#999', marginBottom: 12 }}>

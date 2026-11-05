@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { MoneyInput, parseMoney } from '../components/FormFields';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 const today = new Date().toISOString().slice(0, 10);
@@ -63,7 +64,12 @@ export default function JobsPage() {
     setSaving(true);
     try {
       const url = editId ? `${API}/orgs/${orgId}/projects/${editId}` : `${API}/orgs/${orgId}/projects`;
-      const r = await fetch(url, { method: editId ? 'PATCH' : 'POST', headers: authHeaders, body: JSON.stringify(form) });
+      const payload = {
+        ...form,
+        estRevenue: form.estRevenue === '' ? null : parseMoney(form.estRevenue),
+        estCost: form.estCost === '' ? null : parseMoney(form.estCost),
+      };
+      const r = await fetch(url, { method: editId ? 'PATCH' : 'POST', headers: authHeaders, body: JSON.stringify(payload) });
       const j = await r.json();
       if (j.success) { setShowForm(false); loadJobs(); }
       else alert(j.message || 'Could not save the job.');
@@ -162,8 +168,14 @@ export default function JobsPage() {
                 {JF('CUSTOMER', 'customer', { placeholder: 'Client name' })}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                {JF('ESTIMATED REVENUE ($)', 'estRevenue', { type: 'number', placeholder: 'Contract amount' })}
-                {JF('ESTIMATED COST ($)', 'estCost', { type: 'number', placeholder: 'Budgeted cost' })}
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 500, color: '#7A9A7A', display: 'block', marginBottom: 4 }}>ESTIMATED REVENUE</label>
+                  <MoneyInput value={form.estRevenue} onChange={v => setForm(f => ({ ...f, estRevenue: v }))} placeholder='Contract amount' />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 500, color: '#7A9A7A', display: 'block', marginBottom: 4 }}>ESTIMATED COST</label>
+                  <MoneyInput value={form.estCost} onChange={v => setForm(f => ({ ...f, estCost: v }))} placeholder='Budgeted cost' />
+                </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 {JF('START DATE', 'startDate', { type: 'date' })}

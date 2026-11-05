@@ -28,8 +28,8 @@
   --color-surface-secondary:    #F5F8F3;
   --color-text:                 #1F2A24;
   --color-text-primary:         #1F2A24;
-  --color-text-secondary:       #5E6B62;
-  --color-text-tertiary:        #8A968C;
+  --color-text-secondary:       #4C574F;
+  --color-text-tertiary:        #6F7B72;
   --color-border:               #E2E8E0;
   --color-border-secondary:     #D4DDCC;
   --color-border-tertiary:      #EBF2E8;
@@ -267,7 +267,7 @@ button { cursor: pointer; font: inherit; background: none; border: none; }
 /* ─── Cards ─── */
 .card {
   background: #fff;
-  border: 0.5px solid var(--border);
+  border: 1px solid var(--color-border-secondary);
   border-radius: var(--radius-md);
   padding: 18px;
 }
