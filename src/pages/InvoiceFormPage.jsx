@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { fmt } from '../lib/utils';
+import { SearchSelect, parseMoney } from '../components/FormFields';
 
 const API = import.meta.env.VITE_API_URL || 'https://ledger-accounting-production.up.railway.app/api';
 const today = new Date().toISOString().slice(0, 10);
@@ -212,9 +213,9 @@ export default function InvoiceFormPage({ invoice, presetContact, onBack, onSave
             <h3 style={{fontSize:14,fontWeight:600,marginBottom:16,color:'#2D4A35'}}>Client</h3>
             <div>
               <label style={{fontSize:12,color:'#7A9A7A',display:'block',marginBottom:4}}>Company *</label>
-              <input value={form.company} onChange={e=>onCompanyChange(e.target.value)} list="ledger-customer-options"
-                placeholder="Start typing a customer name…" autoComplete="off"
-                style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:14,boxSizing:'border-box'}} />
+              <SearchSelect value={form.company} allowCustom placeholder="Start typing a customer name…"
+                options={customers.map(c => ({ value: c.company || c.name, label: c.company || c.name }))}
+                onPick={v => onCompanyChange(v)} />
               {contactId
                 ? <span style={{color:'#2D7A34',fontSize:12}}>✓ Linked to an existing customer — their details filled in below.</span>
                 : (form.company ? <span style={{color:'#7A9A7A',fontSize:12}}>New customer — will be added to your Customers list.</span> : null)}
@@ -298,7 +299,7 @@ export default function InvoiceFormPage({ invoice, presetContact, onBack, onSave
                 <tr style={{borderBottom:'1px solid #D4DDCC'}}>
                   <th style={{padding:'8px 0',textAlign:'left',fontSize:11,color:'#7A9A7A',fontWeight:500}}>DESCRIPTION</th>
                   <th style={{padding:'8px 8px',textAlign:'left',fontSize:11,color:'#7A9A7A',fontWeight:500,width:150}}>SERVICE</th>
-                  <th style={{padding:'8px 8px',textAlign:'center',fontSize:11,color:'#7A9A7A',fontWeight:500,width:60}}>QTY</th>
+                  <th style={{padding:'8px 8px',textAlign:'center',fontSize:11,color:'#7A9A7A',fontWeight:500,width:72}}>QTY</th>
                   <th style={{padding:'8px 8px',textAlign:'right',fontSize:11,color:'#7A9A7A',fontWeight:500,width:90}}>RATE ($)</th>
                   <th style={{padding:'8px 8px',textAlign:'center',fontSize:11,color:'#7A9A7A',fontWeight:500,width:44}}>TAX</th>
                   <th style={{padding:'8px 8px',textAlign:'right',fontSize:11,color:'#7A9A7A',fontWeight:500,width:100}}>AMOUNT</th>
@@ -318,11 +319,16 @@ export default function InvoiceFormPage({ invoice, presetContact, onBack, onSave
                     </td>
                     <td style={{padding:'8px'}}>
                       <input value={line.qty} onChange={e=>updateLine(i,'qty',e.target.value)}
-                        type="number" min="0" style={{width:'100%',padding:'8px',borderRadius:6,border:'1px solid #D4DDCC',fontSize:13,textAlign:'center'}} />
+                        inputMode="decimal" style={{width:'100%',padding:'8px',borderRadius:6,border:'1px solid #D4DDCC',fontSize:13,textAlign:'center',boxSizing:'border-box'}} />
                     </td>
                     <td style={{padding:'8px'}}>
-                      <input value={line.rate} onChange={e=>updateLine(i,'rate',e.target.value)}
-                        type="number" min="0" step="0.01" placeholder="0.00" style={{width:'100%',padding:'8px',borderRadius:6,border:'1px solid #D4DDCC',fontSize:13,textAlign:'right'}} />
+                      <div style={{position:'relative'}}>
+                        <span style={{position:'absolute',left:8,top:'50%',transform:'translateY(-50%)',color:'#9BB39B',fontSize:12,pointerEvents:'none'}}>$</span>
+                        <input value={line.rate} onChange={e=>updateLine(i,'rate',e.target.value)}
+                          onBlur={e=>updateLine(i,'rate', e.target.value==='' ? '' : parseMoney(e.target.value).toFixed(2))}
+                          inputMode="decimal" placeholder="0.00"
+                          style={{width:'100%',padding:'8px 8px 8px 18px',borderRadius:6,border:'1px solid #D4DDCC',fontSize:13,textAlign:'right',boxSizing:'border-box'}} />
+                      </div>
                     </td>
                     <td style={{padding:'8px',textAlign:'center'}}>
                       <input type="checkbox" checked={line.taxable !== false} onChange={e=>updateLine(i,'taxable',e.target.checked)}

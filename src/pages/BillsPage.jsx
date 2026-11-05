@@ -1,68 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
+import { MoneyInput, SearchSelect, parseMoney } from '../components/FormFields';
 
 const BILL_CATEGORIES = [
   'Rent & Lease', 'Utilities', 'Insurance', 'Loan Payment',
   'Supplier Invoice', 'Equipment Lease', 'Professional Services',
   'Payroll', 'Taxes', 'Software & Subscriptions', 'Other'
 ];
-
-// Money helpers: show $#,###.## but store a clean number the API can read.
-const money2 = n => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const parseMoney = v => Number(String(v == null ? '' : v).replace(/[^0-9.\-]/g, '')) || 0;
-
-// Amount field with a $ prefix that formats to cents on blur.
-function MoneyInput({ value, onChange, placeholder }) {
-  const [focused, setFocused] = useState(false);
-  const display = focused ? (value ?? '') : (value === '' || value == null ? '' : money2(parseMoney(value)));
-  return (
-    <div style={{ position: 'relative' }}>
-      <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#7A9A7A', fontSize: 13, pointerEvents: 'none' }}>$</span>
-      <input inputMode="decimal" value={display} placeholder={placeholder || '0.00'}
-        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-        onChange={e => onChange(e.target.value)}
-        style={{ width: '100%', padding: '9px 12px 9px 24px', borderRadius: 8, border: '1px solid #D4DDCC', fontSize: 13, boxSizing: 'border-box' }} />
-    </div>
-  );
-}
-
-// Type-to-search category picker. options = [{id,code,name}] or plain strings.
-function CategorySearch({ value, options, onPick }) {
-  const [open, setOpen] = useState(false);
-  const [q, setQ] = useState('');
-  const ref = useRef(null);
-  useEffect(() => {
-    const onDoc = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, []);
-  const norm = (options || []).map(o => typeof o === 'string' ? { id: o, code: '', name: o } : o);
-  const ql = q.trim().toLowerCase();
-  const filtered = ql ? norm.filter(o => (o.name || '').toLowerCase().includes(ql) || String(o.code || '').toLowerCase().includes(ql)) : norm;
-  return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <input value={open ? q : (value || '')} placeholder="Type to search a category…"
-        onFocus={() => { setOpen(true); setQ(''); }}
-        onChange={e => { setQ(e.target.value); setOpen(true); }}
-        style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #D4DDCC', fontSize: 13, boxSizing: 'border-box' }} />
-      {open && (
-        <div style={{ position: 'absolute', zIndex: 30, top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', border: '1px solid #D4DDCC', borderRadius: 8, maxHeight: 220, overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
-          {filtered.length === 0 ? (
-            <div style={{ padding: '9px 12px', fontSize: 13, color: '#9BB39B' }}>No match</div>
-          ) : filtered.map(o => (
-            <div key={o.id} onMouseDown={() => { onPick(o.name); setOpen(false); }}
-              onMouseEnter={e => e.currentTarget.style.background = '#F2F7F0'}
-              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
-              style={{ padding: '9px 12px', fontSize: 13, cursor: 'pointer', color: '#2C3E52' }}>
-              {o.code ? o.code + ' · ' : ''}{o.name}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function BillsPage({ presetVendor } = {}) {
   const { org } = useAuth();
@@ -268,12 +213,15 @@ export default function BillsPage({ presetVendor } = {}) {
             <div style={{display:'flex',flexDirection:'column',gap:14}}>
               <div>
                 <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>VENDOR</label>
-                <input list="bill-vendor-list" value={form.vendor} onChange={e=>setForm(f=>({...f,vendor:e.target.value}))} placeholder='Start typing a vendor…' autoComplete="off" style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid #D4DDCC',fontSize:13,boxSizing:'border-box'}} />
-                <datalist id="bill-vendor-list">{vendors.map(v => <option key={v.id} value={v.company || v.name} />)}</datalist>
+                <SearchSelect value={form.vendor} allowCustom placeholder='Start typing a vendor…'
+                  options={vendors.map(v => ({ value: v.company || v.name, label: v.company || v.name }))}
+                  onPick={name => setForm(f=>({...f, vendor:name}))} />
               </div>
               <div>
                 <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>CATEGORY</label>
-                <CategorySearch value={form.category} options={expenseAccounts.length ? expenseAccounts : BILL_CATEGORIES} onPick={name => setForm(f=>({...f, category:name}))} />
+                <SearchSelect value={form.category} placeholder='Type to search a category…'
+                  options={expenseAccounts.length ? expenseAccounts : BILL_CATEGORIES}
+                  onPick={name => setForm(f=>({...f, category:name}))} />
               </div>
               <div>
                 <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>AMOUNT</label>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { MoneyInput, SearchSelect, parseMoney } from '../components/FormFields';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 const today = new Date().toISOString().slice(0,10);
@@ -46,7 +47,7 @@ export default function ExpensesPage() {
     if (!form.vendor || !form.amount) return alert('Please fill in vendor and amount');
     setLoading(true);
     try {
-      const r = await fetch(API+'/orgs/'+orgId+'/expenses', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+token }, body: JSON.stringify(form) });
+      const r = await fetch(API+'/orgs/'+orgId+'/expenses', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+token }, body: JSON.stringify({ ...form, amount: parseMoney(form.amount) }) });
       const j = await r.json();
       if (j.success) { setExpenses(prev => [j.data, ...prev]); setShowForm(false); setForm({ vendor:'', category:'', amount:'', date:today, description:'', receiptNumber:'', paymentMethod:'', projectId:'' }); }
       else alert(j.message);
@@ -57,7 +58,7 @@ export default function ExpensesPage() {
     if (!editForm.vendor || !editForm.amount) return alert('Please fill in vendor and amount');
     setLoading(true);
     try {
-      const r = await fetch(API+'/orgs/'+orgId+'/expenses/'+selected.id, { method:'PATCH', headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+token }, body: JSON.stringify(editForm) });
+      const r = await fetch(API+'/orgs/'+orgId+'/expenses/'+selected.id, { method:'PATCH', headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+token }, body: JSON.stringify({ ...editForm, amount: parseMoney(editForm.amount) }) });
       const j = await r.json();
       if (j.success) {
         const updated = { ...selected, ...j.data };
@@ -156,6 +157,8 @@ export default function ExpensesPage() {
     .filter(a => a.type === 'Expense')
     .sort((a, b) => String(a.code || '').localeCompare(String(b.code || '')));
   const categoryNames = expenseAccounts.map(a => a.name);
+  // Vendor suggestions: the vendors already used on past expenses (free text still allowed).
+  const vendorOpts = [...new Set(expenses.map(e => e.vendor).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   function categoryOpts(current) {
     const base = expenseAccounts.length
       ? expenseAccounts.map(a => ({ value: a.name, label: `${a.code} · ${a.name}` }))
@@ -252,10 +255,22 @@ export default function ExpensesPage() {
                 </button>
                 <div style={{fontSize:11,color:'#7A9A7A',marginTop:6,textAlign:'center'}}>Upload a JPG or PNG photo — we'll read the vendor, amount, and date.</div>
               </div>
-              {F('VENDOR', 'vendor', 'input', {placeholder:'Amazon'})}
-              {F('CATEGORY', 'category', 'select', {options: categoryOpts(form.category)})}
+              <div>
+                <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>VENDOR</label>
+                <SearchSelect value={form.vendor} allowCustom placeholder='Amazon' options={vendorOpts}
+                  onPick={v => setForm(f=>({...f, vendor:v}))} />
+              </div>
+              <div>
+                <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>CATEGORY</label>
+                <SearchSelect value={form.category} placeholder='Type to search a category…'
+                  options={expenseAccounts.length ? expenseAccounts : CATEGORIES}
+                  onPick={v => setForm(f=>({...f, category:v}))} />
+              </div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-                {F('AMOUNT ($)', 'amount', 'input', {type:'number', placeholder:'0.00'})}
+                <div>
+                  <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>AMOUNT</label>
+                  <MoneyInput value={form.amount} onChange={v=>setForm(f=>({...f,amount:v}))} placeholder='0.00' />
+                </div>
                 {F('DATE', 'date', 'input', {type:'date'})}
               </div>
               {F('PAYMENT METHOD', 'paymentMethod', 'select', {options: ['', ...PAYMENT_METHODS]})}
@@ -282,10 +297,22 @@ export default function ExpensesPage() {
 
             {editing ? (
               <div style={{display:'flex',flexDirection:'column',gap:14}}>
-                {EF('VENDOR', 'vendor', 'input', {placeholder:'Amazon'})}
-                {EF('CATEGORY', 'category', 'select', {options: categoryOpts(editForm.category)})}
+                <div>
+                  <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>VENDOR</label>
+                  <SearchSelect value={editForm.vendor||''} allowCustom placeholder='Amazon' options={vendorOpts}
+                    onPick={v => setEditForm(f=>({...f, vendor:v}))} />
+                </div>
+                <div>
+                  <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>CATEGORY</label>
+                  <SearchSelect value={editForm.category||''} placeholder='Type to search a category…'
+                    options={expenseAccounts.length ? expenseAccounts : CATEGORIES}
+                    onPick={v => setEditForm(f=>({...f, category:v}))} />
+                </div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-                  {EF('AMOUNT ($)', 'amount', 'input', {type:'number', placeholder:'0.00'})}
+                  <div>
+                    <label style={{fontSize:12,fontWeight:500,color:'#7A9A7A',display:'block',marginBottom:4}}>AMOUNT</label>
+                    <MoneyInput value={editForm.amount||''} onChange={v=>setEditForm(f=>({...f,amount:v}))} placeholder='0.00' />
+                  </div>
                   {EF('DATE', 'date', 'input', {type:'date'})}
                 </div>
                 {EF('PAYMENT METHOD', 'paymentMethod', 'select', {options: ['', ...PAYMENT_METHODS]})}
