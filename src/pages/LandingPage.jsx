@@ -132,6 +132,7 @@ export default function LandingPage({ onGetStarted }) {
                 <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#2C3E52',fontSize:15.5,lineHeight:1.5,marginBottom:13}}><span style={{color:DT,fontWeight:700}}>✓</span> Expense tracking with receipt scanning</li>
                 <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#2C3E52',fontSize:15.5,lineHeight:1.5,marginBottom:13}}><span style={{color:DT,fontWeight:700}}>✓</span> Customers & vendors</li>
                 <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#2C3E52',fontSize:15.5,lineHeight:1.5,marginBottom:13}}><span style={{color:DT,fontWeight:700}}>✓</span> Core financial reports</li>
+                <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#2C3E52',fontSize:15.5,lineHeight:1.5,marginBottom:13}}><span style={{color:DT,fontWeight:700}}>✓</span> Simple payroll recording</li>
                 <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#2C3E52',fontSize:15.5,lineHeight:1.5,marginBottom:13}}><span style={{color:DT,fontWeight:700}}>✓</span> iPhone mobile app</li>
                 <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#2C3E52',fontSize:15.5,lineHeight:1.5,marginBottom:13}}><span style={{color:DT,fontWeight:700}}>✓</span> Single user</li>
               </ul>
@@ -151,7 +152,7 @@ export default function LandingPage({ onGetStarted }) {
 
               <ul style={{listStyle:'none',margin:'22px 0 26px',padding:0,fontFamily:'sans-serif'}}>
                 <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#2C3E52',fontSize:15.5,lineHeight:1.5,marginBottom:13}}><span style={{color:DT,fontWeight:700}}>✓</span> <strong style={{color:DT_INK,fontWeight:700}}>Everything in Startup, plus:</strong></li>
-                <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#2C3E52',fontSize:15.5,lineHeight:1.5,marginBottom:13}}><span style={{color:DT,fontWeight:700}}>✓</span> Payroll</li>
+                <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#2C3E52',fontSize:15.5,lineHeight:1.5,marginBottom:13}}><span style={{color:DT,fontWeight:700}}>✓</span> Full payroll — employees &amp; W-2 prep</li>
                 <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#2C3E52',fontSize:15.5,lineHeight:1.5,marginBottom:13}}><span style={{color:DT,fontWeight:700}}>✓</span> Automatic bank connections</li>
                 <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#2C3E52',fontSize:15.5,lineHeight:1.5,marginBottom:13}}><span style={{color:DT,fontWeight:700}}>✓</span> Multiple team members</li>
                 <li style={{display:'flex',alignItems:'flex-start',gap:10,color:'#2C3E52',fontSize:15.5,lineHeight:1.5,marginBottom:13}}><span style={{color:DT,fontWeight:700}}>✓</span> Advanced reports</li>
