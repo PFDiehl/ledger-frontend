@@ -61,7 +61,7 @@ export default function BillsPage({ presetVendor } = {}) {
         if (created) setBills(prev => [created, ...prev]);
       }
       closeForm();
-    } catch(e) { alert('Error saving bill'); }
+    } catch(e) { alert('Error saving bill: ' + (e?.message || 'please try again')); }
     finally { setSaving(false); }
   }
 
