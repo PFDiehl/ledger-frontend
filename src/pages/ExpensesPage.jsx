@@ -13,7 +13,7 @@ function getAuth() {
 const CATEGORIES = ['Advertising & Marketing','Bank Charges','Equipment','Insurance','Legal & Professional Fees','Meals & Entertainment','Office Supplies','Payroll','Rent & Lease','Software & Subscriptions','Taxes & Licenses','Travel','Utilities','Vehicle','Other'];
 const PAYMENT_METHODS = ['Cash','Check','Credit Card','Debit Card','ACH / Bank Transfer','Wire Transfer','PayPal','Venmo','Zelle','Other'];
 
-export default function ExpensesPage() {
+export default function ExpensesPage({ autoNew } = {}) {
   const [expenses, setExpenses] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -29,6 +29,9 @@ export default function ExpensesPage() {
   const fileInputRef = useRef(null);
   const scanInputRef = useRef(null);
   const { orgId, token } = getAuth();
+
+  // Open the New Expense form immediately when launched via the keyboard shortcut.
+  useEffect(() => { if (autoNew) setShowForm(true); }, [autoNew]);
 
   useEffect(() => {
     if (!orgId || !token) return;

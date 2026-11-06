@@ -152,6 +152,56 @@ function WelcomeBubble({ name, onAddCompany, onDismiss }) {
   );
 }
 
+// QuickBooks-style keyboard-shortcut reference. Opened with Ctrl+Alt+/.
+function ShortcutsHelp({ open, onClose }) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+  if (!open) return null;
+  const rows = [
+    ['I', 'New invoice'],
+    ['X', 'New expense'],
+    ['W', 'New bill'],
+    ['R', 'Invoices (to receive a payment)'],
+    ['C', 'Customers'],
+    ['V', 'Vendors'],
+    ['A', 'Chart of accounts'],
+    ['B', 'Banking'],
+    ['D', 'Dashboard'],
+    ['H', 'Help'],
+    ['/', 'Show this list'],
+  ];
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:14, padding:'22px 26px', width:460, maxWidth:'92vw', maxHeight:'90vh', overflowY:'auto', boxShadow:'0 20px 60px rgba(0,0,0,0.25)' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+          <h2 style={{ fontSize:18, fontWeight:600, margin:0 }}>Keyboard shortcuts</h2>
+          <button onClick={onClose} aria-label="Close" style={{ background:'none', border:'none', fontSize:22, cursor:'pointer', lineHeight:1, color:'#7A9A7A' }}>×</button>
+        </div>
+        <p style={{ fontSize:13, color:'#5A6B5A', margin:'0 0 16px', lineHeight:1.5 }}>
+          Press and hold <b>Ctrl</b> and <b>Alt</b> together (on a Mac, <b>Control</b> and <b>Option</b>), then press a key:
+        </p>
+        <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13.5 }}>
+          <tbody>
+            {rows.map(([k, label]) => (
+              <tr key={k} style={{ borderBottom:'0.5px solid #EBF2E8' }}>
+                <td style={{ padding:'8px 10px', width:120 }}>
+                  <kbd style={{ fontFamily:'inherit', fontWeight:600, background:'#F2F7F0', border:'1px solid #D4DDCC', borderRadius:6, padding:'2px 8px', color:'#2D4A35', whiteSpace:'nowrap' }}>Ctrl+Alt+{k}</kbd>
+                </td>
+                <td style={{ padding:'8px 10px', color:'#2C3E52' }}>{label}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p style={{ fontSize:12, color:'#9BB39B', margin:'14px 0 0', lineHeight:1.5 }}>These match QuickBooks' shortcuts wherever MountainTop Ledger has the same feature.</p>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const { user, org, orgs, tenants, isPlatformOwner, loading, logout } = useAuth();
 
@@ -171,6 +221,7 @@ export default function App() {
   const [showLanding, setShowLanding] = useState(true);
   const [authMode, setAuthMode]    = useState('login'); // 'login' | 'register' — which form AuthPage opens on
   const [showAI, setShowAI]        = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);  // keyboard-shortcut help dialog
   const [paymentStatus, setPaymentStatus] = useState(null); // invoice payment
   const [subStatus, setSubStatus]  = useState(null);          // subscription (post-checkout verify)
   const [subFreeUntil, setSubFreeUntil] = useState(null);     // real "no charge until" date from Stripe (trial + promo)
@@ -258,6 +309,36 @@ export default function App() {
       .catch(() => { if (!cancelled) { setSubInfo({ active: true, _failedOpen: true }); setSubReady(true); } });
     return () => { cancelled = true; };
   }, [user, org]);
+
+  // Global QuickBooks-style keyboard shortcuts: hold Ctrl+Alt, then a key.
+  // Keyed on e.code so it works regardless of keyboard layout or OS (on a Mac,
+  // Alt is Option). Every shortcut needs BOTH Ctrl and Alt, so it never fires
+  // while someone is just typing in a field.
+  useEffect(() => {
+    if (!user) return;
+    function onKey(e) {
+      if (!e.ctrlKey || !e.altKey || e.metaKey) return;
+      const go = (id, v) => { setActiveNav(id); setView(v || { type: 'list' }); };
+      let handled = true;
+      switch (e.code) {
+        case 'KeyI': go('invoices', { type: 'form', data: null }); break;  // new invoice
+        case 'KeyX': go('expenses', { type: 'list', autoNew: true }); break; // new expense
+        case 'KeyW': go('bills',    { type: 'list', autoNew: true }); break; // new bill
+        case 'KeyR': go('invoices'); break;   // receive a payment (on an invoice)
+        case 'KeyC': go('customers'); break;
+        case 'KeyV': go('vendors');   break;
+        case 'KeyA': go('coa');       break;  // chart of accounts
+        case 'KeyB': go('bank');      break;  // banking
+        case 'KeyD': go('dashboard'); break;
+        case 'KeyH': go('help');      break;
+        case 'Slash': setShowShortcuts(s => !s); break;  // Ctrl+Alt+/ → this list
+        default: handled = false;
+      }
+      if (handled) e.preventDefault();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [user]);
 
   if (paymentStatus) {
     const box = { minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16, fontFamily:'system-ui, sans-serif', padding:24, textAlign:'center' };
@@ -347,10 +428,10 @@ export default function App() {
       case 'bills':
         if (view.type==='detail') return <BillDetailPage bill={view.data} onBack={()=>setView({type:'list'})} onEdit={b=>setView({type:'form',data:b})} />;
         if (view.type==='form')   return <BillFormPage   bill={view.data} onBack={()=>setView(view.data?{type:'detail',data:view.data}:{type:'list'})} onSave={()=>setView({type:'list'})} />;
-        return <BillsPage presetVendor={view.presetVendor} />;
+        return <BillsPage presetVendor={view.presetVendor} autoNew={view.autoNew} />;
       case 'customers':   return <CustomersPage org={org} focusName={view.focusName} onNewInvoice={(c)=>{ setActiveNav('invoices'); setView({ type:'form', data:null, preset:c }); }} />;
       case 'vendors':     return <VendorsPage org={org} focusName={view.focusName} onNewBill={(v)=>{ setActiveNav('bills'); setView({ type:'list', presetVendor:v }); }} />;
-      case 'expenses':    return <ExpensesPage />;
+      case 'expenses':    return <ExpensesPage autoNew={view.autoNew} />;
       case 'jobs':        return <JobsPage />;
       case 'help':        return <HelpPage />;
       case 'support':     return <HelpPage src="/help/mtl-contact-support.html" title="Contact Support" />;
@@ -388,6 +469,8 @@ export default function App() {
         </main>
       </div>
       {showAI && <AIInsightsPanel onClose={() => setShowAI(false)} />}
+      <ShortcutsHelp open={showShortcuts} onClose={() => setShowShortcuts(false)} />
+
       {showWelcome && hasOrg && activeNav === 'dashboard' && (
         <WelcomeBubble name={user?.name ? String(user.name).split(' ')[0] : ''} onAddCompany={welcomeToCompany} onDismiss={dismissWelcome} />
       )}

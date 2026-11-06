@@ -9,7 +9,7 @@ const BILL_CATEGORIES = [
   'Payroll', 'Taxes', 'Software & Subscriptions', 'Other'
 ];
 
-export default function BillsPage({ presetVendor } = {}) {
+export default function BillsPage({ presetVendor, autoNew } = {}) {
   const { org } = useAuth();
   const [bills, setBills] = useState([]);
   const [vendors, setVendors] = useState([]);
@@ -47,6 +47,9 @@ export default function BillsPage({ presetVendor } = {}) {
       setShowForm(true);
     }
   }, [presetVendor]);
+
+  // Open the New Bill form immediately when launched via the keyboard shortcut.
+  useEffect(() => { if (autoNew) openNew(); }, [autoNew]);
 
   async function save() {
     if (!form.vendor || !form.amount) return alert('Please fill in vendor and amount');
