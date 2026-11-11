@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import ReconcileModal from '../components/ReconcileModal';
 import DuplicatesModal from '../components/DuplicatesModal';
+import BankBalanceTile from '../components/BankBalanceTile.jsx';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -1089,6 +1090,8 @@ export default function BankingPage() {
               Tip: drag a card to reorder — the order is saved for this company.
             </div>
           )}
+
+          {activeAcct && <BankBalanceTile account={activeAcct} txns={txns} />}
 
           {activeAcct && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
