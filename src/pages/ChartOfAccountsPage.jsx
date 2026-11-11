@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import AccountRegister from '../components/AccountRegister.jsx';
+import AccountReport from '../components/AccountReport.jsx';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -44,6 +45,7 @@ export default function ChartOfAccountsPage() {
   const [msg, setMsg]     = useState('');
   const [balances, setBalances] = useState({});
   const [registerAcct, setRegisterAcct] = useState(null);
+  const [reportAcct, setReportAcct] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -194,8 +196,8 @@ export default function ChartOfAccountsPage() {
                             View register
                           </button>
                         ) : (
-                          <button onClick={() => alert('Account reports — pick a date range and compare to a previous period — are coming in the next update.')}
-                            style={{ background:'none', border:'none', color:'var(--color-text-secondary)', cursor:'pointer', fontSize:12 }}>
+                          <button onClick={() => setReportAcct(a)}
+                            style={{ background:'none', border:'none', color:'var(--brand-primary)', cursor:'pointer', fontSize:12 }}>
                             Run report
                           </button>
                         )}
@@ -281,6 +283,15 @@ export default function ChartOfAccountsPage() {
           token={token}
           onClose={() => setRegisterAcct(null)}
           onChanged={load}
+        />
+      )}
+
+      {reportAcct && (
+        <AccountReport
+          account={reportAcct}
+          orgId={orgId}
+          token={token}
+          onClose={() => setReportAcct(null)}
         />
       )}
     </div>
