@@ -196,7 +196,7 @@ function ShortcutsHelp({ open, onClose }) {
             ))}
           </tbody>
         </table>
-        <p style={{ fontSize:12, color:'#9BB39B', margin:'14px 0 0', lineHeight:1.5 }}>These match QuickBooks' shortcuts wherever MountainTop Ledger has the same feature.</p>
+        <p style={{ fontSize:12, color:'#9BB39B', margin:'14px 0 0', lineHeight:1.5 }}>Quick Ctrl+Alt combinations for the things you do most in MountainTop Ledger.</p>
       </div>
     </div>
   );
