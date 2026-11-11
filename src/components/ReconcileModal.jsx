@@ -110,6 +110,15 @@ export default function ReconcileModal({ account, orgId, token, onClose, onDone 
     return { dep: r2(dep), pay: r2(pay), clearedBalance, difference, begin: r2(begin), end };
   }, [txns, checked, beginning, ending]);
 
+  // A collapsed split row stands in for several real transactions. Map each row id
+  // (a real txn id, or a "grp:…" split line) to the real transaction ids behind it,
+  // so finishing can clear every piece of a split together.
+  const memberMap = useMemo(() => {
+    const m = {};
+    for (const t of txns) m[t.id] = t.memberIds || [t.id];
+    return m;
+  }, [txns]);
+
   const balanced = calc.difference != null && Math.abs(calc.difference) < 0.005;
   const canFinish = balanced && !!stmtDate && ending !== '' && !saving;
 
@@ -123,7 +132,9 @@ export default function ReconcileModal({ account, orgId, token, onClose, onDone 
           statementDate: stmtDate,
           beginningBalance: toNum(beginning),
           endingBalance: toNum(ending),
-          clearedTxnIds: [...checked],
+          // Expand any collapsed split line into its real transaction ids so every
+          // piece of the split is cleared together.
+          clearedTxnIds: [...checked].flatMap(id => memberMap[id] || [id]),
         }),
       }).then(x => x.json());
       if (r.success) { setDone({ count: checked.size, ending: toNum(ending), date: stmtDate, id: r.data?.id }); onDone?.(); }
@@ -205,7 +216,7 @@ export default function ReconcileModal({ account, orgId, token, onClose, onDone 
                           style={{ borderBottom: '0.5px solid #EBF2E8', cursor: 'pointer', background: on ? '#F4F8F4' : 'transparent' }}>
                           <td style={{ padding: '8px 10px', width: 30 }}><input type="checkbox" checked={on} readOnly style={{ width: 15, height: 15, accentColor: '#2D4A35', pointerEvents: 'none' }} /></td>
                           <td style={{ padding: '8px 10px', color: '#7A9A7A', whiteSpace: 'nowrap' }}>{fmtDate(t.date)}</td>
-                          <td style={{ padding: '8px 10px' }}>{t.description}{t.payee ? <span style={{ color: '#9DB39D' }}> · {t.payee}</span> : ''}</td>
+                          <td style={{ padding: '8px 10px' }}>{t.description}{t.payee ? <span style={{ color: '#9DB39D' }}> · {t.payee}</span> : ''}{t.isSplit ? <span title={`One statement line, split into ${t.splitCount} categories in your books`} style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, color: '#2D4A35', background: '#E1F5EE', borderRadius: 10, padding: '1px 7px', whiteSpace: 'nowrap' }}>Split ×{t.splitCount}</span> : null}</td>
                           <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 500, color: inflow ? '#0F6E56' : '#A3302A', whiteSpace: 'nowrap' }}>
                             {inflow ? '+' : '−'}{money(Math.abs(Number(t.amount)))}
                           </td>
