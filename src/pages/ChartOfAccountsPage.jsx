@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import AccountRegister from '../components/AccountRegister.jsx';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -25,6 +26,10 @@ const defaultSubtypeFor = (type) => (SUBTYPE_OPTIONS[type] && SUBTYPE_OPTIONS[ty
 
 const EMPTY_FORM = { code: '', name: '', type: 'Expense', subtype: defaultSubtypeFor('Expense'), description: '' };
 
+// Balance-sheet accounts get a register; income/expense accounts get "Run report".
+const BALANCE_SHEET = ['Asset', 'Liability', 'Equity'];
+const fmtMoney = (n) => (n == null ? '' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(n) || 0));
+
 export default function ChartOfAccountsPage() {
   const { orgId, token } = getAuth();
   const headers = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
@@ -37,6 +42,8 @@ export default function ChartOfAccountsPage() {
   const [form, setForm]   = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg]     = useState('');
+  const [balances, setBalances] = useState({});
+  const [registerAcct, setRegisterAcct] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -44,6 +51,8 @@ export default function ChartOfAccountsPage() {
       const r = await fetch(`${API}/orgs/${orgId}/accounts`, { headers });
       const j = await r.json();
       setAccounts(j.data || []);
+      const br = await fetch(`${API}/orgs/${orgId}/accounts/balances`, { headers }).then(x => x.json()).catch(() => null);
+      if (br?.success) setBalances(br.data || {});
     } catch (e) { setMsg('Could not load accounts.'); }
     setLoading(false);
   }
@@ -160,6 +169,7 @@ export default function ChartOfAccountsPage() {
                     <th style={thStyle}>Name</th>
                     <th style={thStyle}>Subtype</th>
                     <th style={{ ...thStyle, textAlign:'center' }}>Normal</th>
+                    <th style={{ ...thStyle, textAlign:'right' }}>Balance</th>
                     <th style={{ ...thStyle, textAlign:'right' }}></th>
                   </tr>
                 </thead>
@@ -176,9 +186,21 @@ export default function ChartOfAccountsPage() {
                       </td>
                       <td style={{ ...tdStyle, color:'var(--color-text-secondary)' }}>{a.subtype || '—'}</td>
                       <td style={{ ...tdStyle, textAlign:'center', color:'var(--color-text-secondary)' }}>{normalBalanceFor(a.type)}</td>
-                      <td style={{ ...tdStyle, textAlign:'right' }}>
+                      <td style={{ ...tdStyle, textAlign:'right', fontVariantNumeric:'tabular-nums' }}>{fmtMoney(balances[a.id])}</td>
+                      <td style={{ ...tdStyle, textAlign:'right', whiteSpace:'nowrap' }}>
+                        {BALANCE_SHEET.includes(a.type) ? (
+                          <button onClick={() => setRegisterAcct(a)}
+                            style={{ background:'none', border:'none', color:'var(--brand-primary)', cursor:'pointer', fontSize:12 }}>
+                            View register
+                          </button>
+                        ) : (
+                          <button onClick={() => alert('Account reports — pick a date range and compare to a previous period — are coming in the next update.')}
+                            style={{ background:'none', border:'none', color:'var(--color-text-secondary)', cursor:'pointer', fontSize:12 }}>
+                            Run report
+                          </button>
+                        )}
                         <button onClick={() => openEdit(a)}
-                          style={{ background:'none', border:'none', color:'var(--brand-primary)', cursor:'pointer', fontSize:12 }}>
+                          style={{ background:'none', border:'none', color:'var(--brand-primary)', cursor:'pointer', fontSize:12, marginLeft:10 }}>
                           Edit
                         </button>
                       </td>
@@ -249,6 +271,17 @@ export default function ChartOfAccountsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {registerAcct && (
+        <AccountRegister
+          account={registerAcct}
+          accounts={accounts}
+          orgId={orgId}
+          token={token}
+          onClose={() => setRegisterAcct(null)}
+          onChanged={load}
+        />
       )}
     </div>
   );
