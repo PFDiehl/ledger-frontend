@@ -239,6 +239,9 @@ export default function BankingPage() {
   // the user types a payee and picks a category, then clicks Add to post it.
   const [payeeDraft, setPayeeDraft] = useState({}); // txnId -> payee string
   const [catDraft, setCatDraft]     = useState({}); // txnId -> pending category name
+  const [selected, setSelected]     = useState(() => new Set()); // bulk-select txn ids
+  const [bulkCat, setBulkCat]       = useState('');              // category to apply in bulk
+  const [bulkBusy, setBulkBusy]     = useState(false);
 
   // "+ Add new account" shortcut: create a Chart-of-Accounts category right from the
   // category dropdown (QuickBooks-style) without leaving Banking. `assign` is the
@@ -688,6 +691,38 @@ export default function BankingPage() {
     } catch (e) { setMsg('Could not categorize.'); }
   }
 
+  // ── Bulk re-categorize (multi-select) ──
+  function toggleSel(id) { setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; }); }
+  function toggleSelAll(ids) { setSelected(prev => (ids.length && ids.every(id => prev.has(id))) ? new Set() : new Set(ids)); }
+
+  // Change the category on every selected transaction at once and re-post each to the
+  // books. Reconciled or closed-period lines are locked server-side (423), so they're
+  // skipped and counted rather than forced.
+  async function bulkCategorize(category) {
+    if (!category) { setMsg('Pick a category to apply to the selected transactions.'); return; }
+    const ids = [...selected];
+    if (!ids.length) return;
+    setBulkBusy(true);
+    let done = 0, locked = 0, failed = 0; const updated = {};
+    for (const id of ids) {
+      try {
+        const r = await fetch(`${API}/orgs/${orgId}/banking/accounts/${activeId}/transactions/${id}`, {
+          method: 'PATCH', headers, body: JSON.stringify({ category }),
+        }).then(x => x.json());
+        if (r.success) { updated[id] = r.data; done++; }
+        else if (r.code === 'RECONCILED_LOCKED') locked++;
+        else failed++;
+      } catch { failed++; }
+    }
+    if (Object.keys(updated).length) setTxns(prev => prev.map(t => updated[t.id] || t));
+    setSelected(new Set()); setBulkCat('');
+    let m = `Changed ${done} transaction${done === 1 ? '' : 's'} to “${category}.”`;
+    if (locked) m += ` ${locked} left unchanged (reconciled or in a closed period).`;
+    if (failed) m += ` ${failed} couldn't be updated.`;
+    setMsg(m);
+    setBulkBusy(false);
+  }
+
   // Save just the payee/vendor name on a transaction (no ledger change).
   async function savePayee(txnId, payee) {
     try {
@@ -1051,7 +1086,7 @@ export default function BankingPage() {
               const isDragging   = dragIdx === i;
               const isDropTarget = dragIdx != null && overIdx === i && dragIdx !== i;
               return (
-                <button key={a.id} onClick={() => setActiveId(a.id)}
+                <button key={a.id} onClick={() => { setSelected(new Set()); setActiveId(a.id); }}
                   draggable
                   onDragStart={(e) => { setDragIdx(i); e.dataTransfer.effectAllowed = 'move'; }}
                   onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (overIdx !== i) setOverIdx(i); }}
@@ -1148,12 +1183,28 @@ export default function BankingPage() {
                   transactions move to Reviewed, where each can be undone. */}
               <div style={{ display: 'flex', gap: 2, marginBottom: 10, borderBottom: '1px solid #E2E8E0' }}>
                 {[['review', 'For review', visibleTxns.length], ['reviewed', 'Reviewed', reviewedTxns.length]].map(([id, label, n]) => (
-                  <button key={id} onClick={() => setBankTab(id)}
+                  <button key={id} onClick={() => { setSelected(new Set()); setBankTab(id); }}
                     style={{ background: 'none', border: 'none', borderBottom: bankTab === id ? '2px solid var(--brand-primary, #2D4A35)' : '2px solid transparent', color: bankTab === id ? 'var(--brand-primary, #2D4A35)' : '#7A9A7A', fontWeight: 600, fontSize: 13, padding: '8px 14px', cursor: 'pointer', marginBottom: -1 }}>
                     {label} <span style={{ fontWeight: 500, opacity: 0.75 }}>({n})</span>
                   </button>
                 ))}
               </div>
+              {selected.size > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: '#EFF5EE', border: '1px solid #CFE0D2', borderRadius: 10, padding: '10px 14px', marginBottom: 10 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-primary, #2D4A35)' }}>{selected.size} selected</span>
+                  <span style={{ fontSize: 13, color: '#5A6B5A' }}>— change category to:</span>
+                  <div style={{ minWidth: 220 }}>
+                    <CategoryPicker value={bulkCat} options={sortedChart}
+                      onPick={(name) => setBulkCat(name)}
+                      onAddNew={(q) => openNewAcct(q, (name) => setBulkCat(name))} />
+                  </div>
+                  <button onClick={() => bulkCategorize(bulkCat)} disabled={!bulkCat || bulkBusy}
+                    style={{ background: (bulkCat && !bulkBusy) ? 'var(--brand-primary, #2D4A35)' : '#9BB39B', border: 'none', borderRadius: 6, color: '#fff', fontSize: 12.5, fontWeight: 600, padding: '7px 16px', cursor: (bulkCat && !bulkBusy) ? 'pointer' : 'default' }}>
+                    {bulkBusy ? 'Applying…' : 'Apply'}</button>
+                  <button onClick={() => { setSelected(new Set()); setBulkCat(''); }}
+                    style={{ background: 'none', border: 'none', color: '#7A9A7A', fontSize: 12.5, cursor: 'pointer', textDecoration: 'underline' }}>Clear</button>
+                </div>
+              )}
               {shownTxns.length === 0 ? (
                 <div className="card" style={{ padding: 40, textAlign: 'center' }}>
                   <div style={{ fontSize: 30, marginBottom: 10, color: '#0F6E56' }}>✓</div>
@@ -1165,6 +1216,12 @@ export default function BankingPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #D4DDCC' }}>
+                    <th style={{ padding: '10px 10px 10px 16px', width: 30 }}>
+                      <input type="checkbox" title="Select all" aria-label="Select all shown transactions"
+                        checked={shownTxns.length > 0 && shownTxns.every(t => selected.has(t.id))}
+                        onChange={() => toggleSelAll(shownTxns.map(t => t.id))}
+                        style={{ width: 15, height: 15, accentColor: '#2D4A35', cursor: 'pointer' }} />
+                    </th>
                     <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500, color: '#7A9A7A', width: 90 }}>Date</th>
                     <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500, color: '#7A9A7A' }}>Description</th>
                     <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500, color: '#7A9A7A', width: 150 }}>Payee / vendor</th>
@@ -1192,7 +1249,12 @@ export default function BankingPage() {
                         borderTop: isTop ? `2px solid ${SPLIT_BORDER}` : undefined,
                         borderBottom: isBot ? `2px solid ${SPLIT_BORDER}` : '0.5px solid #EBF2E8',
                       }}>
-                        <td style={{ padding: '9px 16px', color: '#7A9A7A', whiteSpace: 'nowrap', ...sideL }}>{new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
+                        <td style={{ padding: '9px 6px 9px 16px', ...sideL }}>
+                          <input type="checkbox" checked={selected.has(t.id)} onChange={() => toggleSel(t.id)}
+                            aria-label="Select transaction"
+                            style={{ width: 15, height: 15, accentColor: '#2D4A35', cursor: 'pointer' }} />
+                        </td>
+                        <td style={{ padding: '9px 16px', color: '#7A9A7A', whiteSpace: 'nowrap' }}>{new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
                         <td style={{ padding: '9px 16px' }}>{t.description}</td>
                         <td style={{ padding: '6px 16px' }}>
                           {t.status === 'matched' ? (
