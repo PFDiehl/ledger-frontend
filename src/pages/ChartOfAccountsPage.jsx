@@ -46,6 +46,7 @@ export default function ChartOfAccountsPage() {
   const [balances, setBalances] = useState({});
   const [registerAcct, setRegisterAcct] = useState(null);
   const [reportAcct, setReportAcct] = useState(null);
+  const [showReclassify, setShowReclassify] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -125,9 +126,12 @@ export default function ChartOfAccountsPage() {
           </p>
         </div>
         {accounts.length > 0 && (
-          <button className="btn-primary" style={{ display:'flex', alignItems:'center', gap:6 }} onClick={openNew}>
-            <span>+</span> New account
-          </button>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <button onClick={() => setShowReclassify(true)} style={btnGhost}>Reclassify transactions</button>
+            <button className="btn-primary" style={{ display:'flex', alignItems:'center', gap:6 }} onClick={openNew}>
+              <span>+</span> New account
+            </button>
+          </div>
         )}
       </div>
 
@@ -294,6 +298,162 @@ export default function ChartOfAccountsPage() {
           onClose={() => setReportAcct(null)}
         />
       )}
+
+      {showReclassify && (
+        <ReclassifyModal
+          accounts={accounts}
+          orgId={orgId}
+          token={token}
+          onClose={() => setShowReclassify(false)}
+          onChanged={load}
+        />
+      )}
+    </div>
+  );
+}
+
+// Company-wide "move all of one category to another" tool. Lives on the Chart of
+// Accounts page because categories ARE the chart of accounts. Previews the count
+// first (a dry run), then applies across every account; the server skips reconciled
+// and closed-period transactions so a closed month can never be moved by accident.
+function ReclassifyModal({ accounts, orgId, token, onClose, onChanged }) {
+  const headers = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
+  const year = new Date().getFullYear();
+  const [from, setFrom]   = useState('');
+  const [to, setTo]       = useState('');
+  const [scope, setScope] = useState('year');              // 'year' | 'all' | 'custom'
+  const [start, setStart] = useState(`${year}-01-01`);
+  const [end, setEnd]     = useState(`${year}-12-31`);
+  const [preview, setPreview] = useState(null);
+  const [done, setDone]   = useState(null);
+  const [busy, setBusy]   = useState(false);
+  const [err, setErr]     = useState('');
+
+  // Any change to the selection invalidates a previous preview or result.
+  useEffect(() => { setPreview(null); setDone(null); setErr(''); }, [from, to, scope, start, end]);
+
+  const types = TYPES.filter(t => accounts.some(a => a.type === t));
+  const options = types.map(t => (
+    <optgroup key={t} label={t}>
+      {accounts.filter(a => a.type === t).map(a => <option key={a.id} value={a.name}>{a.name}</option>)}
+    </optgroup>
+  ));
+
+  function dateRange() {
+    if (scope === 'year')   return { start: `${year}-01-01`, end: `${year}-12-31` };
+    if (scope === 'custom') return { start: start || null, end: end || null };
+    return { start: null, end: null };                     // all years
+  }
+
+  async function run(dryRun) {
+    if (!from || !to) { setErr('Choose the category to move from and the one to move to.'); return; }
+    if (from === to)  { setErr('Those are the same category — pick two different ones.'); return; }
+    setBusy(true); setErr('');
+    try {
+      const { start: s, end: e } = dateRange();
+      const body = { from, to, dryRun };
+      if (s) body.start = s;
+      if (e) body.end = e;
+      const r = await fetch(`${API}/orgs/${orgId}/banking/reclassify`, { method:'POST', headers, body: JSON.stringify(body) }).then(x => x.json());
+      if (!r.success) { setErr(r.message || 'Something went wrong — nothing was changed.'); setBusy(false); return; }
+      if (dryRun) setPreview(r.data);
+      else { setDone(r.data); onChanged && onChanged(); }
+    } catch { setErr('Something went wrong — nothing was changed.'); }
+    setBusy(false);
+  }
+
+  const skipped = (p) => {
+    const bits = [];
+    if (p.reconciled) bits.push(`${p.reconciled} reconciled`);
+    if (p.closed)     bits.push(`${p.closed} in a closed period`);
+    return bits.length ? ` ${bits.join(' and ')} left unchanged.` : '';
+  };
+
+  return (
+    <div style={overlay} onClick={onClose}>
+      <div style={modal} onClick={e => e.stopPropagation()}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+          <h2 style={{ fontSize:17, fontWeight:600 }}>Reclassify transactions</h2>
+          <button onClick={onClose} style={{ background:'none', border:'none', fontSize:22, cursor:'pointer', color:'var(--color-text-secondary)' }}>×</button>
+        </div>
+        <p style={{ fontSize:13, color:'var(--color-text-secondary)', marginBottom:18 }}>
+          Move every transaction from one category to another, across all your accounts.
+          Reconciled transactions and anything in a closed period are left untouched.
+        </p>
+
+        {done ? (
+          <div>
+            <div style={{ fontSize:14, padding:'14px 16px', borderRadius:10, background:'var(--brand-accent-light, #EBF2E8)', color:'var(--color-text-primary)' }}>
+              Changed <b>{done.changed}</b> transaction{done.changed === 1 ? '' : 's'} from “{from}” to “{to}.”{skipped(done)}
+            </div>
+            <div style={{ display:'flex', justifyContent:'flex-end', marginTop:18 }}>
+              <button className="btn-primary" onClick={onClose}>Done</button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+            <Field label="Move from">
+              <select style={input} value={from} onChange={e => setFrom(e.target.value)}>
+                <option value="">Choose a category…</option>
+                {options}
+              </select>
+            </Field>
+            <Field label="Move to">
+              <select style={input} value={to} onChange={e => setTo(e.target.value)}>
+                <option value="">Choose a category…</option>
+                {options}
+              </select>
+            </Field>
+
+            <Field label="Which transactions">
+              <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                {[['year', `This year (${year})`], ['all', 'All years'], ['custom', 'Custom range']].map(([v, lbl]) => (
+                  <button key={v} onClick={() => setScope(v)}
+                    style={{
+                      padding:'7px 13px', borderRadius:8, fontSize:13, cursor:'pointer',
+                      border: scope === v ? '1px solid var(--brand-primary)' : '1px solid var(--color-border-secondary, #D4DDCC)',
+                      background: scope === v ? 'var(--brand-accent-light, #EBF2E8)' : 'transparent',
+                      color: scope === v ? 'var(--brand-primary)' : 'var(--color-text-primary)',
+                      fontWeight: scope === v ? 600 : 400,
+                    }}>
+                    {lbl}
+                  </button>
+                ))}
+              </div>
+            </Field>
+
+            {scope === 'custom' && (
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                <Field label="From date"><input type="date" style={input} value={start} onChange={e => setStart(e.target.value)} /></Field>
+                <Field label="To date"><input type="date" style={input} value={end} onChange={e => setEnd(e.target.value)} /></Field>
+              </div>
+            )}
+
+            {scope === 'all' && (
+              <div style={{ fontSize:12.5, padding:'10px 13px', borderRadius:9, background:'#FBEEDC', border:'1px solid #F0D8B4', color:'#7A4E0B' }}>
+                Heads up: changing prior years can move numbers on reports and tax returns you’ve already filed.
+              </div>
+            )}
+
+            {err && <div style={{ fontSize:12.5, color:'#B4472D' }}>{err}</div>}
+
+            {preview && (
+              <div style={{ fontSize:14, padding:'12px 15px', borderRadius:10, background:'var(--brand-accent-light, #EBF2E8)', color:'var(--color-text-primary)' }}>
+                {preview.toChange > 0
+                  ? <>This will change <b>{preview.toChange}</b> transaction{preview.toChange === 1 ? '' : 's'} from “{from}” to “{to}.”{skipped(preview)}</>
+                  : <>No transactions to change in “{from}” for this period.{skipped(preview)}</>}
+              </div>
+            )}
+
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:4 }}>
+              <button onClick={onClose} style={btnGhost}>Cancel</button>
+              {preview && preview.toChange > 0
+                ? <button className="btn-primary" onClick={() => run(false)} disabled={busy}>{busy ? 'Changing…' : `Change ${preview.toChange} transaction${preview.toChange === 1 ? '' : 's'}`}</button>
+                : <button className="btn-primary" onClick={() => run(true)} disabled={busy || !from || !to}>{busy ? 'Checking…' : 'Preview'}</button>}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
