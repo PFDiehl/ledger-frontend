@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MTL Reclassify Transactions Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --green:#234F3A;--green-2:#2F6A4C;--green-soft:#EAF1EB;--gold:#C9971F;--gold-soft:#FBF1D7;
+    --ink:#1C2521;--ink-2:#4C564F;--ink-3:#7C867F;--line:#E2E8E2;--bg:#FBFBF9;--surface:#FFFFFF;
+    --warn:#A35200;--warn-soft:#FBEEDC;--blue:#185FA5;--blue-soft:#E9F1F9;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.65;}
+  .wrap{max-width:820px;margin:0 auto;padding:0 20px}
+  header.top{background:var(--green);color:#fff;padding:44px 0 38px;border-bottom:4px solid var(--gold);}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:600;font-size:15px;letter-spacing:.2px;opacity:.95}
+  header.top h1{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(28px,5vw,40px);line-height:1.1;margin:18px 0 8px;text-wrap:balance;}
+  header.top p{margin:0;font-size:16.5px;color:#D7E4D9;max-width:62ch}
+  .audience{margin-top:18px;font-size:13.5px;color:#BFD3C3;letter-spacing:.3px}
+  main{padding:14px 0 60px}
+  section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:26px 26px 22px;margin:22px 0}
+  .eyebrow{font-size:12px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+  h2{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:22px;color:var(--green);margin:0 0 12px;line-height:1.2}
+  p{margin:0 0 13px}
+  a{color:var(--green-2)}
+  strong{font-weight:600;color:var(--ink)}
+  .lede{font-size:16.5px;color:var(--ink-2)}
+  ol{margin:4px 0 13px;padding-left:24px}
+  ol li{margin:0 0 11px}
+  ol li::marker{color:var(--green);font-weight:600}
+  .note{border-radius:10px;padding:13px 16px;margin:14px 0;font-size:14.5px;border:1px solid}
+  .note.tip{background:var(--green-soft);border-color:#CFE0D2;color:#1F4030}
+  .note.info{background:var(--blue-soft);border-color:#CADEF1;color:#123E68}
+  .note.warn{background:var(--warn-soft);border-color:#F0D8B4;color:#7A4E0B}
+  .note b{color:inherit}
+  footer{color:var(--ink-3);font-size:13px;text-align:center;padding:10px 0 50px}
+  footer .line{height:1px;background:var(--line);max-width:120px;margin:0 auto 16px}
+  @media (max-width:560px){ section{padding:22px 18px 16px} }
+  @media print{
+    body{background:#fff}
+    header.top{background:#fff;color:var(--ink);border-bottom:3px solid var(--gold)}
+    header.top h1{color:var(--green)} header.top p,.audience{color:var(--ink-2)}
+    section{break-inside:avoid;border-color:#ccc}
+    a{color:var(--ink)}
+  }
+</style>
+</head>
+<body>
+<div style="background:#EAF1EB;border-bottom:1px solid #D7E4D9"><div style="max-width:820px;margin:0 auto;padding:0 20px"><a href="mtl-help-center.html" style="display:inline-block;padding:9px 0;color:#234F3A;font-size:13.5px;font-weight:600;text-decoration:none">&larr; Help Center</a></div></div>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 26 26" aria-hidden="true"><path d="M3 21L10 7l4 7 2-3 7 10z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M10 7l4 7 2-3" fill="none" stroke="#F0C048" stroke-width="2" stroke-linejoin="round"/></svg>
+      MountainTop Ledger
+    </div>
+    <h1>Reclassify Transactions</h1>
+    <p>Move a whole category into another one — across every account, and across past years when you need to — with a preview before anything changes.</p>
+    <div class="audience">A guide for business owners &amp; bookkeepers</div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <div class="eyebrow">The idea</div>
+    <h2>When a category needs to move</h2>
+    <p>Sometimes a category turns out to be the wrong home for a batch of transactions — everything filed under <strong>Research &amp; Development</strong> really belongs in <strong>Software &amp; Subscriptions</strong>, say. Fixing those one at a time is slow, and if they span several years it's easy to miss some.</p>
+    <p><strong>Reclassify transactions</strong> does the whole move in one step: pick the category to move <em>from</em>, the category to move <em>to</em>, choose how far back to go, and MTL updates every matching transaction across all your accounts at once — after showing you exactly how many it will change.</p>
+  </section>
+
+  <section>
+    <div class="eyebrow">Where to find it</div>
+    <h2>On the Chart of Accounts page</h2>
+    <p>Open <strong>Chart of Accounts</strong>. At the top right, next to “New account,” click <strong>Reclassify transactions</strong>. That opens the tool.</p>
+  </section>
+
+  <section>
+    <div class="eyebrow">In MountainTop Ledger</div>
+    <h2>How to reclassify, step by step</h2>
+    <ol>
+      <li><strong>Move from</strong> — choose the category you want to clear out (for example, <em>Research &amp; Development</em>).</li>
+      <li><strong>Move to</strong> — choose where those transactions should go instead (for example, <em>Software &amp; Subscriptions</em>).</li>
+      <li><strong>Which transactions</strong> — pick <strong>This year</strong>, <strong>All years</strong>, or a <strong>Custom range</strong>. It starts on <em>This year</em>.</li>
+      <li><strong>Preview</strong> — MTL tells you how many transactions will move: <em>“This will change 142 transactions.”</em> Nothing has changed yet.</li>
+      <li>If that looks right, click <strong>Change 142 transactions</strong>. The move is applied across every account, and MTL confirms what it did.</li>
+    </ol>
+    <div class="note info"><b>Preview first, always.</b> The count is a safe dry run — it looks but doesn't touch anything. You only commit the change on the second click, so you can check the number before you act.</div>
+  </section>
+
+  <section>
+    <div class="eyebrow">What it protects</div>
+    <h2>Locked work stays locked</h2>
+    <p>Reclassify never moves a transaction that's already been <strong>reconciled</strong> or that falls in a <strong>closed accounting period</strong> — those are protected so a closed month can't be changed out from under you. When it skips any for that reason, it tells you: <em>“3 reconciled and 5 in a closed period left unchanged.”</em></p>
+    <div class="note warn"><b>Choosing “All years”?</b> Changing prior years can move numbers on reports and tax returns you've already filed. MTL shows a reminder when you pick it, so that choice is always a deliberate one.</div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Good to know</div>
+    <h2>The quicker tool, for small fixes</h2>
+    <p>For just a handful of transactions, there's a faster way: on the <strong>Banking</strong> page, tick the ones you want and change their category together — one account at a time. Use that for a quick cleanup, and use <strong>Reclassify</strong> when a category needs to move everywhere, especially across more than one year.</p>
+    <div class="note tip"><b>Tip:</b> The “from” and “to” lists are your chart of accounts, grouped by type. If a category you expect isn't there, it may have been renamed — renaming an account already carries its history along with it, so there may be nothing left to move.</div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="line"></div>
+  MountainTop Ledger &middot; Help Center
+</footer>
+
+</body>
+</html>
