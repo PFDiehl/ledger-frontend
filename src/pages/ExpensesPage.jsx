@@ -13,6 +13,15 @@ function getAuth() {
 const CATEGORIES = ['Advertising & Marketing','Bank Charges','Equipment','Insurance','Legal & Professional Fees','Meals & Entertainment','Office Supplies','Payroll','Rent & Lease','Software & Subscriptions','Taxes & Licenses','Travel','Utilities','Vehicle','Other'];
 const PAYMENT_METHODS = ['Cash','Check','Credit Card','Debit Card','ACH / Bank Transfer','Wire Transfer','PayPal','Venmo','Zelle','Other'];
 
+// Reconciliation status badge (QuickBooks-style), derived by the server:
+// unreconciled → cleared → reconciled. Colors + a plain-English tooltip.
+const STATUS_STYLE = {
+  reconciled:   { bg:'#EAF1EB', fg:'#234F3A', label:'Reconciled',   tip:'Part of a completed bank reconciliation.' },
+  cleared:      { bg:'#E9F1F9', fg:'#185FA5', label:'Cleared',      tip:'Matched to a bank transaction in Banking, not yet reconciled.' },
+  unreconciled: { bg:'#FAEEDA', fg:'#854F0B', label:'Unreconciled', tip:'Recorded, but not yet matched to the bank.' },
+};
+const statusStyle = (s) => STATUS_STYLE[s] || STATUS_STYLE.unreconciled;
+
 export default function ExpensesPage({ autoNew } = {}) {
   const [expenses, setExpenses] = useState([]);
   const [accounts, setAccounts] = useState([]);
@@ -232,7 +241,7 @@ export default function ExpensesPage({ autoNew } = {}) {
                   <td style={{padding:'12px 16px',color:'#7A9A7A'}}>{e.paymentMethod || '-'}</td>
                   <td style={{padding:'12px 16px',textAlign:'right',fontWeight:500}}>{fmt(e.amount)}</td>
                   <td style={{padding:'12px 16px',textAlign:'center'}}>{e.receiptUrl ? <span style={{fontSize:16}} title="Receipt attached">🧾</span> : <span style={{color:'#D4DDCC',fontSize:13}}>—</span>}</td>
-                  <td style={{padding:'12px 16px'}}><span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:20,background:'#FAEEDA',color:'#854F0B',textTransform:'capitalize'}}>{e.status}</span></td>
+                  <td style={{padding:'12px 16px'}}><span title={statusStyle(e.status).tip} style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:20,background:statusStyle(e.status).bg,color:statusStyle(e.status).fg}}>{statusStyle(e.status).label}</span></td>
                 </tr>
               ))}
             </tbody>
@@ -329,6 +338,10 @@ export default function ExpensesPage({ autoNew } = {}) {
               </div>
             ) : (
               <>
+                <div style={{marginBottom:12,display:'flex',alignItems:'center',gap:8}}>
+                  <span style={{color:'#7A9A7A',fontSize:13}}>Status: </span>
+                  <span title={statusStyle(selected.status).tip} style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:20,background:statusStyle(selected.status).bg,color:statusStyle(selected.status).fg}}>{statusStyle(selected.status).label}</span>
+                </div>
                 {[['Category', selected.category],['Date', selected.date ? new Date(selected.date).toLocaleDateString() : '-'],['Amount', fmt(selected.amount)],['Payment Method', selected.paymentMethod],['Receipt #', selected.receiptNumber],['Description', selected.description]].map(([l,v]) => v ? (
                   <div key={l} style={{marginBottom:10}}><span style={{color:'#7A9A7A',fontSize:13}}>{l}: </span><span style={{fontSize:13,fontWeight:l==='Amount'?700:400,color:l==='Amount'?'#2D4A35':'inherit'}}>{v}</span></div>
                 ) : null)}
