@@ -45,6 +45,9 @@ export default function DashboardPage() {
   const totalOutstanding = invoices.filter(i => i.status !== 'paid').reduce((s, i) => s + Number(i.total || 0), 0);
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const totalBills = bills.reduce((s, b) => s + Number(b.amount || 0), 0);
+  // What is still owed on bills: each bill's remaining balance (a part-paid bill
+  // counts only for what is left; a paid bill counts for nothing).
+  const unpaidBills = bills.reduce((s, b) => s + (b.balance != null ? Number(b.balance) : (b.status === 'paid' ? 0 : Number(b.amount || 0))), 0);
   // Revenue / expenses / net income come from the P&L (the real ledger, which
   // includes categorized bank-feed transactions) so the Dashboard matches the
   // P&L report. Falls back to invoice/expense records if the P&L didn't load.
@@ -80,7 +83,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <div style={{fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--brand-kpi-hero-label)', marginBottom:5}}>Unpaid bills</div>
-                <div style={{fontSize:19, fontWeight:600, color:'var(--brand-kpi-hero-val)'}}>{fmt(totalBills)}</div>
+                <div style={{fontSize:19, fontWeight:600, color:'var(--brand-kpi-hero-val)'}}>{fmt(unpaidBills)}</div>
               </div>
             </div>
           </div>

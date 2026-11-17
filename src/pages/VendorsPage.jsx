@@ -74,8 +74,10 @@ export default function VendorsPage({ org, onNewBill, focusName }) {
   function getTotals(v) {
     const vb = billsFor(v);
     const totalBilled = vb.reduce((s,b) => s + Number(b.amount||0), 0);
-    const paid        = vb.filter(b => b.status==='paid').reduce((s,b) => s + Number(b.amount||0), 0);
-    const outstanding = vb.filter(b => b.status!=='paid').reduce((s,b) => s + Number(b.amount||0), 0);
+    // Paid and outstanding follow each bill's payments, so a part-paid bill is split
+    // between the two instead of counting as fully unpaid.
+    const paid        = vb.reduce((s,b) => s + (b.amountPaid != null ? Number(b.amountPaid) : (b.status==='paid' ? Number(b.amount||0) : 0)), 0);
+    const outstanding = vb.reduce((s,b) => s + (b.balance != null ? Number(b.balance) : (b.status==='paid' ? 0 : Number(b.amount||0))), 0);
     return { totalBilled, paid, outstanding };
   }
 
@@ -157,9 +159,9 @@ export default function VendorsPage({ org, onNewBill, focusName }) {
                   <td style={{padding:'11px 12px',fontWeight:600}}>${fmt(b.amount)}</td>
                   <td style={{padding:'11px 12px'}}>
                     <span style={{padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:600,
-                      background:b.status==='paid'?'#dcfce7':b.status==='overdue'?'#fee2e2':'#fef9c3',
-                      color:b.status==='paid'?'#16a34a':b.status==='overdue'?'#dc2626':'#854d0e'}}>
-                      {b.status}
+                      background:b.status==='paid'?'#dcfce7':b.status==='partial'?'#dbeafe':b.status==='overdue'?'#fee2e2':'#fef9c3',
+                      color:b.status==='paid'?'#16a34a':b.status==='partial'?'#1d4ed8':b.status==='overdue'?'#dc2626':'#854d0e'}}>
+                      {b.status==='partial' ? 'part paid' : b.status}
                     </span>
                   </td>
                 </tr>
