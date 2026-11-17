@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { MoneyInput, SearchSelect, parseMoney } from '../components/FormFields';
@@ -27,6 +27,17 @@ export default function BillsPage({ presetVendor, autoNew } = {}) {
   const [pay, setPay] = useState({ amount:'', date:'', note:'' });
   const [paying, setPaying] = useState(false);
   const [payMsg, setPayMsg] = useState('');
+  // The payment box is open when a bill is first opened. Once a payment is recorded
+  // or removed it closes and a confirmation shows instead, so a stray second click
+  // can't record another payment. `notice` holds that confirmation.
+  const [showPayForm, setShowPayForm] = useState(true);
+  const [notice, setNotice] = useState('');
+  // For a moment after a payment is recorded or removed, the bill window ignores
+  // clicks. The buttons move when the payment box closes, and the second click of a
+  // double-click must not land on whatever is now under the pointer.
+  const [settling, setSettling] = useState(false);
+  const settleTimer = useRef(null);
+  useEffect(() => () => clearTimeout(settleTimer.current), []);
 
   useEffect(() => {
     if (!org) return;
@@ -139,12 +150,20 @@ export default function BillsPage({ presetVendor, autoNew } = {}) {
     setSelected(b);
     setPay({ amount: bal > 0 ? bal.toFixed(2) : '', date: todayStr(), note: '' });
     setPayMsg('');
+    setShowPayForm(true);
+    setNotice('');
   }
 
-  // After a payment is added or removed: refresh the row and keep the bill open.
-  function applyUpdated(updated) {
+  // After a payment is added or removed: refresh the row, keep the bill open, close
+  // the payment box and say what just happened.
+  function applyUpdated(updated, message) {
     setBills(prev => prev.map(b => b.id === updated.id ? updated : b));
     openBill(updated);
+    setShowPayForm(false);
+    setNotice(message || '');
+    setSettling(true);
+    clearTimeout(settleTimer.current);
+    settleTimer.current = setTimeout(() => setSettling(false), 700);
   }
 
   // Record a payment against the open bill. Any amount up to the balance is allowed,
@@ -178,7 +197,12 @@ export default function BillsPage({ presetVendor, autoNew } = {}) {
         } else throw e;
       }
       const updated = r?.data?.data || r?.data;   // api returns the body; payload is r.data
-      if (updated) applyUpdated(updated);
+      if (updated) {
+        const left = balanceOf(updated);
+        applyUpdated(updated, left > 0
+          ? `Payment of ${fmt(amount)} recorded. ${fmt(left)} still owed.`
+          : `Payment of ${fmt(amount)} recorded. This bill is now paid in full.`);
+      }
     } catch (e) { setPayMsg((e?.message || '').trim() || 'The payment could not be recorded. Please try again.'); }
     finally { setPaying(false); }
   }
@@ -191,7 +215,7 @@ export default function BillsPage({ presetVendor, autoNew } = {}) {
     try {
       const r = await api.delete(`/orgs/${org.id}/bills/${selected.id}/payments/${p.id || 'legacy'}`);
       const updated = r?.data?.data || r?.data;
-      if (updated) applyUpdated(updated);
+      if (updated) applyUpdated(updated, `Payment of ${fmt(p.amount)} removed. ${fmt(balanceOf(updated))} still owed.`);
     } catch (e) { setPayMsg((e?.message || '').trim() || 'The payment could not be removed. Please try again.'); }
   }
 
@@ -262,7 +286,7 @@ export default function BillsPage({ presetVendor, autoNew } = {}) {
 
       {selected && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center'}}>
-          <div style={{background:'#fff',borderRadius:14,padding:28,width:500,maxWidth:'92vw',maxHeight:'90vh',overflowY:'auto',boxSizing:'border-box'}}>
+          <div style={{background:'#fff',borderRadius:14,padding:28,width:500,maxWidth:'92vw',maxHeight:'90vh',overflowY:'auto',boxSizing:'border-box',pointerEvents:settling?'none':'auto'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
               <h2 style={{fontSize:18,fontWeight:600}}>{selected.vendor}</h2>
               <button onClick={()=>setSelected(null)} style={{background:'none',border:'none',fontSize:22,cursor:'pointer'}}>×</button>
@@ -295,8 +319,16 @@ export default function BillsPage({ presetVendor, autoNew } = {}) {
               </div>
             )}
 
+            {/* What just happened, shown in place of the payment box after a payment is recorded or removed */}
+            {notice && (
+              <div role="status" style={{marginTop:16,background:'#EBF2E8',border:'1px solid #CFE0D2',borderRadius:10,padding:'12px 14px',fontSize:13.5,fontWeight:500,color:'#1F4030'}}>{notice}</div>
+            )}
+            {balanceOf(selected) > 0 && !showPayForm && (
+              <button onClick={()=>{ setShowPayForm(true); setNotice(''); setPayMsg(''); }} style={{width:'100%',marginTop:10,padding:'9px',borderRadius:8,border:'1px solid #2D4A35',background:'#fff',color:'#2D4A35',cursor:'pointer',fontSize:13,fontWeight:600,userSelect:'none'}}>Record another payment</button>
+            )}
+
             {/* Record a payment: the full balance by default, or any smaller amount */}
-            {balanceOf(selected) > 0 && (
+            {balanceOf(selected) > 0 && showPayForm && (
               <div style={{marginTop:16,background:'#F4F8F4',border:'1px solid #D4DDCC',borderRadius:10,padding:14}}>
                 <div style={{fontSize:12,fontWeight:500,color:'#7A9A7A',marginBottom:8}}>RECORD A PAYMENT</div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
@@ -320,7 +352,10 @@ export default function BillsPage({ presetVendor, autoNew } = {}) {
             <div style={{display:'flex',gap:10,marginTop:20}}>
               <button onClick={()=>openEdit(selected)} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #2D4A35',background:'#fff',color:'#2D4A35',cursor:'pointer',fontSize:14,fontWeight:600}}>Edit</button>
               <button onClick={()=>deleteBill(selected.id)} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #c0392b',background:'#fff',color:'#c0392b',cursor:'pointer',fontSize:14,fontWeight:600}}>Delete</button>
-              <button onClick={()=>setSelected(null)} style={{flex:1,padding:'10px',borderRadius:8,border:'1px solid #D4DDCC',background:'#fff',cursor:'pointer',fontSize:14}}>Close</button>
+              {/* After a payment is recorded or removed, this becomes the highlighted "Done" button. */}
+              <button onClick={()=>setSelected(null)} style={notice
+                ? {flex:1,padding:'10px',borderRadius:8,border:'none',background:'#2D4A35',color:'#A8D4A8',cursor:'pointer',fontSize:14,fontWeight:600}
+                : {flex:1,padding:'10px',borderRadius:8,border:'1px solid #D4DDCC',background:'#fff',cursor:'pointer',fontSize:14}}>{notice ? 'Done' : 'Close'}</button>
             </div>
           </div>
         </div>
